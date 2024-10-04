@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/metal-toolbox/rivets/ginjwt"
+	"github.com/metal-automata/rivets/ginjwt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/volatiletech/sqlboiler/boil"
@@ -17,9 +17,9 @@ import (
 	// import gocdk secret drivers
 	_ "gocloud.dev/secrets/localsecrets"
 
-	"github.com/metal-toolbox/fleetdb/internal/config"
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
-	"github.com/metal-toolbox/fleetdb/internal/httpsrv"
+	"github.com/metal-automata/fleetdb/internal/config"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/httpsrv"
 )
 
 var (

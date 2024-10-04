@@ -6,7 +6,7 @@ import (
 
 	"github.com/volatiletech/sqlboiler/v4/types"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // Attributes provide the ability to apply namespaced settings to an entity.

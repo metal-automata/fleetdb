@@ -17,7 +17,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/types"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 //nolint:revive

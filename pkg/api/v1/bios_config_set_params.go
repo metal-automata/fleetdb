@@ -9,7 +9,7 @@ import (
 	"github.com/hetiansu5/urlquery"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // BiosConfigSetQuery defines values you can query BiosConfigSets with. Empty strings are ignored.

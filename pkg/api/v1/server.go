@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/volatiletech/null/v8"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // Server represents a server in a facility

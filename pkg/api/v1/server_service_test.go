@@ -9,9 +9,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	fleetdbapi "github.com/metal-toolbox/fleetdb/pkg/api/v1"
+	fleetdbapi "github.com/metal-automata/fleetdb/pkg/api/v1"
 
-	rivets "github.com/metal-toolbox/rivets/types"
+	rivets "github.com/metal-automata/rivets/types"
 )
 
 func TestFleetdbCreate(t *testing.T) {

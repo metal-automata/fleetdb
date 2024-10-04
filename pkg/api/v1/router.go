@@ -7,13 +7,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
-	"github.com/metal-toolbox/rivets/ginauth"
+	"github.com/metal-automata/rivets/ginauth"
 	"github.com/pkg/errors"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"go.uber.org/zap"
 	"gocloud.dev/secrets"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // Router provides a router for the v1 API

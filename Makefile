@@ -4,9 +4,9 @@ GOOS=linux
 DB_STRING=host=localhost port=26257 user=root sslmode=disable
 DEV_DB=${DB_STRING} dbname=fleetdb
 TEST_DB=${DB_STRING} dbname=fleetdb_test
-DOCKER_IMAGE := "ghcr.io/metal-toolbox/fleetdb"
+DOCKER_IMAGE := "ghcr.io/metal-automata/fleetdb"
 PROJECT_NAME := fleetdb
-REPO := "https://github.com/metal-toolbox/fleetdb.git"
+REPO := "https://github.com/metal-automata/fleetdb.git"
 SQLBOILER := v4.15.0
 
 ## run all tests
@@ -25,7 +25,7 @@ unit-test: | test-database
 
 ## run single integration test. Example: make single-test test=TestIntegrationServerListComponents
 single-test:
-	@FLEETDB_CRDB_URI="${TEST_DB}" go test -timeout 30s -tags testtools -run ^${test}$$ github.com/metal-toolbox/fleetdb/pkg/api/v1 -v
+	@FLEETDB_CRDB_URI="${TEST_DB}" go test -timeout 30s -tags testtools -run ^${test}$$ github.com/metal-automata/fleetdb/pkg/api/v1 -v
 
 ## check test coverage
 coverage: | test-database
@@ -103,14 +103,14 @@ psql:
 build-linux:
 	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ${PROJECT_NAME}
 
-## build docker image and tag as ghcr.io/metal-toolbox/fleetdb:latest
+## build docker image and tag as ghcr.io/metal-automata/fleetdb:latest
 build-image: build-linux
 	docker build --rm=true -f Dockerfile -t ${DOCKER_IMAGE}:latest . \
 		--label org.label-schema.schema-version=1.0 \
 		--label org.label-schema.vcs-ref=${GIT_COMMIT_FULL} \
 		--label org.label-schema.vcs-url=${REPO}
 
-## build and push devel docker image to KIND image repo used by the sandbox - https://github.com/metal-toolbox/sandbox
+## build and push devel docker image to KIND image repo used by the sandbox - https://github.com/metal-automata/sandbox
 push-image-devel: build-image
 	docker tag ${DOCKER_IMAGE}:latest localhost:5001/${PROJECT_NAME}:latest
 	docker push localhost:5001/${PROJECT_NAME}:latest

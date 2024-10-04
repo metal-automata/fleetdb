@@ -60,12 +60,12 @@ export FLEETDB_CRDB_URI="host=localhost port=26257 user=root sslmode=disable dbn
 Run test.
 
 ```bash
-go test -timeout 30s -tags testtools -run ^TestIntegrationServerListComponents$ github.com/metal-toolbox/fleetdb/pkg/api/v1 -v
+go test -timeout 30s -tags testtools -run ^TestIntegrationServerListComponents$ github.com/metal-automata/fleetdb/pkg/api/v1 -v
 ```
 
 ### Dump requests and responses in the client for debugging
 
 Setting `DEBUG_CLIENT` to a value will cause the client to write requests and responses to stdout.
 ```
-export DEBUG_CLIENT=1 /usr/local/bin/go test -timeout 10s -tags testtools -run ^TestIntegrationServerComponentFirmwareUpdate$ github.com/metal-toolbox/fleetdb/pkg/api/v1  -v
+export DEBUG_CLIENT=1 /usr/local/bin/go test -timeout 10s -tags testtools -run ^TestIntegrationServerComponentFirmwareUpdate$ github.com/metal-automata/fleetdb/pkg/api/v1  -v
 ```

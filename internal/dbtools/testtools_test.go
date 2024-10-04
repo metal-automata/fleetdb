@@ -8,8 +8,8 @@ import (
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // TestDatabaseTest is used to force the test commands in this package to run during

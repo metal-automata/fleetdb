@@ -4,7 +4,7 @@ import (
 	// "bytes"
 	"time"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // BiosConfigSet represents a BIOS Configuration Set

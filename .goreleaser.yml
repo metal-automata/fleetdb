@@ -52,7 +52,7 @@ changelog:
 dockers:
   -
     image_templates:
-      - "ghcr.io/metal-toolbox/{{.ProjectName}}:{{ .Tag }}"
+      - "ghcr.io/metal-automata/{{.ProjectName}}:{{ .Tag }}"
     dockerfile: Dockerfile
     build_flag_templates:
       - "--label=org.opencontainers.image.created={{.Date}}"

@@ -6,10 +6,10 @@ import (
 
 	"github.com/bmc-toolbox/common"
 	"github.com/google/uuid"
-	rivets "github.com/metal-toolbox/rivets/types"
+	rivets "github.com/metal-automata/rivets/types"
 	"github.com/stretchr/testify/require"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
 )
 
 func TestIntegrationGetInventory(t *testing.T) {

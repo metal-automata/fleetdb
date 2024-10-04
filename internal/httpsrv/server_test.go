@@ -7,12 +7,12 @@ import (
 	"testing"
 
 	"github.com/jmoiron/sqlx"
-	"github.com/metal-toolbox/rivets/ginjwt"
+	"github.com/metal-automata/rivets/ginjwt"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
-	"github.com/metal-toolbox/fleetdb/internal/httpsrv"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/httpsrv"
 )
 
 var serverAuthConfig = []ginjwt.AuthConfig{

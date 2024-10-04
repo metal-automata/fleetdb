@@ -11,8 +11,8 @@ import (
 	"github.com/stretchr/testify/require"
 	"github.com/volatiletech/null/v8"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
-	fleetdbapi "github.com/metal-toolbox/fleetdb/pkg/api/v1"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
+	fleetdbapi "github.com/metal-automata/fleetdb/pkg/api/v1"
 )
 
 func TestIntegrationServerList(t *testing.T) {

@@ -9,8 +9,8 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 func (r *Router) serverCredentialGet(c *gin.Context) {

@@ -15,9 +15,9 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
-	"github.com/metal-toolbox/fleetdb/internal/models"
-	rivets "github.com/metal-toolbox/rivets/types"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/models"
+	rivets "github.com/metal-automata/rivets/types"
 )
 
 func mustCreateServerRecord(t *testing.T, db *sqlx.DB, name string) uuid.UUID {

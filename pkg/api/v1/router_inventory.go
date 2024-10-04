@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	rivets "github.com/metal-toolbox/rivets/types"
+	rivets "github.com/metal-automata/rivets/types"
 	"go.uber.org/zap"
 
-	"github.com/metal-toolbox/fleetdb/internal/inventory"
+	"github.com/metal-automata/fleetdb/internal/inventory"
 )
 
 func (r *Router) getInventory(c *gin.Context) {

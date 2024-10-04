@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/volatiletech/sqlboiler/v4/types"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // ComponentFirmwareSet represents a group of firmwares

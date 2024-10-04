@@ -16,8 +16,8 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go.uber.org/zap"
 
-	"github.com/metal-toolbox/fleetdb/internal/metrics"
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/metrics"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 var (

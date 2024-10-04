@@ -9,8 +9,8 @@ import (
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
-	"github.com/metal-toolbox/rivets/ginauth"
-	"github.com/metal-toolbox/rivets/ginjwt"
+	"github.com/metal-automata/rivets/ginauth"
+	"github.com/metal-automata/rivets/ginjwt"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.infratographer.com/x/versionx"
 	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
@@ -19,8 +19,8 @@ import (
 	"go.uber.org/zap/zapcore"
 	"gocloud.dev/secrets"
 
-	"github.com/metal-toolbox/fleetdb/internal/metrics"
-	fleetdbapi "github.com/metal-toolbox/fleetdb/pkg/api/v1"
+	"github.com/metal-automata/fleetdb/internal/metrics"
+	fleetdbapi "github.com/metal-automata/fleetdb/pkg/api/v1"
 )
 
 // Server implements the HTTP Server

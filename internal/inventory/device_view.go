@@ -6,15 +6,15 @@ import (
 	"encoding/json"
 
 	"github.com/google/uuid"
-	rivets "github.com/metal-toolbox/rivets/types"
+	rivets "github.com/metal-automata/rivets/types"
 	"github.com/pkg/errors"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
-	"github.com/metal-toolbox/fleetdb/internal/metrics"
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/metrics"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 /*

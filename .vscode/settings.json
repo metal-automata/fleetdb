@@ -3,7 +3,4 @@
   "go.testFlags": [
     "--short"
   ],
-  "cSpell.words": [
-    "cockroachdb"
-  ]
 }

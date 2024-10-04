@@ -1,7 +1,7 @@
 package fleetdbapi
 
 import (
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // ServerComponentType provides a way to group server components by the type

@@ -10,7 +10,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 var (

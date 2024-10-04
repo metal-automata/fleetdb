@@ -6,7 +6,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/volatiletech/null/v8"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // Bom provides a struct to map the bom_info table.

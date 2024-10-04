@@ -5,7 +5,7 @@ import (
 
 	"github.com/volatiletech/null/v8"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // BiosConfigSetting represents a BIOS Configuration Component Setting

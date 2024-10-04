@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	hollow "github.com/metal-toolbox/fleetdb/pkg/api/v1"
+	hollow "github.com/metal-automata/fleetdb/pkg/api/v1"
 )
 
 func TestServerComponentTypeServiceCreate(t *testing.T) {

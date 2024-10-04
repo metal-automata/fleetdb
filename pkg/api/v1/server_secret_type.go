@@ -3,7 +3,7 @@ package fleetdbapi
 import (
 	"time"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 const (

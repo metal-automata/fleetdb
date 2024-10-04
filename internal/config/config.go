@@ -2,7 +2,7 @@
 package config
 
 import (
-	"github.com/metal-toolbox/rivets/ginjwt"
+	"github.com/metal-automata/rivets/ginjwt"
 	"go.infratographer.com/x/crdbx"
 	"go.infratographer.com/x/loggingx"
 	"go.infratographer.com/x/otelx"

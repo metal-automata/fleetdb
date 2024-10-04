@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/bmc-toolbox/common"
-	rivets "github.com/metal-toolbox/rivets/types"
+	rivets "github.com/metal-automata/rivets/types"
 )
 
 func mustAttributesJSON(ca *rivets.ComponentAttributes) []byte {

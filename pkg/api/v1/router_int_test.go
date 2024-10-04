@@ -7,15 +7,15 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
-	"github.com/metal-toolbox/rivets/ginjwt"
+	"github.com/metal-automata/rivets/ginjwt"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"gopkg.in/square/go-jose.v2"
 	"gopkg.in/square/go-jose.v2/jwt"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
-	"github.com/metal-toolbox/fleetdb/internal/httpsrv"
-	fleetdbapi "github.com/metal-toolbox/fleetdb/pkg/api/v1"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/httpsrv"
+	fleetdbapi "github.com/metal-automata/fleetdb/pkg/api/v1"
 )
 
 type integrationServer struct {

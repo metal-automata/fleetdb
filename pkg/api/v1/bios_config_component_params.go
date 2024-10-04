@@ -3,7 +3,7 @@ package fleetdbapi
 import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
-	"github.com/metal-toolbox/fleetdb/internal/models"
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 // BiosConfigComponentQuery defines values you can query BiosConfigComponents with. Empty strings are ignored.

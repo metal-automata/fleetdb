@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/metal-toolbox/fleetdb/internal/dbtools"
+	"github.com/metal-automata/fleetdb/internal/dbtools"
 )
 
 func TestEncryptandDecrypt(t *testing.T) {

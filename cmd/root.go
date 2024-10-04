@@ -13,8 +13,8 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/metal-toolbox/fleetdb/db"
-	"github.com/metal-toolbox/fleetdb/internal/config"
+	"github.com/metal-automata/fleetdb/db"
+	"github.com/metal-automata/fleetdb/internal/config"
 )
 
 var (
