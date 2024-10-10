@@ -36,10 +36,10 @@ services:
         - "26257:26257"
     restart: unless-stopped
     networks:
-      - hollow
+      - automata
 
 volumes:
   db:
 
 networks:
-  hollow:
+  automata:
