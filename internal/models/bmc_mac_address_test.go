@@ -15,54 +15,6 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-func testBMCMacAddressesUpsert(t *testing.T) {
-	t.Parallel()
-
-	if len(bmcMacAddressAllColumns) == len(bmcMacAddressPrimaryKeyColumns) {
-		t.Skip("Skipping table with only primary key columns")
-	}
-
-	seed := randomize.NewSeed()
-	var err error
-	// Attempt the INSERT side of an UPSERT
-	o := BMCMacAddress{}
-	if err = randomize.Struct(seed, &o, bmcMacAddressDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize BMCMacAddress struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert BMCMacAddress: %s", err)
-	}
-
-	count, err := BMCMacAddresses().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-
-	// Attempt the UPDATE side of an UPSERT
-	if err = randomize.Struct(seed, &o, bmcMacAddressDBTypes, false, bmcMacAddressPrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize BMCMacAddress struct: %s", err)
-	}
-
-	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert BMCMacAddress: %s", err)
-	}
-
-	count, err = BMCMacAddresses().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-}
-
 var (
 	// Relationships sometimes use the reflection helper queries.Equal/queries.Assign
 	// so force a package dependency in case they don't.
@@ -735,7 +687,7 @@ func testBMCMacAddressesSelect(t *testing.T) {
 }
 
 var (
-	bmcMacAddressDBTypes = map[string]string{`BMCMacAddress`: `string`, `SerialNum`: `string`}
+	bmcMacAddressDBTypes = map[string]string{`BMCMacAddress`: `text`, `SerialNum`: `text`}
 	_                    = bytes.MinRead
 )
 
@@ -847,5 +799,53 @@ func testBMCMacAddressesSliceUpdateAll(t *testing.T) {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("wanted one record updated but got", rowsAff)
+	}
+}
+
+func testBMCMacAddressesUpsert(t *testing.T) {
+	t.Parallel()
+
+	if len(bmcMacAddressAllColumns) == len(bmcMacAddressPrimaryKeyColumns) {
+		t.Skip("Skipping table with only primary key columns")
+	}
+
+	seed := randomize.NewSeed()
+	var err error
+	// Attempt the INSERT side of an UPSERT
+	o := BMCMacAddress{}
+	if err = randomize.Struct(seed, &o, bmcMacAddressDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize BMCMacAddress struct: %s", err)
+	}
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert BMCMacAddress: %s", err)
+	}
+
+	count, err := BMCMacAddresses().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
+	}
+
+	// Attempt the UPDATE side of an UPSERT
+	if err = randomize.Struct(seed, &o, bmcMacAddressDBTypes, false, bmcMacAddressPrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize BMCMacAddress struct: %s", err)
+	}
+
+	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert BMCMacAddress: %s", err)
+	}
+
+	count, err = BMCMacAddresses().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
 	}
 }

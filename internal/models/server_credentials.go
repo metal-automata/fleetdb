@@ -93,17 +93,17 @@ var ServerCredentialWhere = struct {
 
 // ServerCredentialRels is where relationship names are stored.
 var ServerCredentialRels = struct {
-	ServerCredentialType string
 	Server               string
+	ServerCredentialType string
 }{
-	ServerCredentialType: "ServerCredentialType",
 	Server:               "Server",
+	ServerCredentialType: "ServerCredentialType",
 }
 
 // serverCredentialR is where relationships are stored.
 type serverCredentialR struct {
-	ServerCredentialType *ServerCredentialType `boil:"ServerCredentialType" json:"ServerCredentialType" toml:"ServerCredentialType" yaml:"ServerCredentialType"`
 	Server               *Server               `boil:"Server" json:"Server" toml:"Server" yaml:"Server"`
+	ServerCredentialType *ServerCredentialType `boil:"ServerCredentialType" json:"ServerCredentialType" toml:"ServerCredentialType" yaml:"ServerCredentialType"`
 }
 
 // NewStruct creates a new relationship struct
@@ -111,18 +111,18 @@ func (*serverCredentialR) NewStruct() *serverCredentialR {
 	return &serverCredentialR{}
 }
 
-func (r *serverCredentialR) GetServerCredentialType() *ServerCredentialType {
-	if r == nil {
-		return nil
-	}
-	return r.ServerCredentialType
-}
-
 func (r *serverCredentialR) GetServer() *Server {
 	if r == nil {
 		return nil
 	}
 	return r.Server
+}
+
+func (r *serverCredentialR) GetServerCredentialType() *ServerCredentialType {
+	if r == nil {
+		return nil
+	}
+	return r.ServerCredentialType
 }
 
 // serverCredentialL is where Load methods for each relationship are stored.
@@ -414,17 +414,6 @@ func (q serverCredentialQuery) Exists(ctx context.Context, exec boil.ContextExec
 	return count > 0, nil
 }
 
-// ServerCredentialType pointed to by the foreign key.
-func (o *ServerCredential) ServerCredentialType(mods ...qm.QueryMod) serverCredentialTypeQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.ServerCredentialTypeID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	return ServerCredentialTypes(queryMods...)
-}
-
 // Server pointed to by the foreign key.
 func (o *ServerCredential) Server(mods ...qm.QueryMod) serverQuery {
 	queryMods := []qm.QueryMod{
@@ -436,124 +425,15 @@ func (o *ServerCredential) Server(mods ...qm.QueryMod) serverQuery {
 	return Servers(queryMods...)
 }
 
-// LoadServerCredentialType allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (serverCredentialL) LoadServerCredentialType(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerCredential interface{}, mods queries.Applicator) error {
-	var slice []*ServerCredential
-	var object *ServerCredential
-
-	if singular {
-		var ok bool
-		object, ok = maybeServerCredential.(*ServerCredential)
-		if !ok {
-			object = new(ServerCredential)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerCredential)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerCredential))
-			}
-		}
-	} else {
-		s, ok := maybeServerCredential.(*[]*ServerCredential)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerCredential)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerCredential))
-			}
-		}
+// ServerCredentialType pointed to by the foreign key.
+func (o *ServerCredential) ServerCredentialType(mods ...qm.QueryMod) serverCredentialTypeQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.ServerCredentialTypeID),
 	}
 
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &serverCredentialR{}
-		}
-		args = append(args, object.ServerCredentialTypeID)
+	queryMods = append(queryMods, mods...)
 
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &serverCredentialR{}
-			}
-
-			for _, a := range args {
-				if a == obj.ServerCredentialTypeID {
-					continue Outer
-				}
-			}
-
-			args = append(args, obj.ServerCredentialTypeID)
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`server_credential_types`),
-		qm.WhereIn(`server_credential_types.id in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load ServerCredentialType")
-	}
-
-	var resultSlice []*ServerCredentialType
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice ServerCredentialType")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for server_credential_types")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for server_credential_types")
-	}
-
-	if len(serverCredentialTypeAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.ServerCredentialType = foreign
-		if foreign.R == nil {
-			foreign.R = &serverCredentialTypeR{}
-		}
-		foreign.R.ServerCredentials = append(foreign.R.ServerCredentials, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if local.ServerCredentialTypeID == foreign.ID {
-				local.R.ServerCredentialType = foreign
-				if foreign.R == nil {
-					foreign.R = &serverCredentialTypeR{}
-				}
-				foreign.R.ServerCredentials = append(foreign.R.ServerCredentials, local)
-				break
-			}
-		}
-	}
-
-	return nil
+	return ServerCredentialTypes(queryMods...)
 }
 
 // LoadServer allows an eager lookup of values, cached into the
@@ -677,48 +557,121 @@ func (serverCredentialL) LoadServer(ctx context.Context, e boil.ContextExecutor,
 	return nil
 }
 
-// SetServerCredentialType of the serverCredential to the related item.
-// Sets o.R.ServerCredentialType to related.
-// Adds o to related.R.ServerCredentials.
-func (o *ServerCredential) SetServerCredentialType(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ServerCredentialType) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
+// LoadServerCredentialType allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (serverCredentialL) LoadServerCredentialType(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerCredential interface{}, mods queries.Applicator) error {
+	var slice []*ServerCredential
+	var object *ServerCredential
+
+	if singular {
+		var ok bool
+		object, ok = maybeServerCredential.(*ServerCredential)
+		if !ok {
+			object = new(ServerCredential)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerCredential)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerCredential))
+			}
+		}
+	} else {
+		s, ok := maybeServerCredential.(*[]*ServerCredential)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerCredential)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerCredential))
+			}
 		}
 	}
 
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"server_credentials\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"server_credential_type_id"}),
-		strmangle.WhereClause("\"", "\"", 2, serverCredentialPrimaryKeyColumns),
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverCredentialR{}
+		}
+		args = append(args, object.ServerCredentialTypeID)
+
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverCredentialR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ServerCredentialTypeID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ServerCredentialTypeID)
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`server_credential_types`),
+		qm.WhereIn(`server_credential_types.id in ?`, args...),
 	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
+	if mods != nil {
+		mods.Apply(query)
 	}
 
-	o.ServerCredentialTypeID = related.ID
-	if o.R == nil {
-		o.R = &serverCredentialR{
-			ServerCredentialType: related,
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load ServerCredentialType")
+	}
+
+	var resultSlice []*ServerCredentialType
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice ServerCredentialType")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for server_credential_types")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for server_credential_types")
+	}
+
+	if len(serverCredentialTypeAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
 		}
-	} else {
-		o.R.ServerCredentialType = related
 	}
 
-	if related.R == nil {
-		related.R = &serverCredentialTypeR{
-			ServerCredentials: ServerCredentialSlice{o},
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.ServerCredentialType = foreign
+		if foreign.R == nil {
+			foreign.R = &serverCredentialTypeR{}
 		}
-	} else {
-		related.R.ServerCredentials = append(related.R.ServerCredentials, o)
+		foreign.R.ServerCredentials = append(foreign.R.ServerCredentials, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.ServerCredentialTypeID == foreign.ID {
+				local.R.ServerCredentialType = foreign
+				if foreign.R == nil {
+					foreign.R = &serverCredentialTypeR{}
+				}
+				foreign.R.ServerCredentials = append(foreign.R.ServerCredentials, local)
+				break
+			}
+		}
 	}
 
 	return nil
@@ -762,6 +715,53 @@ func (o *ServerCredential) SetServer(ctx context.Context, exec boil.ContextExecu
 
 	if related.R == nil {
 		related.R = &serverR{
+			ServerCredentials: ServerCredentialSlice{o},
+		}
+	} else {
+		related.R.ServerCredentials = append(related.R.ServerCredentials, o)
+	}
+
+	return nil
+}
+
+// SetServerCredentialType of the serverCredential to the related item.
+// Sets o.R.ServerCredentialType to related.
+// Adds o to related.R.ServerCredentials.
+func (o *ServerCredential) SetServerCredentialType(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ServerCredentialType) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"server_credentials\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"server_credential_type_id"}),
+		strmangle.WhereClause("\"", "\"", 2, serverCredentialPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.ServerCredentialTypeID = related.ID
+	if o.R == nil {
+		o.R = &serverCredentialR{
+			ServerCredentialType: related,
+		}
+	} else {
+		o.R.ServerCredentialType = related
+	}
+
+	if related.R == nil {
+		related.R = &serverCredentialTypeR{
 			ServerCredentials: ServerCredentialSlice{o},
 		}
 	} else {
@@ -1035,6 +1035,130 @@ func (o ServerCredentialSlice) UpdateAll(ctx context.Context, exec boil.ContextE
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *ServerCredential) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+	if o == nil {
+		return errors.New("models: no server_credentials provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if o.CreatedAt.IsZero() {
+			o.CreatedAt = currTime
+		}
+		o.UpdatedAt = currTime
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(serverCredentialColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	serverCredentialUpsertCacheMut.RLock()
+	cache, cached := serverCredentialUpsertCache[key]
+	serverCredentialUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, ret := insertColumns.InsertColumnSet(
+			serverCredentialAllColumns,
+			serverCredentialColumnsWithDefault,
+			serverCredentialColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			serverCredentialAllColumns,
+			serverCredentialPrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert server_credentials, could not build update column list")
+		}
+
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(serverCredentialPrimaryKeyColumns))
+			copy(conflict, serverCredentialPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"server_credentials\"", updateOnConflict, ret, update, conflict, insert)
+
+		cache.valueMapping, err = queries.BindMapping(serverCredentialType, serverCredentialMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(serverCredentialType, serverCredentialMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert server_credentials")
+	}
+
+	if !cached {
+		serverCredentialUpsertCacheMut.Lock()
+		serverCredentialUpsertCache[key] = cache
+		serverCredentialUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single ServerCredential record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *ServerCredential) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -1205,127 +1329,4 @@ func ServerCredentialExists(ctx context.Context, exec boil.ContextExecutor, iD s
 // Exists checks if the ServerCredential row exists.
 func (o *ServerCredential) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return ServerCredentialExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *ServerCredential) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no server_credentials provided for upsert")
-	}
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
-
-		if o.CreatedAt.IsZero() {
-			o.CreatedAt = currTime
-		}
-		o.UpdatedAt = currTime
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(serverCredentialColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	serverCredentialUpsertCacheMut.RLock()
-	cache, cached := serverCredentialUpsertCache[key]
-	serverCredentialUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			serverCredentialAllColumns,
-			serverCredentialColumnsWithDefault,
-			serverCredentialColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			serverCredentialAllColumns,
-			serverCredentialPrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert server_credentials, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(serverCredentialPrimaryKeyColumns))
-			copy(conflict, serverCredentialPrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"server_credentials\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(serverCredentialType, serverCredentialMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(serverCredentialType, serverCredentialMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if err == sql.ErrNoRows {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert server_credentials")
-	}
-
-	if !cached {
-		serverCredentialUpsertCacheMut.Lock()
-		serverCredentialUpsertCache[key] = cache
-		serverCredentialUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

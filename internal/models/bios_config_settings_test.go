@@ -15,54 +15,6 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-func testBiosConfigSettingsUpsert(t *testing.T) {
-	t.Parallel()
-
-	if len(biosConfigSettingAllColumns) == len(biosConfigSettingPrimaryKeyColumns) {
-		t.Skip("Skipping table with only primary key columns")
-	}
-
-	seed := randomize.NewSeed()
-	var err error
-	// Attempt the INSERT side of an UPSERT
-	o := BiosConfigSetting{}
-	if err = randomize.Struct(seed, &o, biosConfigSettingDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize BiosConfigSetting struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert BiosConfigSetting: %s", err)
-	}
-
-	count, err := BiosConfigSettings().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-
-	// Attempt the UPDATE side of an UPSERT
-	if err = randomize.Struct(seed, &o, biosConfigSettingDBTypes, false, biosConfigSettingPrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize BiosConfigSetting struct: %s", err)
-	}
-
-	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert BiosConfigSetting: %s", err)
-	}
-
-	count, err = BiosConfigSettings().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-}
-
 var (
 	// Relationships sometimes use the reflection helper queries.Equal/queries.Assign
 	// so force a package dependency in case they don't.
@@ -735,7 +687,7 @@ func testBiosConfigSettingsSelect(t *testing.T) {
 }
 
 var (
-	biosConfigSettingDBTypes = map[string]string{`ID`: `uuid`, `FKBiosConfigComponentID`: `uuid`, `SettingsKey`: `string`, `SettingsValue`: `string`, `Raw`: `jsonb`, `CreatedAt`: `timestamptz`, `UpdatedAt`: `timestamptz`}
+	biosConfigSettingDBTypes = map[string]string{`ID`: `uuid`, `FKBiosConfigComponentID`: `uuid`, `SettingsKey`: `text`, `SettingsValue`: `text`, `Raw`: `jsonb`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`}
 	_                        = bytes.MinRead
 )
 
@@ -847,5 +799,53 @@ func testBiosConfigSettingsSliceUpdateAll(t *testing.T) {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("wanted one record updated but got", rowsAff)
+	}
+}
+
+func testBiosConfigSettingsUpsert(t *testing.T) {
+	t.Parallel()
+
+	if len(biosConfigSettingAllColumns) == len(biosConfigSettingPrimaryKeyColumns) {
+		t.Skip("Skipping table with only primary key columns")
+	}
+
+	seed := randomize.NewSeed()
+	var err error
+	// Attempt the INSERT side of an UPSERT
+	o := BiosConfigSetting{}
+	if err = randomize.Struct(seed, &o, biosConfigSettingDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize BiosConfigSetting struct: %s", err)
+	}
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert BiosConfigSetting: %s", err)
+	}
+
+	count, err := BiosConfigSettings().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
+	}
+
+	// Attempt the UPDATE side of an UPSERT
+	if err = randomize.Struct(seed, &o, biosConfigSettingDBTypes, false, biosConfigSettingPrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize BiosConfigSetting struct: %s", err)
+	}
+
+	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert BiosConfigSetting: %s", err)
+	}
+
+	count, err = BiosConfigSettings().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
 	}
 }

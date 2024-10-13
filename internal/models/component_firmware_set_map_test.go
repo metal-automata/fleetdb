@@ -15,54 +15,6 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-func testComponentFirmwareSetMapsUpsert(t *testing.T) {
-	t.Parallel()
-
-	if len(componentFirmwareSetMapAllColumns) == len(componentFirmwareSetMapPrimaryKeyColumns) {
-		t.Skip("Skipping table with only primary key columns")
-	}
-
-	seed := randomize.NewSeed()
-	var err error
-	// Attempt the INSERT side of an UPSERT
-	o := ComponentFirmwareSetMap{}
-	if err = randomize.Struct(seed, &o, componentFirmwareSetMapDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize ComponentFirmwareSetMap struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert ComponentFirmwareSetMap: %s", err)
-	}
-
-	count, err := ComponentFirmwareSetMaps().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-
-	// Attempt the UPDATE side of an UPSERT
-	if err = randomize.Struct(seed, &o, componentFirmwareSetMapDBTypes, false, componentFirmwareSetMapPrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize ComponentFirmwareSetMap struct: %s", err)
-	}
-
-	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert ComponentFirmwareSetMap: %s", err)
-	}
-
-	count, err = ComponentFirmwareSetMaps().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-}
-
 var (
 	// Relationships sometimes use the reflection helper queries.Equal/queries.Assign
 	// so force a package dependency in case they don't.
@@ -542,67 +494,6 @@ func testComponentFirmwareSetMapsInsertWhitelist(t *testing.T) {
 	}
 }
 
-func testComponentFirmwareSetMapToOneComponentFirmwareSetUsingFirmwareSet(t *testing.T) {
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-
-	var local ComponentFirmwareSetMap
-	var foreign ComponentFirmwareSet
-
-	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, componentFirmwareSetMapDBTypes, false, componentFirmwareSetMapColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize ComponentFirmwareSetMap struct: %s", err)
-	}
-	if err := randomize.Struct(seed, &foreign, componentFirmwareSetDBTypes, false, componentFirmwareSetColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize ComponentFirmwareSet struct: %s", err)
-	}
-
-	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	local.FirmwareSetID = foreign.ID
-	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	check, err := local.FirmwareSet().One(ctx, tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if check.ID != foreign.ID {
-		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
-	}
-
-	ranAfterSelectHook := false
-	AddComponentFirmwareSetHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *ComponentFirmwareSet) error {
-		ranAfterSelectHook = true
-		return nil
-	})
-
-	slice := ComponentFirmwareSetMapSlice{&local}
-	if err = local.L.LoadFirmwareSet(ctx, tx, false, (*[]*ComponentFirmwareSetMap)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.FirmwareSet == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	local.R.FirmwareSet = nil
-	if err = local.L.LoadFirmwareSet(ctx, tx, true, &local, nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.FirmwareSet == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	if !ranAfterSelectHook {
-		t.Error("failed to run AfterSelect hook for relationship")
-	}
-}
-
 func testComponentFirmwareSetMapToOneComponentFirmwareVersionUsingFirmware(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
@@ -664,63 +555,67 @@ func testComponentFirmwareSetMapToOneComponentFirmwareVersionUsingFirmware(t *te
 	}
 }
 
-func testComponentFirmwareSetMapToOneSetOpComponentFirmwareSetUsingFirmwareSet(t *testing.T) {
-	var err error
-
+func testComponentFirmwareSetMapToOneComponentFirmwareSetUsingFirmwareSet(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var a ComponentFirmwareSetMap
-	var b, c ComponentFirmwareSet
+	var local ComponentFirmwareSetMap
+	var foreign ComponentFirmwareSet
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, componentFirmwareSetMapDBTypes, false, strmangle.SetComplement(componentFirmwareSetMapPrimaryKeyColumns, componentFirmwareSetMapColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &local, componentFirmwareSetMapDBTypes, false, componentFirmwareSetMapColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ComponentFirmwareSetMap struct: %s", err)
 	}
-	if err = randomize.Struct(seed, &b, componentFirmwareSetDBTypes, false, strmangle.SetComplement(componentFirmwareSetPrimaryKeyColumns, componentFirmwareSetColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, componentFirmwareSetDBTypes, false, strmangle.SetComplement(componentFirmwareSetPrimaryKeyColumns, componentFirmwareSetColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &foreign, componentFirmwareSetDBTypes, false, componentFirmwareSetColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ComponentFirmwareSet struct: %s", err)
 	}
 
-	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Fatal(err)
 	}
 
-	for i, x := range []*ComponentFirmwareSet{&b, &c} {
-		err = a.SetFirmwareSet(ctx, tx, i != 0, x)
-		if err != nil {
-			t.Fatal(err)
-		}
+	local.FirmwareSetID = foreign.ID
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
 
-		if a.R.FirmwareSet != x {
-			t.Error("relationship struct not set to correct value")
-		}
+	check, err := local.FirmwareSet().One(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		if x.R.FirmwareSetComponentFirmwareSetMaps[0] != &a {
-			t.Error("failed to append to foreign relationship struct")
-		}
-		if a.FirmwareSetID != x.ID {
-			t.Error("foreign key was wrong value", a.FirmwareSetID)
-		}
+	if check.ID != foreign.ID {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	}
 
-		zero := reflect.Zero(reflect.TypeOf(a.FirmwareSetID))
-		reflect.Indirect(reflect.ValueOf(&a.FirmwareSetID)).Set(zero)
+	ranAfterSelectHook := false
+	AddComponentFirmwareSetHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *ComponentFirmwareSet) error {
+		ranAfterSelectHook = true
+		return nil
+	})
 
-		if err = a.Reload(ctx, tx); err != nil {
-			t.Fatal("failed to reload", err)
-		}
+	slice := ComponentFirmwareSetMapSlice{&local}
+	if err = local.L.LoadFirmwareSet(ctx, tx, false, (*[]*ComponentFirmwareSetMap)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.FirmwareSet == nil {
+		t.Error("struct should have been eager loaded")
+	}
 
-		if a.FirmwareSetID != x.ID {
-			t.Error("foreign key was wrong value", a.FirmwareSetID, x.ID)
-		}
+	local.R.FirmwareSet = nil
+	if err = local.L.LoadFirmwareSet(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.FirmwareSet == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
 	}
 }
+
 func testComponentFirmwareSetMapToOneSetOpComponentFirmwareVersionUsingFirmware(t *testing.T) {
 	var err error
 
@@ -775,6 +670,63 @@ func testComponentFirmwareSetMapToOneSetOpComponentFirmwareVersionUsingFirmware(
 
 		if a.FirmwareID != x.ID {
 			t.Error("foreign key was wrong value", a.FirmwareID, x.ID)
+		}
+	}
+}
+func testComponentFirmwareSetMapToOneSetOpComponentFirmwareSetUsingFirmwareSet(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a ComponentFirmwareSetMap
+	var b, c ComponentFirmwareSet
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, componentFirmwareSetMapDBTypes, false, strmangle.SetComplement(componentFirmwareSetMapPrimaryKeyColumns, componentFirmwareSetMapColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, componentFirmwareSetDBTypes, false, strmangle.SetComplement(componentFirmwareSetPrimaryKeyColumns, componentFirmwareSetColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, componentFirmwareSetDBTypes, false, strmangle.SetComplement(componentFirmwareSetPrimaryKeyColumns, componentFirmwareSetColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*ComponentFirmwareSet{&b, &c} {
+		err = a.SetFirmwareSet(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.FirmwareSet != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.FirmwareSetComponentFirmwareSetMaps[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if a.FirmwareSetID != x.ID {
+			t.Error("foreign key was wrong value", a.FirmwareSetID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.FirmwareSetID))
+		reflect.Indirect(reflect.ValueOf(&a.FirmwareSetID)).Set(zero)
+
+		if err = a.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if a.FirmwareSetID != x.ID {
+			t.Error("foreign key was wrong value", a.FirmwareSetID, x.ID)
 		}
 	}
 }
@@ -965,5 +917,53 @@ func testComponentFirmwareSetMapsSliceUpdateAll(t *testing.T) {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("wanted one record updated but got", rowsAff)
+	}
+}
+
+func testComponentFirmwareSetMapsUpsert(t *testing.T) {
+	t.Parallel()
+
+	if len(componentFirmwareSetMapAllColumns) == len(componentFirmwareSetMapPrimaryKeyColumns) {
+		t.Skip("Skipping table with only primary key columns")
+	}
+
+	seed := randomize.NewSeed()
+	var err error
+	// Attempt the INSERT side of an UPSERT
+	o := ComponentFirmwareSetMap{}
+	if err = randomize.Struct(seed, &o, componentFirmwareSetMapDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize ComponentFirmwareSetMap struct: %s", err)
+	}
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert ComponentFirmwareSetMap: %s", err)
+	}
+
+	count, err := ComponentFirmwareSetMaps().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
+	}
+
+	// Attempt the UPDATE side of an UPSERT
+	if err = randomize.Struct(seed, &o, componentFirmwareSetMapDBTypes, false, componentFirmwareSetMapPrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize ComponentFirmwareSetMap struct: %s", err)
+	}
+
+	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert ComponentFirmwareSetMap: %s", err)
+	}
+
+	count, err = ComponentFirmwareSetMaps().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
 	}
 }

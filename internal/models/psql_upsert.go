@@ -11,8 +11,8 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-// buildUpsertQueryCockroachDB builds a SQL statement string using the upsertData provided.
-func buildUpsertQueryCockroachDB(dia drivers.Dialect, tableName string, updateOnConflict bool, ret, update, conflict, whitelist []string) string {
+// buildUpsertQueryPostgres builds a SQL statement string using the upsertData provided.
+func buildUpsertQueryPostgres(dia drivers.Dialect, tableName string, updateOnConflict bool, ret, update, conflict, whitelist []string) string {
 	conflict = strmangle.IdentQuoteSlice(dia.LQ, dia.RQ, conflict)
 	whitelist = strmangle.IdentQuoteSlice(dia.LQ, dia.RQ, whitelist)
 	ret = strmangle.IdentQuoteSlice(dia.LQ, dia.RQ, ret)
@@ -27,24 +27,25 @@ func buildUpsertQueryCockroachDB(dia drivers.Dialect, tableName string, updateOn
 			strmangle.Placeholders(dia.UseIndexPlaceholders, len(whitelist), 1, 1))
 	}
 
-	_, _ = fmt.Fprintf(
+	fmt.Fprintf(
 		buf,
 		"INSERT INTO %s %s ON CONFLICT ",
 		tableName,
 		columns,
 	)
 
-	// cockroach expects the conflict even thougt we are not updating
 	buf.WriteByte('(')
 	buf.WriteString(strings.Join(conflict, ", "))
-	buf.WriteString(") ")
 
 	if !updateOnConflict || len(update) == 0 {
-		buf.WriteString("DO NOTHING")
+		buf.WriteString(") DO NOTHING")
 	} else {
-		buf.WriteString("DO UPDATE SET ")
+		buf.WriteString(") DO UPDATE SET ")
 
 		for i, v := range update {
+			if len(v) == 0 {
+				continue
+			}
 			if i != 0 {
 				buf.WriteByte(',')
 			}

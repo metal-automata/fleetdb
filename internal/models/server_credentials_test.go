@@ -15,54 +15,6 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-func testServerCredentialsUpsert(t *testing.T) {
-	t.Parallel()
-
-	if len(serverCredentialAllColumns) == len(serverCredentialPrimaryKeyColumns) {
-		t.Skip("Skipping table with only primary key columns")
-	}
-
-	seed := randomize.NewSeed()
-	var err error
-	// Attempt the INSERT side of an UPSERT
-	o := ServerCredential{}
-	if err = randomize.Struct(seed, &o, serverCredentialDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize ServerCredential struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert ServerCredential: %s", err)
-	}
-
-	count, err := ServerCredentials().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-
-	// Attempt the UPDATE side of an UPSERT
-	if err = randomize.Struct(seed, &o, serverCredentialDBTypes, false, serverCredentialPrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize ServerCredential struct: %s", err)
-	}
-
-	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert ServerCredential: %s", err)
-	}
-
-	count, err = ServerCredentials().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-}
-
 var (
 	// Relationships sometimes use the reflection helper queries.Equal/queries.Assign
 	// so force a package dependency in case they don't.
@@ -542,67 +494,6 @@ func testServerCredentialsInsertWhitelist(t *testing.T) {
 	}
 }
 
-func testServerCredentialToOneServerCredentialTypeUsingServerCredentialType(t *testing.T) {
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-
-	var local ServerCredential
-	var foreign ServerCredentialType
-
-	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, serverCredentialDBTypes, false, serverCredentialColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize ServerCredential struct: %s", err)
-	}
-	if err := randomize.Struct(seed, &foreign, serverCredentialTypeDBTypes, false, serverCredentialTypeColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize ServerCredentialType struct: %s", err)
-	}
-
-	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	local.ServerCredentialTypeID = foreign.ID
-	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	check, err := local.ServerCredentialType().One(ctx, tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if check.ID != foreign.ID {
-		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
-	}
-
-	ranAfterSelectHook := false
-	AddServerCredentialTypeHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *ServerCredentialType) error {
-		ranAfterSelectHook = true
-		return nil
-	})
-
-	slice := ServerCredentialSlice{&local}
-	if err = local.L.LoadServerCredentialType(ctx, tx, false, (*[]*ServerCredential)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.ServerCredentialType == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	local.R.ServerCredentialType = nil
-	if err = local.L.LoadServerCredentialType(ctx, tx, true, &local, nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.ServerCredentialType == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	if !ranAfterSelectHook {
-		t.Error("failed to run AfterSelect hook for relationship")
-	}
-}
-
 func testServerCredentialToOneServerUsingServer(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
@@ -664,63 +555,67 @@ func testServerCredentialToOneServerUsingServer(t *testing.T) {
 	}
 }
 
-func testServerCredentialToOneSetOpServerCredentialTypeUsingServerCredentialType(t *testing.T) {
-	var err error
-
+func testServerCredentialToOneServerCredentialTypeUsingServerCredentialType(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var a ServerCredential
-	var b, c ServerCredentialType
+	var local ServerCredential
+	var foreign ServerCredentialType
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, serverCredentialDBTypes, false, strmangle.SetComplement(serverCredentialPrimaryKeyColumns, serverCredentialColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &local, serverCredentialDBTypes, false, serverCredentialColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerCredential struct: %s", err)
 	}
-	if err = randomize.Struct(seed, &b, serverCredentialTypeDBTypes, false, strmangle.SetComplement(serverCredentialTypePrimaryKeyColumns, serverCredentialTypeColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, serverCredentialTypeDBTypes, false, strmangle.SetComplement(serverCredentialTypePrimaryKeyColumns, serverCredentialTypeColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &foreign, serverCredentialTypeDBTypes, false, serverCredentialTypeColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerCredentialType struct: %s", err)
 	}
 
-	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Fatal(err)
 	}
 
-	for i, x := range []*ServerCredentialType{&b, &c} {
-		err = a.SetServerCredentialType(ctx, tx, i != 0, x)
-		if err != nil {
-			t.Fatal(err)
-		}
+	local.ServerCredentialTypeID = foreign.ID
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
 
-		if a.R.ServerCredentialType != x {
-			t.Error("relationship struct not set to correct value")
-		}
+	check, err := local.ServerCredentialType().One(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		if x.R.ServerCredentials[0] != &a {
-			t.Error("failed to append to foreign relationship struct")
-		}
-		if a.ServerCredentialTypeID != x.ID {
-			t.Error("foreign key was wrong value", a.ServerCredentialTypeID)
-		}
+	if check.ID != foreign.ID {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	}
 
-		zero := reflect.Zero(reflect.TypeOf(a.ServerCredentialTypeID))
-		reflect.Indirect(reflect.ValueOf(&a.ServerCredentialTypeID)).Set(zero)
+	ranAfterSelectHook := false
+	AddServerCredentialTypeHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *ServerCredentialType) error {
+		ranAfterSelectHook = true
+		return nil
+	})
 
-		if err = a.Reload(ctx, tx); err != nil {
-			t.Fatal("failed to reload", err)
-		}
+	slice := ServerCredentialSlice{&local}
+	if err = local.L.LoadServerCredentialType(ctx, tx, false, (*[]*ServerCredential)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.ServerCredentialType == nil {
+		t.Error("struct should have been eager loaded")
+	}
 
-		if a.ServerCredentialTypeID != x.ID {
-			t.Error("foreign key was wrong value", a.ServerCredentialTypeID, x.ID)
-		}
+	local.R.ServerCredentialType = nil
+	if err = local.L.LoadServerCredentialType(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.ServerCredentialType == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
 	}
 }
+
 func testServerCredentialToOneSetOpServerUsingServer(t *testing.T) {
 	var err error
 
@@ -775,6 +670,63 @@ func testServerCredentialToOneSetOpServerUsingServer(t *testing.T) {
 
 		if a.ServerID != x.ID {
 			t.Error("foreign key was wrong value", a.ServerID, x.ID)
+		}
+	}
+}
+func testServerCredentialToOneSetOpServerCredentialTypeUsingServerCredentialType(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a ServerCredential
+	var b, c ServerCredentialType
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverCredentialDBTypes, false, strmangle.SetComplement(serverCredentialPrimaryKeyColumns, serverCredentialColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, serverCredentialTypeDBTypes, false, strmangle.SetComplement(serverCredentialTypePrimaryKeyColumns, serverCredentialTypeColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, serverCredentialTypeDBTypes, false, strmangle.SetComplement(serverCredentialTypePrimaryKeyColumns, serverCredentialTypeColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*ServerCredentialType{&b, &c} {
+		err = a.SetServerCredentialType(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.ServerCredentialType != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.ServerCredentials[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if a.ServerCredentialTypeID != x.ID {
+			t.Error("foreign key was wrong value", a.ServerCredentialTypeID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.ServerCredentialTypeID))
+		reflect.Indirect(reflect.ValueOf(&a.ServerCredentialTypeID)).Set(zero)
+
+		if err = a.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if a.ServerCredentialTypeID != x.ID {
+			t.Error("foreign key was wrong value", a.ServerCredentialTypeID, x.ID)
 		}
 	}
 }
@@ -853,7 +805,7 @@ func testServerCredentialsSelect(t *testing.T) {
 }
 
 var (
-	serverCredentialDBTypes = map[string]string{`ID`: `uuid`, `ServerID`: `uuid`, `ServerCredentialTypeID`: `uuid`, `Password`: `string`, `CreatedAt`: `timestamptz`, `UpdatedAt`: `timestamptz`, `Username`: `string`}
+	serverCredentialDBTypes = map[string]string{`ID`: `uuid`, `ServerID`: `uuid`, `ServerCredentialTypeID`: `uuid`, `Password`: `text`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`, `Username`: `text`}
 	_                       = bytes.MinRead
 )
 
@@ -965,5 +917,53 @@ func testServerCredentialsSliceUpdateAll(t *testing.T) {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("wanted one record updated but got", rowsAff)
+	}
+}
+
+func testServerCredentialsUpsert(t *testing.T) {
+	t.Parallel()
+
+	if len(serverCredentialAllColumns) == len(serverCredentialPrimaryKeyColumns) {
+		t.Skip("Skipping table with only primary key columns")
+	}
+
+	seed := randomize.NewSeed()
+	var err error
+	// Attempt the INSERT side of an UPSERT
+	o := ServerCredential{}
+	if err = randomize.Struct(seed, &o, serverCredentialDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize ServerCredential struct: %s", err)
+	}
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert ServerCredential: %s", err)
+	}
+
+	count, err := ServerCredentials().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
+	}
+
+	// Attempt the UPDATE side of an UPSERT
+	if err = randomize.Struct(seed, &o, serverCredentialDBTypes, false, serverCredentialPrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize ServerCredential struct: %s", err)
+	}
+
+	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert ServerCredential: %s", err)
+	}
+
+	count, err = ServerCredentials().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
 	}
 }
