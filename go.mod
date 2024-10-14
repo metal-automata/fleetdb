@@ -29,7 +29,6 @@ require (
 	go.opentelemetry.io/otel/exporters/jaeger v1.17.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.28.0 // indirect
 	go.uber.org/zap v1.27.0
-	gopkg.in/square/go-jose.v2 v2.6.0
 )
 
 require (
@@ -41,6 +40,7 @@ require (
 	go.infratographer.com/x v0.5.3
 	gocloud.dev v0.38.0
 	golang.org/x/exp v0.0.0-20240719175910-8a7402abbf56
+	gopkg.in/go-jose/go-jose.v2 v2.6.3
 )
 
 require (
@@ -127,7 +127,6 @@ require (
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20240725223205-93522f1f2a9f // indirect
 	google.golang.org/grpc v1.65.0 // indirect
 	google.golang.org/protobuf v1.34.2 // indirect
-	gopkg.in/go-jose/go-jose.v2 v2.6.3 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
