@@ -166,16 +166,16 @@ func (p *AttributeListParams) setJSONBWhereClause(tblName, jsonPath string, valu
 	switch p.Operator {
 	case OperatorComparitorLessThan:
 		values = append(values, p.Value)
-		where = fmt.Sprintf("json_extract_path_text(%s.data::JSONB, %s)::int < ?", tblName, jsonPath)
+		where = fmt.Sprintf("jsonb_extract_path_text(%s.data::JSONB, %s)::int < ?", tblName, jsonPath)
 	case OperatorComparitorGreaterThan:
 		values = append(values, p.Value)
-		where = fmt.Sprintf("json_extract_path_text(%s.data::JSONB, %s)::int > ?", tblName, jsonPath)
+		where = fmt.Sprintf("jsonb_extract_path_text(%s.data::JSONB, %s)::int > ?", tblName, jsonPath)
 	case OperatorComparitorLike:
 		values = append(values, p.Value)
-		where = fmt.Sprintf("json_extract_path_text(%s.data::JSONB, %s) LIKE ?", tblName, jsonPath)
+		where = fmt.Sprintf("jsonb_extract_path_text(%s.data::JSONB, %s) LIKE ?", tblName, jsonPath)
 	case OperatorComparitorEqual:
 		values = append(values, p.Value)
-		where = fmt.Sprintf("json_extract_path_text(%s.data::JSONB, %s) = ?", tblName, jsonPath)
+		where = fmt.Sprintf("jsonb_extract_path_text(%s.data::JSONB, %s) = ?", tblName, jsonPath)
 	default:
 		// we only have keys so we just want to ensure the key is there
 		where = fmt.Sprintf("%s.data::JSONB", tblName)
