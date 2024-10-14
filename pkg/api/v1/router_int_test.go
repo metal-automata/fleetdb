@@ -28,7 +28,12 @@ func serverTest(t *testing.T) *integrationServer {
 
 	db := dbtools.DatabaseTest(t)
 
-	l, _ := zap.NewDevelopment()
+	zcfg := zap.Config{
+		Encoding: "json",
+		Level:    zap.NewAtomicLevelAt(zap.ErrorLevel),
+	}
+
+	l, _ := zcfg.Build()
 
 	hs := httpsrv.Server{
 		Logger:      l,
