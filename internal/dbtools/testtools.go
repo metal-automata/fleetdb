@@ -53,7 +53,11 @@ func testDatastore(t *testing.T) error {
 
 	cleanDB(t)
 
-	return addFixtures(t)
+	if err := addFixtures(t); err != nil {
+		return errors.Wrap(err, "error adding fixtures")
+	}
+
+	return nil
 }
 
 // TestSecretKeeper will return the secret keeper we are using for this test run. This allows
@@ -86,7 +90,7 @@ func DatabaseTest(t *testing.T) *sqlx.DB {
 	})
 
 	err := testDatastore(t)
-	require.NoError(t, err, "Unexpected error getting connection to test datastore")
+	require.NoError(t, err, "Unexpected error in setting up test datastore")
 
 	return testDB
 }

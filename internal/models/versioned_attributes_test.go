@@ -15,54 +15,6 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-func testVersionedAttributesUpsert(t *testing.T) {
-	t.Parallel()
-
-	if len(versionedAttributeAllColumns) == len(versionedAttributePrimaryKeyColumns) {
-		t.Skip("Skipping table with only primary key columns")
-	}
-
-	seed := randomize.NewSeed()
-	var err error
-	// Attempt the INSERT side of an UPSERT
-	o := VersionedAttribute{}
-	if err = randomize.Struct(seed, &o, versionedAttributeDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize VersionedAttribute struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert VersionedAttribute: %s", err)
-	}
-
-	count, err := VersionedAttributes().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-
-	// Attempt the UPDATE side of an UPSERT
-	if err = randomize.Struct(seed, &o, versionedAttributeDBTypes, false, versionedAttributePrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize VersionedAttribute struct: %s", err)
-	}
-
-	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert VersionedAttribute: %s", err)
-	}
-
-	count, err = VersionedAttributes().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-}
-
 var (
 	// Relationships sometimes use the reflection helper queries.Equal/queries.Assign
 	// so force a package dependency in case they don't.
@@ -542,67 +494,6 @@ func testVersionedAttributesInsertWhitelist(t *testing.T) {
 	}
 }
 
-func testVersionedAttributeToOneServerUsingServer(t *testing.T) {
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-
-	var local VersionedAttribute
-	var foreign Server
-
-	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, versionedAttributeDBTypes, true, versionedAttributeColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize VersionedAttribute struct: %s", err)
-	}
-	if err := randomize.Struct(seed, &foreign, serverDBTypes, false, serverColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize Server struct: %s", err)
-	}
-
-	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	queries.Assign(&local.ServerID, foreign.ID)
-	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	check, err := local.Server().One(ctx, tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if !queries.Equal(check.ID, foreign.ID) {
-		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
-	}
-
-	ranAfterSelectHook := false
-	AddServerHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *Server) error {
-		ranAfterSelectHook = true
-		return nil
-	})
-
-	slice := VersionedAttributeSlice{&local}
-	if err = local.L.LoadServer(ctx, tx, false, (*[]*VersionedAttribute)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.Server == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	local.R.Server = nil
-	if err = local.L.LoadServer(ctx, tx, true, &local, nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.Server == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	if !ranAfterSelectHook {
-		t.Error("failed to run AfterSelect hook for relationship")
-	}
-}
-
 func testVersionedAttributeToOneServerComponentUsingServerComponent(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
@@ -664,112 +555,64 @@ func testVersionedAttributeToOneServerComponentUsingServerComponent(t *testing.T
 	}
 }
 
-func testVersionedAttributeToOneSetOpServerUsingServer(t *testing.T) {
-	var err error
-
+func testVersionedAttributeToOneServerUsingServer(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var a VersionedAttribute
-	var b, c Server
+	var local VersionedAttribute
+	var foreign Server
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, versionedAttributeDBTypes, false, strmangle.SetComplement(versionedAttributePrimaryKeyColumns, versionedAttributeColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &local, versionedAttributeDBTypes, true, versionedAttributeColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize VersionedAttribute struct: %s", err)
 	}
-	if err = randomize.Struct(seed, &b, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &foreign, serverDBTypes, false, serverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Server struct: %s", err)
 	}
 
-	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Fatal(err)
 	}
 
-	for i, x := range []*Server{&b, &c} {
-		err = a.SetServer(ctx, tx, i != 0, x)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if a.R.Server != x {
-			t.Error("relationship struct not set to correct value")
-		}
-
-		if x.R.VersionedAttributes[0] != &a {
-			t.Error("failed to append to foreign relationship struct")
-		}
-		if !queries.Equal(a.ServerID, x.ID) {
-			t.Error("foreign key was wrong value", a.ServerID)
-		}
-
-		zero := reflect.Zero(reflect.TypeOf(a.ServerID))
-		reflect.Indirect(reflect.ValueOf(&a.ServerID)).Set(zero)
-
-		if err = a.Reload(ctx, tx); err != nil {
-			t.Fatal("failed to reload", err)
-		}
-
-		if !queries.Equal(a.ServerID, x.ID) {
-			t.Error("foreign key was wrong value", a.ServerID, x.ID)
-		}
-	}
-}
-
-func testVersionedAttributeToOneRemoveOpServerUsingServer(t *testing.T) {
-	var err error
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-
-	var a VersionedAttribute
-	var b Server
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, versionedAttributeDBTypes, false, strmangle.SetComplement(versionedAttributePrimaryKeyColumns, versionedAttributeColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &b, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+	queries.Assign(&local.ServerID, foreign.ID)
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Fatal(err)
 	}
 
-	if err = a.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.SetServer(ctx, tx, true, &b); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = a.RemoveServer(ctx, tx, &b); err != nil {
-		t.Error("failed to remove relationship")
-	}
-
-	count, err := a.Server().Count(ctx, tx)
+	check, err := local.Server().One(ctx, tx)
 	if err != nil {
-		t.Error(err)
-	}
-	if count != 0 {
-		t.Error("want no relationships remaining")
+		t.Fatal(err)
 	}
 
-	if a.R.Server != nil {
-		t.Error("R struct entry should be nil")
+	if !queries.Equal(check.ID, foreign.ID) {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
 	}
 
-	if !queries.IsValuerNil(a.ServerID) {
-		t.Error("foreign key value should be nil")
+	ranAfterSelectHook := false
+	AddServerHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *Server) error {
+		ranAfterSelectHook = true
+		return nil
+	})
+
+	slice := VersionedAttributeSlice{&local}
+	if err = local.L.LoadServer(ctx, tx, false, (*[]*VersionedAttribute)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.Server == nil {
+		t.Error("struct should have been eager loaded")
 	}
 
-	if len(b.R.VersionedAttributes) != 0 {
-		t.Error("failed to remove a from b's relationships")
+	local.R.Server = nil
+	if err = local.L.LoadServer(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.Server == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
 	}
 }
 
@@ -882,6 +725,115 @@ func testVersionedAttributeToOneRemoveOpServerComponentUsingServerComponent(t *t
 	}
 }
 
+func testVersionedAttributeToOneSetOpServerUsingServer(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a VersionedAttribute
+	var b, c Server
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, versionedAttributeDBTypes, false, strmangle.SetComplement(versionedAttributePrimaryKeyColumns, versionedAttributeColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*Server{&b, &c} {
+		err = a.SetServer(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.Server != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.VersionedAttributes[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if !queries.Equal(a.ServerID, x.ID) {
+			t.Error("foreign key was wrong value", a.ServerID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.ServerID))
+		reflect.Indirect(reflect.ValueOf(&a.ServerID)).Set(zero)
+
+		if err = a.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if !queries.Equal(a.ServerID, x.ID) {
+			t.Error("foreign key was wrong value", a.ServerID, x.ID)
+		}
+	}
+}
+
+func testVersionedAttributeToOneRemoveOpServerUsingServer(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a VersionedAttribute
+	var b Server
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, versionedAttributeDBTypes, false, strmangle.SetComplement(versionedAttributePrimaryKeyColumns, versionedAttributeColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.SetServer(ctx, tx, true, &b); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.RemoveServer(ctx, tx, &b); err != nil {
+		t.Error("failed to remove relationship")
+	}
+
+	count, err := a.Server().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Error("want no relationships remaining")
+	}
+
+	if a.R.Server != nil {
+		t.Error("R struct entry should be nil")
+	}
+
+	if !queries.IsValuerNil(a.ServerID) {
+		t.Error("foreign key value should be nil")
+	}
+
+	if len(b.R.VersionedAttributes) != 0 {
+		t.Error("failed to remove a from b's relationships")
+	}
+}
+
 func testVersionedAttributesReload(t *testing.T) {
 	t.Parallel()
 
@@ -956,7 +908,7 @@ func testVersionedAttributesSelect(t *testing.T) {
 }
 
 var (
-	versionedAttributeDBTypes = map[string]string{`ID`: `uuid`, `ServerID`: `uuid`, `Namespace`: `string`, `Data`: `jsonb`, `CreatedAt`: `timestamptz`, `UpdatedAt`: `timestamptz`, `ServerComponentID`: `uuid`, `Tally`: `int8`}
+	versionedAttributeDBTypes = map[string]string{`ID`: `uuid`, `ServerID`: `uuid`, `Namespace`: `text`, `Data`: `jsonb`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`, `ServerComponentID`: `uuid`, `Tally`: `bigint`}
 	_                         = bytes.MinRead
 )
 
@@ -1068,5 +1020,53 @@ func testVersionedAttributesSliceUpdateAll(t *testing.T) {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("wanted one record updated but got", rowsAff)
+	}
+}
+
+func testVersionedAttributesUpsert(t *testing.T) {
+	t.Parallel()
+
+	if len(versionedAttributeAllColumns) == len(versionedAttributePrimaryKeyColumns) {
+		t.Skip("Skipping table with only primary key columns")
+	}
+
+	seed := randomize.NewSeed()
+	var err error
+	// Attempt the INSERT side of an UPSERT
+	o := VersionedAttribute{}
+	if err = randomize.Struct(seed, &o, versionedAttributeDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize VersionedAttribute struct: %s", err)
+	}
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert VersionedAttribute: %s", err)
+	}
+
+	count, err := VersionedAttributes().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
+	}
+
+	// Attempt the UPDATE side of an UPSERT
+	if err = randomize.Struct(seed, &o, versionedAttributeDBTypes, false, versionedAttributePrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize VersionedAttribute struct: %s", err)
+	}
+
+	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert VersionedAttribute: %s", err)
+	}
+
+	count, err = VersionedAttributes().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
 	}
 }

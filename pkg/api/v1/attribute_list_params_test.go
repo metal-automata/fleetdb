@@ -235,7 +235,7 @@ func TestSetJSONBWhereClause(t *testing.T) {
 				Value:    "5",
 			},
 			[]interface{}{"5"},
-			"json_extract_path_text(foo.data::JSONB, ?)::int < ?",
+			"jsonb_extract_path_text(foo.data::JSONB, ?)::int < ?",
 			"where less than",
 		},
 		{
@@ -250,7 +250,7 @@ func TestSetJSONBWhereClause(t *testing.T) {
 				Value:    "5",
 			},
 			[]interface{}{"5"},
-			"json_extract_path_text(foo.data::JSONB, ?)::int > ?",
+			"jsonb_extract_path_text(foo.data::JSONB, ?)::int > ?",
 			"where greater than",
 		},
 		{
@@ -265,7 +265,7 @@ func TestSetJSONBWhereClause(t *testing.T) {
 				Value:    "foobar",
 			},
 			[]interface{}{"foobar"},
-			"json_extract_path_text(foo.data::JSONB, ?) LIKE ?",
+			"jsonb_extract_path_text(foo.data::JSONB, ?) LIKE ?",
 			"like",
 		},
 		{
@@ -280,7 +280,7 @@ func TestSetJSONBWhereClause(t *testing.T) {
 				Value:    "10",
 			},
 			[]interface{}{"10"},
-			"json_extract_path_text(foo.data::JSONB, ?) = ?",
+			"jsonb_extract_path_text(foo.data::JSONB, ?) = ?",
 			"equal",
 		},
 		{

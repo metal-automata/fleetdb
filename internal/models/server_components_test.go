@@ -15,54 +15,6 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-func testServerComponentsUpsert(t *testing.T) {
-	t.Parallel()
-
-	if len(serverComponentAllColumns) == len(serverComponentPrimaryKeyColumns) {
-		t.Skip("Skipping table with only primary key columns")
-	}
-
-	seed := randomize.NewSeed()
-	var err error
-	// Attempt the INSERT side of an UPSERT
-	o := ServerComponent{}
-	if err = randomize.Struct(seed, &o, serverComponentDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize ServerComponent struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert ServerComponent: %s", err)
-	}
-
-	count, err := ServerComponents().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-
-	// Attempt the UPDATE side of an UPSERT
-	if err = randomize.Struct(seed, &o, serverComponentDBTypes, false, serverComponentPrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize ServerComponent struct: %s", err)
-	}
-
-	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert ServerComponent: %s", err)
-	}
-
-	count, err = ServerComponents().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-}
-
 var (
 	// Relationships sometimes use the reflection helper queries.Equal/queries.Assign
 	// so force a package dependency in case they don't.
@@ -1198,67 +1150,6 @@ func testServerComponentToManyRemoveOpVersionedAttributes(t *testing.T) {
 	}
 }
 
-func testServerComponentToOneServerUsingServer(t *testing.T) {
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-
-	var local ServerComponent
-	var foreign Server
-
-	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, serverComponentDBTypes, false, serverComponentColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize ServerComponent struct: %s", err)
-	}
-	if err := randomize.Struct(seed, &foreign, serverDBTypes, false, serverColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize Server struct: %s", err)
-	}
-
-	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	local.ServerID = foreign.ID
-	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	check, err := local.Server().One(ctx, tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if check.ID != foreign.ID {
-		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
-	}
-
-	ranAfterSelectHook := false
-	AddServerHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *Server) error {
-		ranAfterSelectHook = true
-		return nil
-	})
-
-	slice := ServerComponentSlice{&local}
-	if err = local.L.LoadServer(ctx, tx, false, (*[]*ServerComponent)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.Server == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	local.R.Server = nil
-	if err = local.L.LoadServer(ctx, tx, true, &local, nil); err != nil {
-		t.Fatal(err)
-	}
-	if local.R.Server == nil {
-		t.Error("struct should have been eager loaded")
-	}
-
-	if !ranAfterSelectHook {
-		t.Error("failed to run AfterSelect hook for relationship")
-	}
-}
-
 func testServerComponentToOneServerComponentTypeUsingServerComponentType(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
@@ -1320,63 +1211,67 @@ func testServerComponentToOneServerComponentTypeUsingServerComponentType(t *test
 	}
 }
 
-func testServerComponentToOneSetOpServerUsingServer(t *testing.T) {
-	var err error
-
+func testServerComponentToOneServerUsingServer(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var a ServerComponent
-	var b, c Server
+	var local ServerComponent
+	var foreign Server
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, serverComponentDBTypes, false, strmangle.SetComplement(serverComponentPrimaryKeyColumns, serverComponentColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &local, serverComponentDBTypes, false, serverComponentColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerComponent struct: %s", err)
 	}
-	if err = randomize.Struct(seed, &b, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
+	if err := randomize.Struct(seed, &foreign, serverDBTypes, false, serverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Server struct: %s", err)
 	}
 
-	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Fatal(err)
 	}
 
-	for i, x := range []*Server{&b, &c} {
-		err = a.SetServer(ctx, tx, i != 0, x)
-		if err != nil {
-			t.Fatal(err)
-		}
+	local.ServerID = foreign.ID
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
 
-		if a.R.Server != x {
-			t.Error("relationship struct not set to correct value")
-		}
+	check, err := local.Server().One(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-		if x.R.ServerComponents[0] != &a {
-			t.Error("failed to append to foreign relationship struct")
-		}
-		if a.ServerID != x.ID {
-			t.Error("foreign key was wrong value", a.ServerID)
-		}
+	if check.ID != foreign.ID {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	}
 
-		zero := reflect.Zero(reflect.TypeOf(a.ServerID))
-		reflect.Indirect(reflect.ValueOf(&a.ServerID)).Set(zero)
+	ranAfterSelectHook := false
+	AddServerHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *Server) error {
+		ranAfterSelectHook = true
+		return nil
+	})
 
-		if err = a.Reload(ctx, tx); err != nil {
-			t.Fatal("failed to reload", err)
-		}
+	slice := ServerComponentSlice{&local}
+	if err = local.L.LoadServer(ctx, tx, false, (*[]*ServerComponent)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.Server == nil {
+		t.Error("struct should have been eager loaded")
+	}
 
-		if a.ServerID != x.ID {
-			t.Error("foreign key was wrong value", a.ServerID, x.ID)
-		}
+	local.R.Server = nil
+	if err = local.L.LoadServer(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.Server == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
 	}
 }
+
 func testServerComponentToOneSetOpServerComponentTypeUsingServerComponentType(t *testing.T) {
 	var err error
 
@@ -1431,6 +1326,63 @@ func testServerComponentToOneSetOpServerComponentTypeUsingServerComponentType(t 
 
 		if a.ServerComponentTypeID != x.ID {
 			t.Error("foreign key was wrong value", a.ServerComponentTypeID, x.ID)
+		}
+	}
+}
+func testServerComponentToOneSetOpServerUsingServer(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a ServerComponent
+	var b, c Server
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverComponentDBTypes, false, strmangle.SetComplement(serverComponentPrimaryKeyColumns, serverComponentColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*Server{&b, &c} {
+		err = a.SetServer(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.Server != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.ServerComponents[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if a.ServerID != x.ID {
+			t.Error("foreign key was wrong value", a.ServerID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.ServerID))
+		reflect.Indirect(reflect.ValueOf(&a.ServerID)).Set(zero)
+
+		if err = a.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if a.ServerID != x.ID {
+			t.Error("foreign key was wrong value", a.ServerID, x.ID)
 		}
 	}
 }
@@ -1509,7 +1461,7 @@ func testServerComponentsSelect(t *testing.T) {
 }
 
 var (
-	serverComponentDBTypes = map[string]string{`ID`: `uuid`, `Name`: `string`, `Vendor`: `string`, `Model`: `string`, `Serial`: `string`, `ServerComponentTypeID`: `uuid`, `ServerID`: `uuid`, `CreatedAt`: `timestamptz`, `UpdatedAt`: `timestamptz`}
+	serverComponentDBTypes = map[string]string{`ID`: `uuid`, `Name`: `text`, `Vendor`: `text`, `Model`: `text`, `Serial`: `text`, `ServerComponentTypeID`: `uuid`, `ServerID`: `uuid`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`}
 	_                      = bytes.MinRead
 )
 
@@ -1621,5 +1573,53 @@ func testServerComponentsSliceUpdateAll(t *testing.T) {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("wanted one record updated but got", rowsAff)
+	}
+}
+
+func testServerComponentsUpsert(t *testing.T) {
+	t.Parallel()
+
+	if len(serverComponentAllColumns) == len(serverComponentPrimaryKeyColumns) {
+		t.Skip("Skipping table with only primary key columns")
+	}
+
+	seed := randomize.NewSeed()
+	var err error
+	// Attempt the INSERT side of an UPSERT
+	o := ServerComponent{}
+	if err = randomize.Struct(seed, &o, serverComponentDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize ServerComponent struct: %s", err)
+	}
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert ServerComponent: %s", err)
+	}
+
+	count, err := ServerComponents().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
+	}
+
+	// Attempt the UPDATE side of an UPSERT
+	if err = randomize.Struct(seed, &o, serverComponentDBTypes, false, serverComponentPrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize ServerComponent struct: %s", err)
+	}
+
+	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert ServerComponent: %s", err)
+	}
+
+	count, err = ServerComponents().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
 	}
 }

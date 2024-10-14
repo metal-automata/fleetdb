@@ -2,38 +2,39 @@ services:
   fleetdb:
     image: ghcr.io/metal-automata/fleetdb:latest
     depends_on:
-      - crdb
+      - postgresql
       - fleetdb-migrate
     environment:
       - FLEETDB_OIDC_ENABLED=false
-      - FLEETDB_CRDB_URI=postgresql://root@crdb:26257/defaultdb?sslmode=disable
+      - FLEETDB_CRDB_URI=${PG_DSN:?"expected postgresql DB URI env var"}  #postgresql://postgres@postgresql:5432/fleetdb?sslmode=disable
       - FLEETDB_DB_ENCRYPTION_DRIVER=base64key://smGbjm71Nxd1Ig5FS0wj9SlbzAIrnolCz9bQQ6uAhl4=
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     restart: unless-stopped
     networks:
-      - hollow
+      - automata
 
   fleetdb-migrate:
     image: ghcr.io/metal-automata/fleetdb:latest
     command:
       migrate up
     depends_on:
-      - crdb
+      - postgresql
     environment:
-      - FLEETDB_CRDB_URI=postgresql://root@crdb:26257/defaultdb?sslmode=disable
+      - FLEETDB_CRDB_URI=${PG_DSN:?"expected postgresql DB URI env var"} #postgresql://postgres@postgresql:5432/postgres?sslmode=disable
     restart: on-failure
     networks:
-      - hollow
+      - automata
 
-  crdb:
-    image: cockroachdb/cockroach:latest-v23.1
+  postgresql:
+    image: postgres:17.0-alpine3.20
+    environment:
+      - POSTGRES_HOST_AUTH_METHOD=trust
+      - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
-      - db:/cockroach/cockroach-data
-    command: start-single-node --insecure
+      - db:/var/lib/postgresql/data
     ports:
-        - "8080:8080"
-        - "26257:26257"
+      - "127.0.0.1:5432:5432"
     restart: unless-stopped
     networks:
       - automata

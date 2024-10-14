@@ -125,17 +125,17 @@ var VersionedAttributeWhere = struct {
 
 // VersionedAttributeRels is where relationship names are stored.
 var VersionedAttributeRels = struct {
-	Server          string
 	ServerComponent string
+	Server          string
 }{
-	Server:          "Server",
 	ServerComponent: "ServerComponent",
+	Server:          "Server",
 }
 
 // versionedAttributeR is where relationships are stored.
 type versionedAttributeR struct {
-	Server          *Server          `boil:"Server" json:"Server" toml:"Server" yaml:"Server"`
 	ServerComponent *ServerComponent `boil:"ServerComponent" json:"ServerComponent" toml:"ServerComponent" yaml:"ServerComponent"`
+	Server          *Server          `boil:"Server" json:"Server" toml:"Server" yaml:"Server"`
 }
 
 // NewStruct creates a new relationship struct
@@ -143,18 +143,18 @@ func (*versionedAttributeR) NewStruct() *versionedAttributeR {
 	return &versionedAttributeR{}
 }
 
-func (r *versionedAttributeR) GetServer() *Server {
-	if r == nil {
-		return nil
-	}
-	return r.Server
-}
-
 func (r *versionedAttributeR) GetServerComponent() *ServerComponent {
 	if r == nil {
 		return nil
 	}
 	return r.ServerComponent
+}
+
+func (r *versionedAttributeR) GetServer() *Server {
+	if r == nil {
+		return nil
+	}
+	return r.Server
 }
 
 // versionedAttributeL is where Load methods for each relationship are stored.
@@ -446,6 +446,17 @@ func (q versionedAttributeQuery) Exists(ctx context.Context, exec boil.ContextEx
 	return count > 0, nil
 }
 
+// ServerComponent pointed to by the foreign key.
+func (o *VersionedAttribute) ServerComponent(mods ...qm.QueryMod) serverComponentQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.ServerComponentID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return ServerComponents(queryMods...)
+}
+
 // Server pointed to by the foreign key.
 func (o *VersionedAttribute) Server(mods ...qm.QueryMod) serverQuery {
 	queryMods := []qm.QueryMod{
@@ -457,15 +468,128 @@ func (o *VersionedAttribute) Server(mods ...qm.QueryMod) serverQuery {
 	return Servers(queryMods...)
 }
 
-// ServerComponent pointed to by the foreign key.
-func (o *VersionedAttribute) ServerComponent(mods ...qm.QueryMod) serverComponentQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.ServerComponentID),
+// LoadServerComponent allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (versionedAttributeL) LoadServerComponent(ctx context.Context, e boil.ContextExecutor, singular bool, maybeVersionedAttribute interface{}, mods queries.Applicator) error {
+	var slice []*VersionedAttribute
+	var object *VersionedAttribute
+
+	if singular {
+		var ok bool
+		object, ok = maybeVersionedAttribute.(*VersionedAttribute)
+		if !ok {
+			object = new(VersionedAttribute)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeVersionedAttribute)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeVersionedAttribute))
+			}
+		}
+	} else {
+		s, ok := maybeVersionedAttribute.(*[]*VersionedAttribute)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeVersionedAttribute)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeVersionedAttribute))
+			}
+		}
 	}
 
-	queryMods = append(queryMods, mods...)
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &versionedAttributeR{}
+		}
+		if !queries.IsNil(object.ServerComponentID) {
+			args = append(args, object.ServerComponentID)
+		}
 
-	return ServerComponents(queryMods...)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &versionedAttributeR{}
+			}
+
+			for _, a := range args {
+				if queries.Equal(a, obj.ServerComponentID) {
+					continue Outer
+				}
+			}
+
+			if !queries.IsNil(obj.ServerComponentID) {
+				args = append(args, obj.ServerComponentID)
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`server_components`),
+		qm.WhereIn(`server_components.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load ServerComponent")
+	}
+
+	var resultSlice []*ServerComponent
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice ServerComponent")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for server_components")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for server_components")
+	}
+
+	if len(serverComponentAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.ServerComponent = foreign
+		if foreign.R == nil {
+			foreign.R = &serverComponentR{}
+		}
+		foreign.R.VersionedAttributes = append(foreign.R.VersionedAttributes, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.ServerComponentID, foreign.ID) {
+				local.R.ServerComponent = foreign
+				if foreign.R == nil {
+					foreign.R = &serverComponentR{}
+				}
+				foreign.R.VersionedAttributes = append(foreign.R.VersionedAttributes, local)
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadServer allows an eager lookup of values, cached into the
@@ -593,127 +717,83 @@ func (versionedAttributeL) LoadServer(ctx context.Context, e boil.ContextExecuto
 	return nil
 }
 
-// LoadServerComponent allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (versionedAttributeL) LoadServerComponent(ctx context.Context, e boil.ContextExecutor, singular bool, maybeVersionedAttribute interface{}, mods queries.Applicator) error {
-	var slice []*VersionedAttribute
-	var object *VersionedAttribute
-
-	if singular {
-		var ok bool
-		object, ok = maybeVersionedAttribute.(*VersionedAttribute)
-		if !ok {
-			object = new(VersionedAttribute)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeVersionedAttribute)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeVersionedAttribute))
-			}
-		}
-	} else {
-		s, ok := maybeVersionedAttribute.(*[]*VersionedAttribute)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeVersionedAttribute)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeVersionedAttribute))
-			}
+// SetServerComponent of the versionedAttribute to the related item.
+// Sets o.R.ServerComponent to related.
+// Adds o to related.R.VersionedAttributes.
+func (o *VersionedAttribute) SetServerComponent(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ServerComponent) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
 		}
 	}
 
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &versionedAttributeR{}
-		}
-		if !queries.IsNil(object.ServerComponentID) {
-			args = append(args, object.ServerComponentID)
-		}
-
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &versionedAttributeR{}
-			}
-
-			for _, a := range args {
-				if queries.Equal(a, obj.ServerComponentID) {
-					continue Outer
-				}
-			}
-
-			if !queries.IsNil(obj.ServerComponentID) {
-				args = append(args, obj.ServerComponentID)
-			}
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`server_components`),
-		qm.WhereIn(`server_components.id in ?`, args...),
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"versioned_attributes\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"server_component_id"}),
+		strmangle.WhereClause("\"", "\"", 2, versionedAttributePrimaryKeyColumns),
 	)
-	if mods != nil {
-		mods.Apply(query)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
 	}
 
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load ServerComponent")
-	}
-
-	var resultSlice []*ServerComponent
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice ServerComponent")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for server_components")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for server_components")
-	}
-
-	if len(serverComponentAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
+	queries.Assign(&o.ServerComponentID, related.ID)
+	if o.R == nil {
+		o.R = &versionedAttributeR{
+			ServerComponent: related,
 		}
+	} else {
+		o.R.ServerComponent = related
 	}
 
-	if len(resultSlice) == 0 {
+	if related.R == nil {
+		related.R = &serverComponentR{
+			VersionedAttributes: VersionedAttributeSlice{o},
+		}
+	} else {
+		related.R.VersionedAttributes = append(related.R.VersionedAttributes, o)
+	}
+
+	return nil
+}
+
+// RemoveServerComponent relationship.
+// Sets o.R.ServerComponent to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *VersionedAttribute) RemoveServerComponent(ctx context.Context, exec boil.ContextExecutor, related *ServerComponent) error {
+	var err error
+
+	queries.SetScanner(&o.ServerComponentID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("server_component_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.ServerComponent = nil
+	}
+	if related == nil || related.R == nil {
 		return nil
 	}
 
-	if singular {
-		foreign := resultSlice[0]
-		object.R.ServerComponent = foreign
-		if foreign.R == nil {
-			foreign.R = &serverComponentR{}
+	for i, ri := range related.R.VersionedAttributes {
+		if queries.Equal(o.ServerComponentID, ri.ServerComponentID) {
+			continue
 		}
-		foreign.R.VersionedAttributes = append(foreign.R.VersionedAttributes, object)
-		return nil
-	}
 
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if queries.Equal(local.ServerComponentID, foreign.ID) {
-				local.R.ServerComponent = foreign
-				if foreign.R == nil {
-					foreign.R = &serverComponentR{}
-				}
-				foreign.R.VersionedAttributes = append(foreign.R.VersionedAttributes, local)
-				break
-			}
+		ln := len(related.R.VersionedAttributes)
+		if ln > 1 && i < ln-1 {
+			related.R.VersionedAttributes[i] = related.R.VersionedAttributes[ln-1]
 		}
+		related.R.VersionedAttributes = related.R.VersionedAttributes[:ln-1]
+		break
 	}
-
 	return nil
 }
 
@@ -784,86 +864,6 @@ func (o *VersionedAttribute) RemoveServer(ctx context.Context, exec boil.Context
 
 	for i, ri := range related.R.VersionedAttributes {
 		if queries.Equal(o.ServerID, ri.ServerID) {
-			continue
-		}
-
-		ln := len(related.R.VersionedAttributes)
-		if ln > 1 && i < ln-1 {
-			related.R.VersionedAttributes[i] = related.R.VersionedAttributes[ln-1]
-		}
-		related.R.VersionedAttributes = related.R.VersionedAttributes[:ln-1]
-		break
-	}
-	return nil
-}
-
-// SetServerComponent of the versionedAttribute to the related item.
-// Sets o.R.ServerComponent to related.
-// Adds o to related.R.VersionedAttributes.
-func (o *VersionedAttribute) SetServerComponent(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ServerComponent) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"versioned_attributes\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"server_component_id"}),
-		strmangle.WhereClause("\"", "\"", 2, versionedAttributePrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	queries.Assign(&o.ServerComponentID, related.ID)
-	if o.R == nil {
-		o.R = &versionedAttributeR{
-			ServerComponent: related,
-		}
-	} else {
-		o.R.ServerComponent = related
-	}
-
-	if related.R == nil {
-		related.R = &serverComponentR{
-			VersionedAttributes: VersionedAttributeSlice{o},
-		}
-	} else {
-		related.R.VersionedAttributes = append(related.R.VersionedAttributes, o)
-	}
-
-	return nil
-}
-
-// RemoveServerComponent relationship.
-// Sets o.R.ServerComponent to nil.
-// Removes o from all passed in related items' relationships struct.
-func (o *VersionedAttribute) RemoveServerComponent(ctx context.Context, exec boil.ContextExecutor, related *ServerComponent) error {
-	var err error
-
-	queries.SetScanner(&o.ServerComponentID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("server_component_id")); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	if o.R != nil {
-		o.R.ServerComponent = nil
-	}
-	if related == nil || related.R == nil {
-		return nil
-	}
-
-	for i, ri := range related.R.VersionedAttributes {
-		if queries.Equal(o.ServerComponentID, ri.ServerComponentID) {
 			continue
 		}
 
@@ -1141,6 +1141,130 @@ func (o VersionedAttributeSlice) UpdateAll(ctx context.Context, exec boil.Contex
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *VersionedAttribute) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+	if o == nil {
+		return errors.New("models: no versioned_attributes provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if queries.MustTime(o.CreatedAt).IsZero() {
+			queries.SetScanner(&o.CreatedAt, currTime)
+		}
+		queries.SetScanner(&o.UpdatedAt, currTime)
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(versionedAttributeColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	versionedAttributeUpsertCacheMut.RLock()
+	cache, cached := versionedAttributeUpsertCache[key]
+	versionedAttributeUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, ret := insertColumns.InsertColumnSet(
+			versionedAttributeAllColumns,
+			versionedAttributeColumnsWithDefault,
+			versionedAttributeColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			versionedAttributeAllColumns,
+			versionedAttributePrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert versioned_attributes, could not build update column list")
+		}
+
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(versionedAttributePrimaryKeyColumns))
+			copy(conflict, versionedAttributePrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"versioned_attributes\"", updateOnConflict, ret, update, conflict, insert)
+
+		cache.valueMapping, err = queries.BindMapping(versionedAttributeType, versionedAttributeMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(versionedAttributeType, versionedAttributeMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert versioned_attributes")
+	}
+
+	if !cached {
+		versionedAttributeUpsertCacheMut.Lock()
+		versionedAttributeUpsertCache[key] = cache
+		versionedAttributeUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single VersionedAttribute record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *VersionedAttribute) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -1311,127 +1435,4 @@ func VersionedAttributeExists(ctx context.Context, exec boil.ContextExecutor, iD
 // Exists checks if the VersionedAttribute row exists.
 func (o *VersionedAttribute) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return VersionedAttributeExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *VersionedAttribute) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no versioned_attributes provided for upsert")
-	}
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
-
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
-		}
-		queries.SetScanner(&o.UpdatedAt, currTime)
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(versionedAttributeColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	versionedAttributeUpsertCacheMut.RLock()
-	cache, cached := versionedAttributeUpsertCache[key]
-	versionedAttributeUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			versionedAttributeAllColumns,
-			versionedAttributeColumnsWithDefault,
-			versionedAttributeColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			versionedAttributeAllColumns,
-			versionedAttributePrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert versioned_attributes, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(versionedAttributePrimaryKeyColumns))
-			copy(conflict, versionedAttributePrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"versioned_attributes\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(versionedAttributeType, versionedAttributeMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(versionedAttributeType, versionedAttributeMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if err == sql.ErrNoRows {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert versioned_attributes")
-	}
-
-	if !cached {
-		versionedAttributeUpsertCacheMut.Lock()
-		versionedAttributeUpsertCache[key] = cache
-		versionedAttributeUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

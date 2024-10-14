@@ -15,54 +15,6 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-func testServerCredentialTypesUpsert(t *testing.T) {
-	t.Parallel()
-
-	if len(serverCredentialTypeAllColumns) == len(serverCredentialTypePrimaryKeyColumns) {
-		t.Skip("Skipping table with only primary key columns")
-	}
-
-	seed := randomize.NewSeed()
-	var err error
-	// Attempt the INSERT side of an UPSERT
-	o := ServerCredentialType{}
-	if err = randomize.Struct(seed, &o, serverCredentialTypeDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize ServerCredentialType struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert ServerCredentialType: %s", err)
-	}
-
-	count, err := ServerCredentialTypes().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-
-	// Attempt the UPDATE side of an UPSERT
-	if err = randomize.Struct(seed, &o, serverCredentialTypeDBTypes, false, serverCredentialTypePrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize ServerCredentialType struct: %s", err)
-	}
-
-	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert ServerCredentialType: %s", err)
-	}
-
-	count, err = ServerCredentialTypes().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-	if count != 1 {
-		t.Error("want one record, got:", count)
-	}
-}
-
 var (
 	// Relationships sometimes use the reflection helper queries.Equal/queries.Assign
 	// so force a package dependency in case they don't.
@@ -770,7 +722,7 @@ func testServerCredentialTypesSelect(t *testing.T) {
 }
 
 var (
-	serverCredentialTypeDBTypes = map[string]string{`ID`: `uuid`, `Name`: `string`, `Slug`: `string`, `Builtin`: `bool`, `CreatedAt`: `timestamptz`, `UpdatedAt`: `timestamptz`}
+	serverCredentialTypeDBTypes = map[string]string{`ID`: `uuid`, `Name`: `text`, `Slug`: `text`, `Builtin`: `boolean`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`}
 	_                           = bytes.MinRead
 )
 
@@ -882,5 +834,53 @@ func testServerCredentialTypesSliceUpdateAll(t *testing.T) {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("wanted one record updated but got", rowsAff)
+	}
+}
+
+func testServerCredentialTypesUpsert(t *testing.T) {
+	t.Parallel()
+
+	if len(serverCredentialTypeAllColumns) == len(serverCredentialTypePrimaryKeyColumns) {
+		t.Skip("Skipping table with only primary key columns")
+	}
+
+	seed := randomize.NewSeed()
+	var err error
+	// Attempt the INSERT side of an UPSERT
+	o := ServerCredentialType{}
+	if err = randomize.Struct(seed, &o, serverCredentialTypeDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize ServerCredentialType struct: %s", err)
+	}
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert ServerCredentialType: %s", err)
+	}
+
+	count, err := ServerCredentialTypes().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
+	}
+
+	// Attempt the UPDATE side of an UPSERT
+	if err = randomize.Struct(seed, &o, serverCredentialTypeDBTypes, false, serverCredentialTypePrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize ServerCredentialType struct: %s", err)
+	}
+
+	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
+		t.Errorf("Unable to upsert ServerCredentialType: %s", err)
+	}
+
+	count, err = ServerCredentialTypes().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 1 {
+		t.Error("want one record, got:", count)
 	}
 }

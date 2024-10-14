@@ -65,17 +65,17 @@ var ComponentFirmwareSetMapWhere = struct {
 
 // ComponentFirmwareSetMapRels is where relationship names are stored.
 var ComponentFirmwareSetMapRels = struct {
-	FirmwareSet string
 	Firmware    string
+	FirmwareSet string
 }{
-	FirmwareSet: "FirmwareSet",
 	Firmware:    "Firmware",
+	FirmwareSet: "FirmwareSet",
 }
 
 // componentFirmwareSetMapR is where relationships are stored.
 type componentFirmwareSetMapR struct {
-	FirmwareSet *ComponentFirmwareSet     `boil:"FirmwareSet" json:"FirmwareSet" toml:"FirmwareSet" yaml:"FirmwareSet"`
 	Firmware    *ComponentFirmwareVersion `boil:"Firmware" json:"Firmware" toml:"Firmware" yaml:"Firmware"`
+	FirmwareSet *ComponentFirmwareSet     `boil:"FirmwareSet" json:"FirmwareSet" toml:"FirmwareSet" yaml:"FirmwareSet"`
 }
 
 // NewStruct creates a new relationship struct
@@ -83,18 +83,18 @@ func (*componentFirmwareSetMapR) NewStruct() *componentFirmwareSetMapR {
 	return &componentFirmwareSetMapR{}
 }
 
-func (r *componentFirmwareSetMapR) GetFirmwareSet() *ComponentFirmwareSet {
-	if r == nil {
-		return nil
-	}
-	return r.FirmwareSet
-}
-
 func (r *componentFirmwareSetMapR) GetFirmware() *ComponentFirmwareVersion {
 	if r == nil {
 		return nil
 	}
 	return r.Firmware
+}
+
+func (r *componentFirmwareSetMapR) GetFirmwareSet() *ComponentFirmwareSet {
+	if r == nil {
+		return nil
+	}
+	return r.FirmwareSet
 }
 
 // componentFirmwareSetMapL is where Load methods for each relationship are stored.
@@ -386,17 +386,6 @@ func (q componentFirmwareSetMapQuery) Exists(ctx context.Context, exec boil.Cont
 	return count > 0, nil
 }
 
-// FirmwareSet pointed to by the foreign key.
-func (o *ComponentFirmwareSetMap) FirmwareSet(mods ...qm.QueryMod) componentFirmwareSetQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.FirmwareSetID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	return ComponentFirmwareSets(queryMods...)
-}
-
 // Firmware pointed to by the foreign key.
 func (o *ComponentFirmwareSetMap) Firmware(mods ...qm.QueryMod) componentFirmwareVersionQuery {
 	queryMods := []qm.QueryMod{
@@ -408,124 +397,15 @@ func (o *ComponentFirmwareSetMap) Firmware(mods ...qm.QueryMod) componentFirmwar
 	return ComponentFirmwareVersions(queryMods...)
 }
 
-// LoadFirmwareSet allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (componentFirmwareSetMapL) LoadFirmwareSet(ctx context.Context, e boil.ContextExecutor, singular bool, maybeComponentFirmwareSetMap interface{}, mods queries.Applicator) error {
-	var slice []*ComponentFirmwareSetMap
-	var object *ComponentFirmwareSetMap
-
-	if singular {
-		var ok bool
-		object, ok = maybeComponentFirmwareSetMap.(*ComponentFirmwareSetMap)
-		if !ok {
-			object = new(ComponentFirmwareSetMap)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeComponentFirmwareSetMap)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeComponentFirmwareSetMap))
-			}
-		}
-	} else {
-		s, ok := maybeComponentFirmwareSetMap.(*[]*ComponentFirmwareSetMap)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeComponentFirmwareSetMap)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeComponentFirmwareSetMap))
-			}
-		}
+// FirmwareSet pointed to by the foreign key.
+func (o *ComponentFirmwareSetMap) FirmwareSet(mods ...qm.QueryMod) componentFirmwareSetQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.FirmwareSetID),
 	}
 
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &componentFirmwareSetMapR{}
-		}
-		args = append(args, object.FirmwareSetID)
+	queryMods = append(queryMods, mods...)
 
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &componentFirmwareSetMapR{}
-			}
-
-			for _, a := range args {
-				if a == obj.FirmwareSetID {
-					continue Outer
-				}
-			}
-
-			args = append(args, obj.FirmwareSetID)
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`component_firmware_set`),
-		qm.WhereIn(`component_firmware_set.id in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load ComponentFirmwareSet")
-	}
-
-	var resultSlice []*ComponentFirmwareSet
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice ComponentFirmwareSet")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for component_firmware_set")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for component_firmware_set")
-	}
-
-	if len(componentFirmwareSetAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.FirmwareSet = foreign
-		if foreign.R == nil {
-			foreign.R = &componentFirmwareSetR{}
-		}
-		foreign.R.FirmwareSetComponentFirmwareSetMaps = append(foreign.R.FirmwareSetComponentFirmwareSetMaps, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if local.FirmwareSetID == foreign.ID {
-				local.R.FirmwareSet = foreign
-				if foreign.R == nil {
-					foreign.R = &componentFirmwareSetR{}
-				}
-				foreign.R.FirmwareSetComponentFirmwareSetMaps = append(foreign.R.FirmwareSetComponentFirmwareSetMaps, local)
-				break
-			}
-		}
-	}
-
-	return nil
+	return ComponentFirmwareSets(queryMods...)
 }
 
 // LoadFirmware allows an eager lookup of values, cached into the
@@ -648,48 +528,121 @@ func (componentFirmwareSetMapL) LoadFirmware(ctx context.Context, e boil.Context
 	return nil
 }
 
-// SetFirmwareSet of the componentFirmwareSetMap to the related item.
-// Sets o.R.FirmwareSet to related.
-// Adds o to related.R.FirmwareSetComponentFirmwareSetMaps.
-func (o *ComponentFirmwareSetMap) SetFirmwareSet(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ComponentFirmwareSet) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
+// LoadFirmwareSet allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (componentFirmwareSetMapL) LoadFirmwareSet(ctx context.Context, e boil.ContextExecutor, singular bool, maybeComponentFirmwareSetMap interface{}, mods queries.Applicator) error {
+	var slice []*ComponentFirmwareSetMap
+	var object *ComponentFirmwareSetMap
+
+	if singular {
+		var ok bool
+		object, ok = maybeComponentFirmwareSetMap.(*ComponentFirmwareSetMap)
+		if !ok {
+			object = new(ComponentFirmwareSetMap)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeComponentFirmwareSetMap)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeComponentFirmwareSetMap))
+			}
+		}
+	} else {
+		s, ok := maybeComponentFirmwareSetMap.(*[]*ComponentFirmwareSetMap)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeComponentFirmwareSetMap)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeComponentFirmwareSetMap))
+			}
 		}
 	}
 
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"component_firmware_set_map\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"firmware_set_id"}),
-		strmangle.WhereClause("\"", "\"", 2, componentFirmwareSetMapPrimaryKeyColumns),
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &componentFirmwareSetMapR{}
+		}
+		args = append(args, object.FirmwareSetID)
+
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &componentFirmwareSetMapR{}
+			}
+
+			for _, a := range args {
+				if a == obj.FirmwareSetID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.FirmwareSetID)
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`component_firmware_set`),
+		qm.WhereIn(`component_firmware_set.id in ?`, args...),
 	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
+	if mods != nil {
+		mods.Apply(query)
 	}
 
-	o.FirmwareSetID = related.ID
-	if o.R == nil {
-		o.R = &componentFirmwareSetMapR{
-			FirmwareSet: related,
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load ComponentFirmwareSet")
+	}
+
+	var resultSlice []*ComponentFirmwareSet
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice ComponentFirmwareSet")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for component_firmware_set")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for component_firmware_set")
+	}
+
+	if len(componentFirmwareSetAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
 		}
-	} else {
-		o.R.FirmwareSet = related
 	}
 
-	if related.R == nil {
-		related.R = &componentFirmwareSetR{
-			FirmwareSetComponentFirmwareSetMaps: ComponentFirmwareSetMapSlice{o},
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.FirmwareSet = foreign
+		if foreign.R == nil {
+			foreign.R = &componentFirmwareSetR{}
 		}
-	} else {
-		related.R.FirmwareSetComponentFirmwareSetMaps = append(related.R.FirmwareSetComponentFirmwareSetMaps, o)
+		foreign.R.FirmwareSetComponentFirmwareSetMaps = append(foreign.R.FirmwareSetComponentFirmwareSetMaps, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.FirmwareSetID == foreign.ID {
+				local.R.FirmwareSet = foreign
+				if foreign.R == nil {
+					foreign.R = &componentFirmwareSetR{}
+				}
+				foreign.R.FirmwareSetComponentFirmwareSetMaps = append(foreign.R.FirmwareSetComponentFirmwareSetMaps, local)
+				break
+			}
+		}
 	}
 
 	return nil
@@ -737,6 +690,53 @@ func (o *ComponentFirmwareSetMap) SetFirmware(ctx context.Context, exec boil.Con
 		}
 	} else {
 		related.R.FirmwareComponentFirmwareSetMaps = append(related.R.FirmwareComponentFirmwareSetMaps, o)
+	}
+
+	return nil
+}
+
+// SetFirmwareSet of the componentFirmwareSetMap to the related item.
+// Sets o.R.FirmwareSet to related.
+// Adds o to related.R.FirmwareSetComponentFirmwareSetMaps.
+func (o *ComponentFirmwareSetMap) SetFirmwareSet(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ComponentFirmwareSet) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"component_firmware_set_map\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"firmware_set_id"}),
+		strmangle.WhereClause("\"", "\"", 2, componentFirmwareSetMapPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.FirmwareSetID = related.ID
+	if o.R == nil {
+		o.R = &componentFirmwareSetMapR{
+			FirmwareSet: related,
+		}
+	} else {
+		o.R.FirmwareSet = related
+	}
+
+	if related.R == nil {
+		related.R = &componentFirmwareSetR{
+			FirmwareSetComponentFirmwareSetMaps: ComponentFirmwareSetMapSlice{o},
+		}
+	} else {
+		related.R.FirmwareSetComponentFirmwareSetMaps = append(related.R.FirmwareSetComponentFirmwareSetMaps, o)
 	}
 
 	return nil
@@ -990,6 +990,122 @@ func (o ComponentFirmwareSetMapSlice) UpdateAll(ctx context.Context, exec boil.C
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *ComponentFirmwareSetMap) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+	if o == nil {
+		return errors.New("models: no component_firmware_set_map provided for upsert")
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(componentFirmwareSetMapColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	componentFirmwareSetMapUpsertCacheMut.RLock()
+	cache, cached := componentFirmwareSetMapUpsertCache[key]
+	componentFirmwareSetMapUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, ret := insertColumns.InsertColumnSet(
+			componentFirmwareSetMapAllColumns,
+			componentFirmwareSetMapColumnsWithDefault,
+			componentFirmwareSetMapColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			componentFirmwareSetMapAllColumns,
+			componentFirmwareSetMapPrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert component_firmware_set_map, could not build update column list")
+		}
+
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(componentFirmwareSetMapPrimaryKeyColumns))
+			copy(conflict, componentFirmwareSetMapPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"component_firmware_set_map\"", updateOnConflict, ret, update, conflict, insert)
+
+		cache.valueMapping, err = queries.BindMapping(componentFirmwareSetMapType, componentFirmwareSetMapMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(componentFirmwareSetMapType, componentFirmwareSetMapMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert component_firmware_set_map")
+	}
+
+	if !cached {
+		componentFirmwareSetMapUpsertCacheMut.Lock()
+		componentFirmwareSetMapUpsertCache[key] = cache
+		componentFirmwareSetMapUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single ComponentFirmwareSetMap record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *ComponentFirmwareSetMap) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -1160,119 +1276,4 @@ func ComponentFirmwareSetMapExists(ctx context.Context, exec boil.ContextExecuto
 // Exists checks if the ComponentFirmwareSetMap row exists.
 func (o *ComponentFirmwareSetMap) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return ComponentFirmwareSetMapExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *ComponentFirmwareSetMap) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no component_firmware_set_map provided for upsert")
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(componentFirmwareSetMapColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	componentFirmwareSetMapUpsertCacheMut.RLock()
-	cache, cached := componentFirmwareSetMapUpsertCache[key]
-	componentFirmwareSetMapUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			componentFirmwareSetMapAllColumns,
-			componentFirmwareSetMapColumnsWithDefault,
-			componentFirmwareSetMapColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			componentFirmwareSetMapAllColumns,
-			componentFirmwareSetMapPrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert component_firmware_set_map, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(componentFirmwareSetMapPrimaryKeyColumns))
-			copy(conflict, componentFirmwareSetMapPrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"component_firmware_set_map\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(componentFirmwareSetMapType, componentFirmwareSetMapMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(componentFirmwareSetMapType, componentFirmwareSetMapMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if err == sql.ErrNoRows {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert component_firmware_set_map")
-	}
-
-	if !cached {
-		componentFirmwareSetMapUpsertCacheMut.Lock()
-		componentFirmwareSetMapUpsertCache[key] = cache
-		componentFirmwareSetMapUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

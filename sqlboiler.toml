@@ -2,10 +2,10 @@ wipe = true
 pkgname = "models"
 output = "internal/models"
 
-[crdb]
+[psql]
 dbname = "fleetdb_test"
 host = "localhost"
-port = 26257
-user = "root"
+port = 5432
+user = "fleetdb_test"
 sslmode = "disable"
 blacklist = ["goose_db_version"]
