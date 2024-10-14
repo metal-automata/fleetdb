@@ -15,7 +15,8 @@ test: | unit-test integration-test
 ## run integration tests
 integration-test: test-database
 	@echo Running integration tests...
-	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go test -cover -tags testtools,integration -p 1 -timeout 2m ./... | \
+	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go test -race -cover -tags testtools,integration \
+	                                           -coverprofile=coverage.txt -covermode=atomic -p 1 -timeout 2m ./... | \
 	grep -v "could not be registered in Prometheus\" error=\"duplicate metrics collector registration attempted\"" # TODO; Figure out why this message spams when tests fail
 
 ## run unit tests
@@ -56,8 +57,9 @@ gen-db-models: install-sqlboiler test-database
 ## setup fleetdb PG db container for tests and run migrations
 test-database:
 	@PG_DSN="${TEST_DB_URI}" docker compose -f quickstart.yml up -d postgresql
+	@until pg_isready -d "${TEST_DB_URI}"; do echo "waiting for PG to be ready..."; sleep 1; done
 	@psql -d "host=localhost port=5432 user=postgres sslmode=disable dbname=postgres" \
-	       	-c "drop database if exists fleetdb_test;" \
+	    -c "drop database if exists fleetdb_test;" \
 		-c "drop owned by fleetdb_test;" \
 		-c "drop role if exists fleetdb_test;" \
 		-c "create role fleetdb_test login createdb;" \
@@ -67,6 +69,9 @@ test-database:
 	# The constraints are dropped to allow generated db model tests to succeed
 	@psql -d "host=localhost port=5432 user=fleetdb_test sslmode=disable dbname=fleetdb_test" \
 		-c "ALTER TABLE attributes DROP CONSTRAINT check_server_id_server_component_id; ALTER TABLE versioned_attributes DROP CONSTRAINT check_server_id_server_component_id;"
+
+test-database-down:
+	@PG_DSN="${TEST_DB_URI}" docker compose -f quickstart.yml down
 
 ## setup fleetdb docker dev env
 dev-env-up: push-image-devel

@@ -9,7 +9,7 @@ services:
       - FLEETDB_CRDB_URI=${PG_DSN:?"expected postgresql DB URI env var"}  #postgresql://postgres@postgresql:5432/fleetdb?sslmode=disable
       - FLEETDB_DB_ENCRYPTION_DRIVER=base64key://smGbjm71Nxd1Ig5FS0wj9SlbzAIrnolCz9bQQ6uAhl4=
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     restart: unless-stopped
     networks:
       - automata
@@ -34,7 +34,7 @@ services:
     volumes:
       - db:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     restart: unless-stopped
     networks:
       - automata
