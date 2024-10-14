@@ -144,6 +144,10 @@ CREATE TABLE public.server_credentials (
     CONSTRAINT fk_server_secret_type_id_ref_server_secret_types FOREIGN KEY (server_credential_type_id) REFERENCES public.server_credential_types(id)
 );
 
+
+INSERT INTO server_credential_types(name, slug, builtin, created_at, updated_at)
+  VALUES ('BMC', 'bmc', true, now(), now());
+
 CREATE UNIQUE INDEX idx_server_secrets_by_type ON public.server_credentials (server_id, server_credential_type_id);
 
 CREATE TABLE public.component_firmware_set (
