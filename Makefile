@@ -66,7 +66,7 @@ test-database:
 		-c "create database fleetdb_test owner fleetdb_test;" \
 		-c "grant all privileges on schema public to fleetdb_test;"
 	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go run main.go migrate up
-	# The constraints are dropped to allow generated db model tests to succeed
+	# The attributes, versioned_attributes constraints are dropped to allow generated db model tests to succeed
 	@psql -d "host=localhost port=5432 user=fleetdb_test sslmode=disable dbname=fleetdb_test" \
 		-c "ALTER TABLE attributes DROP CONSTRAINT check_server_id_server_component_id; ALTER TABLE versioned_attributes DROP CONSTRAINT check_server_id_server_component_id;"
 
