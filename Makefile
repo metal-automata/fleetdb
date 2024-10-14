@@ -24,7 +24,7 @@ unit-test: | test-database
 	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go test -cover -short -tags testtools ./...
 
 ## run single integration test. Example: make single-test test=TestIntegrationServerListComponents
-single-test:
+single-test: test-database
 	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go test -timeout 30s -tags testtools -run ^${test}$$ github.com/metal-automata/fleetdb/pkg/api/v1 -v
 
 ## check test coverage
@@ -60,10 +60,13 @@ test-database:
 	       	-c "drop database if exists fleetdb_test;" \
 		-c "drop owned by fleetdb_test;" \
 		-c "drop role if exists fleetdb_test;" \
-		-c "create role fleetdb_test login;" \
+		-c "create role fleetdb_test login createdb;" \
 		-c "create database fleetdb_test owner fleetdb_test;" \
 		-c "grant all privileges on schema public to fleetdb_test;"
 	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go run main.go migrate up
+	# The constraints are dropped to allow generated db model tests to succeed
+	@psql -d "host=localhost port=5432 user=fleetdb_test sslmode=disable dbname=fleetdb_test" \
+		-c "ALTER TABLE attributes DROP CONSTRAINT check_server_id_server_component_id; ALTER TABLE versioned_attributes DROP CONSTRAINT check_server_id_server_component_id;"
 
 ## setup fleetdb docker dev env
 dev-env-up: push-image-devel
