@@ -1755,6 +1755,130 @@ func (o ServerSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, c
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *Server) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+	if o == nil {
+		return errors.New("models: no servers provided for upsert")
+	}
+	if !boil.TimestampsAreSkipped(ctx) {
+		currTime := time.Now().In(boil.GetLocation())
+
+		if queries.MustTime(o.CreatedAt).IsZero() {
+			queries.SetScanner(&o.CreatedAt, currTime)
+		}
+		queries.SetScanner(&o.UpdatedAt, currTime)
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(serverColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	serverUpsertCacheMut.RLock()
+	cache, cached := serverUpsertCache[key]
+	serverUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, ret := insertColumns.InsertColumnSet(
+			serverAllColumns,
+			serverColumnsWithDefault,
+			serverColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			serverAllColumns,
+			serverPrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert servers, could not build update column list")
+		}
+
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(serverPrimaryKeyColumns))
+			copy(conflict, serverPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"servers\"", updateOnConflict, ret, update, conflict, insert)
+
+		cache.valueMapping, err = queries.BindMapping(serverType, serverMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(serverType, serverMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert servers")
+	}
+
+	if !cached {
+		serverUpsertCacheMut.Lock()
+		serverUpsertCache[key] = cache
+		serverUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single Server record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *Server) Delete(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
@@ -1966,127 +2090,4 @@ func ServerExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bo
 // Exists checks if the Server row exists.
 func (o *Server) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return ServerExists(ctx, exec, o.ID)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *Server) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no servers provided for upsert")
-	}
-	if !boil.TimestampsAreSkipped(ctx) {
-		currTime := time.Now().In(boil.GetLocation())
-
-		if queries.MustTime(o.CreatedAt).IsZero() {
-			queries.SetScanner(&o.CreatedAt, currTime)
-		}
-		queries.SetScanner(&o.UpdatedAt, currTime)
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(serverColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	serverUpsertCacheMut.RLock()
-	cache, cached := serverUpsertCache[key]
-	serverUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			serverAllColumns,
-			serverColumnsWithDefault,
-			serverColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			serverAllColumns,
-			serverPrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert servers, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(serverPrimaryKeyColumns))
-			copy(conflict, serverPrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"servers\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(serverType, serverMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(serverType, serverMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if err == sql.ErrNoRows {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert servers")
-	}
-
-	if !cached {
-		serverUpsertCacheMut.Lock()
-		serverUpsertCache[key] = cache
-		serverUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

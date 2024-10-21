@@ -42,7 +42,7 @@ func (e ServerError) Error() string {
 
 func loggedRollback(r *Router, tx *sql.Tx) {
 	err := tx.Rollback()
-	if err != nil {
+	if err != nil && !errors.Is(err, sql.ErrTxDone) {
 		r.Logger.Error("Failed transaction, attempting rollback", zap.Error(err))
 	}
 }

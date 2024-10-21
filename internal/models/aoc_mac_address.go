@@ -50,14 +50,16 @@ var AocMacAddressTableColumns = struct {
 
 type whereHelperstring struct{ field string }
 
-func (w whereHelperstring) EQ(x string) qm.QueryMod    { return qmhelper.Where(w.field, qmhelper.EQ, x) }
-func (w whereHelperstring) NEQ(x string) qm.QueryMod   { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
-func (w whereHelperstring) LT(x string) qm.QueryMod    { return qmhelper.Where(w.field, qmhelper.LT, x) }
-func (w whereHelperstring) LTE(x string) qm.QueryMod   { return qmhelper.Where(w.field, qmhelper.LTE, x) }
-func (w whereHelperstring) GT(x string) qm.QueryMod    { return qmhelper.Where(w.field, qmhelper.GT, x) }
-func (w whereHelperstring) GTE(x string) qm.QueryMod   { return qmhelper.Where(w.field, qmhelper.GTE, x) }
-func (w whereHelperstring) LIKE(x string) qm.QueryMod  { return qm.Where(w.field+" LIKE ?", x) }
-func (w whereHelperstring) NLIKE(x string) qm.QueryMod { return qm.Where(w.field+" NOT LIKE ?", x) }
+func (w whereHelperstring) EQ(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.EQ, x) }
+func (w whereHelperstring) NEQ(x string) qm.QueryMod    { return qmhelper.Where(w.field, qmhelper.NEQ, x) }
+func (w whereHelperstring) LT(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.LT, x) }
+func (w whereHelperstring) LTE(x string) qm.QueryMod    { return qmhelper.Where(w.field, qmhelper.LTE, x) }
+func (w whereHelperstring) GT(x string) qm.QueryMod     { return qmhelper.Where(w.field, qmhelper.GT, x) }
+func (w whereHelperstring) GTE(x string) qm.QueryMod    { return qmhelper.Where(w.field, qmhelper.GTE, x) }
+func (w whereHelperstring) LIKE(x string) qm.QueryMod   { return qm.Where(w.field+" LIKE ?", x) }
+func (w whereHelperstring) NLIKE(x string) qm.QueryMod  { return qm.Where(w.field+" NOT LIKE ?", x) }
+func (w whereHelperstring) ILIKE(x string) qm.QueryMod  { return qm.Where(w.field+" ILIKE ?", x) }
+func (w whereHelperstring) NILIKE(x string) qm.QueryMod { return qm.Where(w.field+" NOT ILIKE ?", x) }
 func (w whereHelperstring) IN(slice []string) qm.QueryMod {
 	values := make([]interface{}, 0, len(slice))
 	for _, value := range slice {
@@ -820,6 +822,122 @@ func (o AocMacAddressSlice) UpdateAll(ctx context.Context, exec boil.ContextExec
 	return rowsAff, nil
 }
 
+// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
+// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
+func (o *AocMacAddress) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+	if o == nil {
+		return errors.New("models: no aoc_mac_address provided for upsert")
+	}
+
+	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
+		return err
+	}
+
+	nzDefaults := queries.NonZeroDefaultSet(aocMacAddressColumnsWithDefault, o)
+
+	// Build cache key in-line uglily - mysql vs psql problems
+	buf := strmangle.GetBuffer()
+	if updateOnConflict {
+		buf.WriteByte('t')
+	} else {
+		buf.WriteByte('f')
+	}
+	buf.WriteByte('.')
+	for _, c := range conflictColumns {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(updateColumns.Kind))
+	for _, c := range updateColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	buf.WriteString(strconv.Itoa(insertColumns.Kind))
+	for _, c := range insertColumns.Cols {
+		buf.WriteString(c)
+	}
+	buf.WriteByte('.')
+	for _, c := range nzDefaults {
+		buf.WriteString(c)
+	}
+	key := buf.String()
+	strmangle.PutBuffer(buf)
+
+	aocMacAddressUpsertCacheMut.RLock()
+	cache, cached := aocMacAddressUpsertCache[key]
+	aocMacAddressUpsertCacheMut.RUnlock()
+
+	var err error
+
+	if !cached {
+		insert, ret := insertColumns.InsertColumnSet(
+			aocMacAddressAllColumns,
+			aocMacAddressColumnsWithDefault,
+			aocMacAddressColumnsWithoutDefault,
+			nzDefaults,
+		)
+
+		update := updateColumns.UpdateColumnSet(
+			aocMacAddressAllColumns,
+			aocMacAddressPrimaryKeyColumns,
+		)
+
+		if updateOnConflict && len(update) == 0 {
+			return errors.New("models: unable to upsert aoc_mac_address, could not build update column list")
+		}
+
+		conflict := conflictColumns
+		if len(conflict) == 0 {
+			conflict = make([]string, len(aocMacAddressPrimaryKeyColumns))
+			copy(conflict, aocMacAddressPrimaryKeyColumns)
+		}
+		cache.query = buildUpsertQueryPostgres(dialect, "\"aoc_mac_address\"", updateOnConflict, ret, update, conflict, insert)
+
+		cache.valueMapping, err = queries.BindMapping(aocMacAddressType, aocMacAddressMapping, insert)
+		if err != nil {
+			return err
+		}
+		if len(ret) != 0 {
+			cache.retMapping, err = queries.BindMapping(aocMacAddressType, aocMacAddressMapping, ret)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	value := reflect.Indirect(reflect.ValueOf(o))
+	vals := queries.ValuesFromMapping(value, cache.valueMapping)
+	var returns []interface{}
+	if len(cache.retMapping) != 0 {
+		returns = queries.PtrsFromMapping(value, cache.retMapping)
+	}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, cache.query)
+		fmt.Fprintln(writer, vals)
+	}
+	if len(cache.retMapping) != 0 {
+		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
+		if errors.Is(err, sql.ErrNoRows) {
+			err = nil // Postgres doesn't return anything when there's no update
+		}
+	} else {
+		_, err = exec.ExecContext(ctx, cache.query, vals...)
+	}
+	if err != nil {
+		return errors.Wrap(err, "models: unable to upsert aoc_mac_address")
+	}
+
+	if !cached {
+		aocMacAddressUpsertCacheMut.Lock()
+		aocMacAddressUpsertCache[key] = cache
+		aocMacAddressUpsertCacheMut.Unlock()
+	}
+
+	return o.doAfterUpsertHooks(ctx, exec)
+}
+
 // Delete deletes a single AocMacAddress record with an executor.
 // Delete will match against the primary key column to find the record to delete.
 func (o *AocMacAddress) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
@@ -990,119 +1108,4 @@ func AocMacAddressExists(ctx context.Context, exec boil.ContextExecutor, aocMacA
 // Exists checks if the AocMacAddress row exists.
 func (o *AocMacAddress) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	return AocMacAddressExists(ctx, exec, o.AocMacAddress)
-}
-
-// Upsert attempts an insert using an executor, and does an update or ignore on conflict.
-// See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *AocMacAddress) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
-	if o == nil {
-		return errors.New("models: no aoc_mac_address provided for upsert")
-	}
-
-	if err := o.doBeforeUpsertHooks(ctx, exec); err != nil {
-		return err
-	}
-
-	nzDefaults := queries.NonZeroDefaultSet(aocMacAddressColumnsWithDefault, o)
-
-	// Build cache key in-line uglily - mysql vs psql problems
-	buf := strmangle.GetBuffer()
-	if updateOnConflict {
-		buf.WriteByte('t')
-	} else {
-		buf.WriteByte('f')
-	}
-	buf.WriteByte('.')
-	for _, c := range conflictColumns {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(updateColumns.Kind))
-	for _, c := range updateColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	buf.WriteString(strconv.Itoa(insertColumns.Kind))
-	for _, c := range insertColumns.Cols {
-		buf.WriteString(c)
-	}
-	buf.WriteByte('.')
-	for _, c := range nzDefaults {
-		buf.WriteString(c)
-	}
-	key := buf.String()
-	strmangle.PutBuffer(buf)
-
-	aocMacAddressUpsertCacheMut.RLock()
-	cache, cached := aocMacAddressUpsertCache[key]
-	aocMacAddressUpsertCacheMut.RUnlock()
-
-	var err error
-
-	if !cached {
-		insert, ret := insertColumns.InsertColumnSet(
-			aocMacAddressAllColumns,
-			aocMacAddressColumnsWithDefault,
-			aocMacAddressColumnsWithoutDefault,
-			nzDefaults,
-		)
-		update := updateColumns.UpdateColumnSet(
-			aocMacAddressAllColumns,
-			aocMacAddressPrimaryKeyColumns,
-		)
-
-		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert aoc_mac_address, could not build update column list")
-		}
-
-		conflict := conflictColumns
-		if len(conflict) == 0 {
-			conflict = make([]string, len(aocMacAddressPrimaryKeyColumns))
-			copy(conflict, aocMacAddressPrimaryKeyColumns)
-		}
-		cache.query = buildUpsertQueryCockroachDB(dialect, "\"aoc_mac_address\"", updateOnConflict, ret, update, conflict, insert)
-
-		cache.valueMapping, err = queries.BindMapping(aocMacAddressType, aocMacAddressMapping, insert)
-		if err != nil {
-			return err
-		}
-		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(aocMacAddressType, aocMacAddressMapping, ret)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	value := reflect.Indirect(reflect.ValueOf(o))
-	vals := queries.ValuesFromMapping(value, cache.valueMapping)
-	var returns []interface{}
-	if len(cache.retMapping) != 0 {
-		returns = queries.PtrsFromMapping(value, cache.retMapping)
-	}
-
-	if boil.DebugMode {
-		_, _ = fmt.Fprintln(boil.DebugWriter, cache.query)
-		_, _ = fmt.Fprintln(boil.DebugWriter, vals)
-	}
-
-	if len(cache.retMapping) != 0 {
-		err = exec.QueryRowContext(ctx, cache.query, vals...).Scan(returns...)
-		if err == sql.ErrNoRows {
-			err = nil // CockcorachDB doesn't return anything when there's no update
-		}
-	} else {
-		_, err = exec.ExecContext(ctx, cache.query, vals...)
-	}
-	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert aoc_mac_address")
-	}
-
-	if !cached {
-		aocMacAddressUpsertCacheMut.Lock()
-		aocMacAddressUpsertCache[key] = cache
-		aocMacAddressUpsertCacheMut.Unlock()
-	}
-
-	return o.doAfterUpsertHooks(ctx, exec)
 }

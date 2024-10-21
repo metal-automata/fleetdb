@@ -10,8 +10,8 @@ import (
 	"github.com/metal-automata/rivets/ginjwt"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
-	"gopkg.in/square/go-jose.v2"
-	"gopkg.in/square/go-jose.v2/jwt"
+	"gopkg.in/go-jose/go-jose.v2"
+	"gopkg.in/go-jose/go-jose.v2/jwt"
 
 	"github.com/metal-automata/fleetdb/internal/dbtools"
 	"github.com/metal-automata/fleetdb/internal/httpsrv"
@@ -28,7 +28,12 @@ func serverTest(t *testing.T) *integrationServer {
 
 	db := dbtools.DatabaseTest(t)
 
-	l, _ := zap.NewDevelopment()
+	zcfg := zap.Config{
+		Encoding: "json",
+		Level:    zap.NewAtomicLevelAt(zap.ErrorLevel),
+	}
+
+	l, _ := zcfg.Build()
 
 	hs := httpsrv.Server{
 		Logger:      l,
