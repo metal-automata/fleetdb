@@ -1,6 +1,7 @@
 wipe = true
 pkgname = "models"
 output = "internal/models"
+strict-verify-mod-version = true
 
 [psql]
 dbname = "fleetdb_test"

@@ -59,7 +59,7 @@ test-database:
 	@PG_DSN="${TEST_DB_URI}" docker compose -f quickstart.yml up -d postgresql
 	@until pg_isready -d "${TEST_DB_URI}"; do echo "waiting for PG to be ready..."; sleep 1; done
 	@psql -d "host=localhost port=5432 user=postgres sslmode=disable dbname=postgres" \
-	    -c "drop database if exists fleetdb_test;" \
+	    -c "drop database if exists fleetdb_test with (force);" \
 		-c "drop owned by fleetdb_test;" \
 		-c "drop role if exists fleetdb_test;" \
 		-c "create role fleetdb_test login createdb;" \
@@ -73,11 +73,19 @@ test-database:
 test-database-down:
 	@PG_DSN="${TEST_DB_URI}" docker compose -f quickstart.yml down
 
+## test database - run fleetdb migrate up.
+test-migrate-up: test-database
+	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go run main.go migrate up
+
+## test database - run fleetdb migrate up.
+dev-migrate-up: test-database
+	@FLEETDB_CRDB_URI="${DEV_DB_URI}" go run main.go migrate up
+
 ## setup fleetdb docker dev env
-dev-env-up: push-image-devel
+dev-database: push-image-devel
 	@PG_DSN="${DEV_DB_URI}" docker compose -f quickstart.yml up -d postgresql
 	@psql -d "host=localhost port=5432 user=postgres sslmode=disable dbname=postgres" \
-	       	-c "drop database if exists fleetdb;" \
+	    -c "drop database if exists fleetdb with(force);" \
 		-c "drop owned by fleetdb;" \
 		-c "drop role if exists fleetdb;" \
 		-c "create role fleetdb login;" \
@@ -86,11 +94,11 @@ dev-env-up: push-image-devel
 	@PG_DSN="${DEV_DB_URI}" docker compose -f quickstart.yml up -d fleetdb-migrate
 	@PG_DSN="${DEV_DB_URI}" docker compose -f quickstart.yml up -d fleetdb
 
-## stop docker compose test env
-dev-env-down:
+## stop docker compose dev env
+dev-database-down:
 	@PG_DSN="${DEV_DB_URI}" docker compose -f quickstart.yml down
 
-## stop docker and clean volumes
+## stop docker compose dev env and clean volumes
 dev-env-clean:
 	@PG_DSN="${DEV_DB_URI}" docker compose -f quickstart.yml down --volumes
 
