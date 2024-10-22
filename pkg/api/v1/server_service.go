@@ -26,6 +26,8 @@ const (
 	bomByMacAOCAddressEndpoint          = "aoc-mac-address"
 	bomByMacBMCAddressEndpoint          = "bmc-mac-address"
 	inventoryEndpoint                   = "inventory"
+	hardwareVendorsEndpoint             = "hardware-vendors"
+	hardwareModelsEndpoint              = "hardware-models"
 )
 
 // ClientInterface provides an interface for the expected calls to interact with a fleetdb api
@@ -87,6 +89,16 @@ type ClientInterface interface {
 	DeleteServerBiosConfigSet(context.Context, uuid.UUID) (*ServerResponse, error)
 	ListServerBiosConfigSet(context.Context) (*ServerResponse, error)
 	UpdateServerBiosConfigSet(context.Context, uuid.UUID, BiosConfigSet) (*ServerResponse, error)
+
+	CreateHardwareVendor(context.Context, *HardwareVendor) (*ServerResponse, error)
+	GetHardwareVendor(context.Context, string) (*HardwareVendor, *ServerResponse, error)
+	ListHardwareVendors(context.Context) ([]*HardwareVendor, *ServerResponse, error)
+	DeleteHardwareVendor(context.Context, string) (*ServerResponse, error)
+
+	CreateHardwareModel(context.Context, *HardwareModel) (*ServerResponse, error)
+	GetHardwareModel(context.Context, string) (*HardwareModel, *ServerResponse, error)
+	ListHardwareModels(context.Context) ([]*HardwareModel, *ServerResponse, error)
+	DeleteHardwareModel(context.Context, string) (*ServerResponse, error)
 }
 
 // Create will attempt to create a server in Hollow and return the new server's UUID
@@ -594,4 +606,76 @@ func (c *Client) UpdateServerBiosConfigSet(ctx context.Context, id uuid.UUID, se
 	}
 
 	return resp, nil
+}
+
+// CreateHardwareVendor creates a hardware vendor record
+func (c *Client) CreateHardwareVendor(ctx context.Context, hardwareVendor *HardwareVendor) (*ServerResponse, error) {
+	return c.post(ctx, hardwareVendorsEndpoint, hardwareVendor)
+}
+
+// ListHardwareVendors lists hardware vendor records
+func (c *Client) ListHardwareVendors(ctx context.Context) ([]*HardwareVendor, *ServerResponse, error) {
+	hardwareVendors := []*HardwareVendor{}
+	resp := ServerResponse{Records: &hardwareVendors}
+
+	if err := c.list(ctx, hardwareVendorsEndpoint, nil, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	return hardwareVendors, &resp, nil
+}
+
+// GetHardwareVendor retrieves a hardware vendor record by its name
+func (c *Client) GetHardwareVendor(ctx context.Context, name string) (*HardwareVendor, *ServerResponse, error) {
+	hardwareVendor := &HardwareVendor{}
+	resp := ServerResponse{Record: hardwareVendor}
+
+	path := path.Join(hardwareVendorsEndpoint, name)
+	if err := c.get(ctx, path, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	return hardwareVendor, &resp, nil
+}
+
+// DeleteHardwareVendor purges a hardware vendor record by its name
+func (c *Client) DeleteHardwareVendor(ctx context.Context, name string) (*ServerResponse, error) {
+	endpoint := path.Join(hardwareVendorsEndpoint, name)
+	return c.delete(ctx, endpoint)
+}
+
+// CreateHardwareModel creates a hardware model record - requires the hardware vendor relation
+func (c *Client) CreateHardwareModel(ctx context.Context, hardwareModel *HardwareModel) (*ServerResponse, error) {
+	return c.post(ctx, hardwareModelsEndpoint, hardwareModel)
+}
+
+// ListHardwareModels lists hardware vendor model records
+func (c *Client) ListHardwareModels(ctx context.Context) ([]*HardwareModel, *ServerResponse, error) {
+	hardwareModels := []*HardwareModel{}
+	resp := ServerResponse{Records: &hardwareModels}
+
+	if err := c.list(ctx, hardwareModelsEndpoint, nil, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	return hardwareModels, &resp, nil
+}
+
+// GetHardwareModel retrieves a hardware vendor model record
+func (c *Client) GetHardwareModel(ctx context.Context, name string) (*HardwareModel, *ServerResponse, error) {
+	hardwareModel := &HardwareModel{}
+	resp := ServerResponse{Record: hardwareModel}
+
+	path := path.Join(hardwareModelsEndpoint, name)
+	if err := c.get(ctx, path, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	return hardwareModel, &resp, nil
+}
+
+// DeleteHardwareModel purges a hardware model record
+func (c *Client) DeleteHardwareModel(ctx context.Context, name string) (*ServerResponse, error) {
+	endpoint := path.Join(hardwareModelsEndpoint, name)
+	return c.delete(ctx, endpoint)
 }

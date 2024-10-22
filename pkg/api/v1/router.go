@@ -174,6 +174,23 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		srvCfgSets.PUT("/:uuid", amw.AuthRequired(readScopes("server-bios-config-sets")), r.serverBiosConfigSetUpdate)
 		srvCfgSets.DELETE("/:uuid", amw.AuthRequired(readScopes("server-bios-config-sets")), r.serverBiosConfigSetDelete)
 	}
+
+	hardwareVendors := rg.Group("/hardware-vendors")
+	{
+		hardwareVendors.POST("", amw.AuthRequired(createScopes("hardware-vendors")), r.hardwareVendorCreate)
+		hardwareVendors.GET("", amw.AuthRequired(readScopes("hardware-vendors")), r.hardwareVendorList)
+		hardwareVendors.GET("/:slug", amw.AuthRequired(readScopes("hardware-vendors")), r.hardwareVendorGet)
+		hardwareVendors.DELETE("/:slug", amw.AuthRequired(deleteScopes("hardware-vendors")), r.hardwareVendorDelete)
+	}
+
+	hardwareModels := rg.Group("/hardware-models")
+	{
+		hardwareModels.POST("", amw.AuthRequired(createScopes("hardware-models")), r.hardwareModelCreate)
+		hardwareModels.GET("", amw.AuthRequired(readScopes("hardware-models")), r.hardwareModelList)
+		hardwareModels.GET("/:slug", amw.AuthRequired(readScopes("hardware-models")), r.hardwareModelGet)
+		hardwareModels.DELETE("/:slug", amw.AuthRequired(deleteScopes("hardware-models")), r.hardwareModelDelete)
+	}
+
 }
 
 func createScopes(items ...string) []string {
