@@ -104,6 +104,18 @@ var (
 
 	FixtureFWValidationServer *models.Server
 	FixtureFWValidationSet    *models.ComponentFirmwareSet
+
+	FixtureHardwareVendors       []*models.HardwareVendor
+	FixtureHardwareVendorBaz     *models.HardwareVendor
+	FixtureHardwareVendorBar     *models.HardwareVendor
+	FixtureHardwareVendorNameBaz = "baz"
+	FixtureHardwareVendorNameBar = "bar"
+
+	FixtureHardwareModels          []*models.HardwareModel
+	FixtureHardwareModelBaz123     *models.HardwareModel
+	FixtureHardwareModelBar123     *models.HardwareModel
+	FixtureHardwareModelBaz123Name = "123"
+	FixtureHardwareModelBar456Name = "456"
 )
 
 func addFixtures(t *testing.T) error {
@@ -187,6 +199,14 @@ func addFixtures(t *testing.T) error {
 	}
 
 	if err := setupFWValidationFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupHardwareVendorFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupHardwareModelFixtures(ctx, testDB); err != nil {
 		return err
 	}
 
@@ -907,6 +927,46 @@ func setupFWValidationFixtures(ctx context.Context, db *sqlx.DB) error {
 	FixtureFWValidationSet = &models.ComponentFirmwareSet{Name: "firmware-validation"}
 	if err := FixtureFWValidationSet.Insert(ctx, db, boil.Infer()); err != nil {
 		return errors.Wrap(err, "firmware validation set fixture")
+	}
+
+	return nil
+}
+
+func setupHardwareVendorFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureHardwareVendorBar = &models.HardwareVendor{Name: FixtureHardwareVendorNameBar}
+	FixtureHardwareVendorBaz = &models.HardwareVendor{Name: FixtureHardwareVendorNameBaz}
+
+	FixtureHardwareVendors = []*models.HardwareVendor{
+		FixtureHardwareVendorBar,
+		FixtureHardwareVendorBaz,
+	}
+
+	for _, hv := range FixtureHardwareVendors {
+		if err := hv.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "hardware vendor insert fixture")
+
+		}
+	}
+
+	return nil
+}
+
+func setupHardwareModelFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureHardwareModels = []*models.HardwareModel{
+		{
+			Name:             FixtureHardwareModelBaz123Name,
+			HardwareVendorID: FixtureHardwareVendorBaz.ID,
+		},
+		{
+			Name:             FixtureHardwareModelBar456Name,
+			HardwareVendorID: FixtureHardwareVendorBar.ID,
+		},
+	}
+
+	for _, hm := range FixtureHardwareModels {
+		if err := hm.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "hardware model insert fixture")
+		}
 	}
 
 	return nil
