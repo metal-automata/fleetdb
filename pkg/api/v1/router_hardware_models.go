@@ -38,7 +38,6 @@ func (t *HardwareModel) toDBModel() *models.HardwareModel {
 		Name:             t.Name,
 		HardwareVendorID: t.HardwareVendorID,
 	}
-
 }
 
 func (r *Router) hardwareModelCreate(c *gin.Context) {

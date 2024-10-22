@@ -944,7 +944,6 @@ func setupHardwareVendorFixtures(ctx context.Context, db *sqlx.DB) error {
 	for _, hv := range FixtureHardwareVendors {
 		if err := hv.Insert(ctx, db, boil.Infer()); err != nil {
 			return errors.Wrap(err, "hardware vendor insert fixture")
-
 		}
 	}
 

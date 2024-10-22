@@ -190,7 +190,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		hardwareModels.GET("/:slug", amw.AuthRequired(readScopes("hardware-models")), r.hardwareModelGet)
 		hardwareModels.DELETE("/:slug", amw.AuthRequired(deleteScopes("hardware-models")), r.hardwareModelDelete)
 	}
-
 }
 
 func createScopes(items ...string) []string {
