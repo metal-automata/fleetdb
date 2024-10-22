@@ -3,7 +3,6 @@ package fleetdbapi
 import (
 	"fmt"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -110,7 +109,6 @@ func (r *Router) hardwareModelList(c *gin.Context) {
 	for _, dbhwm := range dbHardwareModels {
 		hwm := HardwareModel{}
 		hwm.fromDBModel(dbhwm)
-		spew.Dump(hwm)
 		list = append(list, hwm)
 	}
 
