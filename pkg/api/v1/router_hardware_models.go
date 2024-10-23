@@ -89,7 +89,7 @@ func (r *Router) hardwareModelList(c *gin.Context) {
 				models.HardwareModelColumns.HardwareVendorID,
 			),
 		),
-		// load N-1 relationship
+		// Load N-1 relationship in db model struct field R
 		qm.Load(models.HardwareModelRels.HardwareVendor),
 	}
 
@@ -99,7 +99,7 @@ func (r *Router) hardwareModelList(c *gin.Context) {
 		return
 	}
 
-	count, err := models.HardwareModels().Count(c.Request.Context(), r.DB)
+	count, err := models.HardwareModels(mods...).Count(c.Request.Context(), r.DB)
 	if err != nil {
 		dbErrorResponse(c, err)
 		return

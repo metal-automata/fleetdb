@@ -9,7 +9,6 @@ import (
 	fleetdbapi "github.com/metal-automata/fleetdb/pkg/api/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 func TestIntegrationHardwareModelCreate(t *testing.T) {
@@ -41,16 +40,14 @@ func TestIntegrationHardwareModelList(t *testing.T) {
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, respCode int, expectError bool) error {
 		s.Client.SetToken(authToken)
 
-		boil.DebugMode = true
+		expectCount := len(dbtools.FixtureHardwareModels)
 		hardwareModels, resp, err := s.Client.ListHardwareModels(ctx)
-
-		boil.DebugMode = false
 		if !expectError {
 			require.NoError(t, err)
-			assert.Len(t, hardwareModels, 2)
-			assert.EqualValues(t, 2, resp.PageCount)
+			assert.Len(t, hardwareModels, expectCount)
+			assert.EqualValues(t, resp.PageCount, expectCount)
 			assert.EqualValues(t, 1, resp.TotalPages)
-			assert.EqualValues(t, 2, resp.TotalRecordCount)
+			assert.EqualValues(t, expectCount, resp.TotalRecordCount)
 			// We returned everything, so we shouldnt have a next page info
 			assert.Nil(t, resp.Links.Next)
 			assert.Nil(t, resp.Links.Previous)
@@ -96,7 +93,7 @@ func TestIntegrationHardwareModelDelete(t *testing.T) {
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, _ int, expectError bool) error {
 		s.Client.SetToken(authToken)
 
-		resp, err := s.Client.DeleteHardwareModel(ctx, dbtools.FixtureHardwareModelBaz123Name)
+		resp, err := s.Client.DeleteHardwareModel(ctx, dbtools.FixtureHardwareModelFoo789Name)
 		if !expectError {
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
@@ -106,6 +103,6 @@ func TestIntegrationHardwareModelDelete(t *testing.T) {
 		return err
 	})
 
-	_, _, err := s.Client.GetHardwareModel(context.Background(), dbtools.FixtureHardwareModelBaz123Name)
+	_, _, err := s.Client.GetHardwareModel(context.Background(), dbtools.FixtureHardwareModelFoo789Name)
 	assert.ErrorContainsf(t, err, "404", "")
 }
