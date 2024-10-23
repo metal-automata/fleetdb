@@ -105,17 +105,27 @@ var (
 	FixtureFWValidationServer *models.Server
 	FixtureFWValidationSet    *models.ComponentFirmwareSet
 
-	FixtureHardwareVendors       []*models.HardwareVendor
-	FixtureHardwareVendorBaz     *models.HardwareVendor
-	FixtureHardwareVendorBar     *models.HardwareVendor
+	FixtureHardwareVendors   []*models.HardwareVendor
+	FixtureHardwareVendorBaz *models.HardwareVendor
+	FixtureHardwareVendorBar *models.HardwareVendor
+	// this fixture is deleted in tests - do not create relations
+	FixtureHardwareVendorFoo     *models.HardwareVendor
 	FixtureHardwareVendorNameBaz = "baz"
 	FixtureHardwareVendorNameBar = "bar"
+	FixtureHardwareVendorNameFoo = "foo"
 
-	FixtureHardwareModels          []*models.HardwareModel
-	FixtureHardwareModelBaz123     *models.HardwareModel
-	FixtureHardwareModelBar123     *models.HardwareModel
+	FixtureHardwareModels      []*models.HardwareModel
+	FixtureHardwareModelBaz123 *models.HardwareModel
+	FixtureHardwareModelBar123 *models.HardwareModel
+	// this fixture is deleted in tests - do not create relations
+	FixtureHardwareModelFoo789     *models.HardwareModel
 	FixtureHardwareModelBaz123Name = "123"
 	FixtureHardwareModelBar456Name = "456"
+	FixtureHardwareModelFoo789Name = "789"
+
+	FixtureServerBMCs []*models.ServerBMC
+	FixtureServerBMC1 *models.ServerBMC
+	FixtureServerBMC2 *models.ServerBMC
 )
 
 func addFixtures(t *testing.T) error {
@@ -207,6 +217,10 @@ func addFixtures(t *testing.T) error {
 	}
 
 	if err := setupHardwareModelFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupServerBMCFixtures(ctx, testDB); err != nil {
 		return err
 	}
 
@@ -936,9 +950,13 @@ func setupHardwareVendorFixtures(ctx context.Context, db *sqlx.DB) error {
 	FixtureHardwareVendorBar = &models.HardwareVendor{Name: FixtureHardwareVendorNameBar}
 	FixtureHardwareVendorBaz = &models.HardwareVendor{Name: FixtureHardwareVendorNameBaz}
 
+	// this fixture is deleted in tests
+	FixtureHardwareVendorFoo = &models.HardwareVendor{Name: FixtureHardwareVendorNameFoo}
+
 	FixtureHardwareVendors = []*models.HardwareVendor{
 		FixtureHardwareVendorBar,
 		FixtureHardwareVendorBaz,
+		FixtureHardwareVendorFoo,
 	}
 
 	for _, hv := range FixtureHardwareVendors {
@@ -951,20 +969,60 @@ func setupHardwareVendorFixtures(ctx context.Context, db *sqlx.DB) error {
 }
 
 func setupHardwareModelFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureHardwareModelBar123 = &models.HardwareModel{
+		Name:             FixtureHardwareModelBaz123Name,
+		HardwareVendorID: FixtureHardwareVendorBaz.ID,
+	}
+
+	FixtureHardwareModelBaz123 = &models.HardwareModel{
+		Name:             FixtureHardwareModelBar456Name,
+		HardwareVendorID: FixtureHardwareVendorBar.ID,
+	}
+
+	// this fixture is deleted in tests
+	FixtureHardwareModelFoo789 = &models.HardwareModel{
+		Name:             FixtureHardwareModelFoo789Name,
+		HardwareVendorID: FixtureHardwareVendorFoo.ID,
+	}
+
 	FixtureHardwareModels = []*models.HardwareModel{
-		{
-			Name:             FixtureHardwareModelBaz123Name,
-			HardwareVendorID: FixtureHardwareVendorBaz.ID,
-		},
-		{
-			Name:             FixtureHardwareModelBar456Name,
-			HardwareVendorID: FixtureHardwareVendorBar.ID,
-		},
+		FixtureHardwareModelBar123,
+		FixtureHardwareModelBaz123,
+		FixtureHardwareModelFoo789,
 	}
 
 	for _, hm := range FixtureHardwareModels {
 		if err := hm.Insert(ctx, db, boil.Infer()); err != nil {
 			return errors.Wrap(err, "hardware model insert fixture")
+		}
+	}
+
+	return nil
+}
+
+func setupServerBMCFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureServerBMCs = []*models.ServerBMC{
+		{
+			ServerID:         FixtureNemo.ID,
+			HardwareVendorID: FixtureHardwareVendorBar.ID,
+			HardwareModelID:  FixtureHardwareModelBar123.ID,
+			Username:         "user",
+			IPAddress:        "127.0.0.1",
+			MacAddress:       null.StringFrom("de:ad:be:ef:ca:fe"),
+		},
+		{
+			ServerID:         FixtureDory.ID,
+			HardwareVendorID: FixtureHardwareVendorBaz.ID,
+			HardwareModelID:  FixtureHardwareModelBaz123.ID,
+			Username:         "user",
+			IPAddress:        "127.0.0.2",
+			MacAddress:       null.StringFrom("de:ad:be:ef:ef:fe"),
+		},
+	}
+
+	for _, serverBMC := range FixtureServerBMCs {
+		if err := serverBMC.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "server BMC insert fixture")
 		}
 	}
 

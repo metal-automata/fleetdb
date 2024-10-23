@@ -10,8 +10,6 @@ import (
 	"reflect"
 	"testing"
 
-	// import the crdbpgx for automatic retries of errors for crdb that support retry
-	_ "github.com/cockroachdb/cockroach-go/v2/crdb/crdbpgx"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // Register the Postgres driver.
 	"github.com/pkg/errors"
@@ -132,6 +130,7 @@ func cleanDB(t *testing.T) {
 	deleteFixture(ctx, t, models.BiosConfigSets())
 	deleteFixture(ctx, t, models.HardwareVendors())
 	deleteFixture(ctx, t, models.HardwareModels())
+	deleteFixture(ctx, t, models.ServerBMCS())
 
 	testDB.Exec("SET sql_safe_updates = true;")
 }
