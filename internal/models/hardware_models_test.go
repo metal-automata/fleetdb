@@ -494,14 +494,14 @@ func testHardwareModelsInsertWhitelist(t *testing.T) {
 	}
 }
 
-func testHardwareModelToManyBMCS(t *testing.T) {
+func testHardwareModelToManyServerBMCS(t *testing.T) {
 	var err error
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
 	var a HardwareModel
-	var b, c BMC
+	var b, c ServerBMC
 
 	seed := randomize.NewSeed()
 	if err = randomize.Struct(seed, &a, hardwareModelDBTypes, true, hardwareModelColumnsWithDefault...); err != nil {
@@ -512,10 +512,10 @@ func testHardwareModelToManyBMCS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err = randomize.Struct(seed, &b, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
+	if err = randomize.Struct(seed, &b, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
 		t.Fatal(err)
 	}
-	if err = randomize.Struct(seed, &c, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
+	if err = randomize.Struct(seed, &c, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
 		t.Fatal(err)
 	}
 
@@ -529,7 +529,7 @@ func testHardwareModelToManyBMCS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	check, err := a.BMCS().All(ctx, tx)
+	check, err := a.ServerBMCS().All(ctx, tx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -552,18 +552,18 @@ func testHardwareModelToManyBMCS(t *testing.T) {
 	}
 
 	slice := HardwareModelSlice{&a}
-	if err = a.L.LoadBMCS(ctx, tx, false, (*[]*HardwareModel)(&slice), nil); err != nil {
+	if err = a.L.LoadServerBMCS(ctx, tx, false, (*[]*HardwareModel)(&slice), nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := len(a.R.BMCS); got != 2 {
+	if got := len(a.R.ServerBMCS); got != 2 {
 		t.Error("number of eager loaded records wrong, got:", got)
 	}
 
-	a.R.BMCS = nil
-	if err = a.L.LoadBMCS(ctx, tx, true, &a, nil); err != nil {
+	a.R.ServerBMCS = nil
+	if err = a.L.LoadServerBMCS(ctx, tx, true, &a, nil); err != nil {
 		t.Fatal(err)
 	}
-	if got := len(a.R.BMCS); got != 2 {
+	if got := len(a.R.ServerBMCS); got != 2 {
 		t.Error("number of eager loaded records wrong, got:", got)
 	}
 
@@ -649,7 +649,7 @@ func testHardwareModelToManyModelServers(t *testing.T) {
 	}
 }
 
-func testHardwareModelToManyAddOpBMCS(t *testing.T) {
+func testHardwareModelToManyAddOpServerBMCS(t *testing.T) {
 	var err error
 
 	ctx := context.Background()
@@ -657,15 +657,15 @@ func testHardwareModelToManyAddOpBMCS(t *testing.T) {
 	defer func() { _ = tx.Rollback() }()
 
 	var a HardwareModel
-	var b, c, d, e BMC
+	var b, c, d, e ServerBMC
 
 	seed := randomize.NewSeed()
 	if err = randomize.Struct(seed, &a, hardwareModelDBTypes, false, strmangle.SetComplement(hardwareModelPrimaryKeyColumns, hardwareModelColumnsWithoutDefault)...); err != nil {
 		t.Fatal(err)
 	}
-	foreigners := []*BMC{&b, &c, &d, &e}
+	foreigners := []*ServerBMC{&b, &c, &d, &e}
 	for _, x := range foreigners {
-		if err = randomize.Struct(seed, x, bmcDBTypes, false, strmangle.SetComplement(bmcPrimaryKeyColumns, bmcColumnsWithoutDefault)...); err != nil {
+		if err = randomize.Struct(seed, x, serverBMCDBTypes, false, strmangle.SetComplement(serverBMCPrimaryKeyColumns, serverBMCColumnsWithoutDefault)...); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -680,13 +680,13 @@ func testHardwareModelToManyAddOpBMCS(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	foreignersSplitByInsertion := [][]*BMC{
+	foreignersSplitByInsertion := [][]*ServerBMC{
 		{&b, &c},
 		{&d, &e},
 	}
 
 	for i, x := range foreignersSplitByInsertion {
-		err = a.AddBMCS(ctx, tx, i != 0, x...)
+		err = a.AddServerBMCS(ctx, tx, i != 0, x...)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -708,14 +708,14 @@ func testHardwareModelToManyAddOpBMCS(t *testing.T) {
 			t.Error("relationship was not added properly to the foreign slice")
 		}
 
-		if a.R.BMCS[i*2] != first {
+		if a.R.ServerBMCS[i*2] != first {
 			t.Error("relationship struct slice not set to correct value")
 		}
-		if a.R.BMCS[i*2+1] != second {
+		if a.R.ServerBMCS[i*2+1] != second {
 			t.Error("relationship struct slice not set to correct value")
 		}
 
-		count, err := a.BMCS().Count(ctx, tx)
+		count, err := a.ServerBMCS().Count(ctx, tx)
 		if err != nil {
 			t.Fatal(err)
 		}

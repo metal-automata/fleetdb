@@ -58,19 +58,19 @@ var HardwareVendorWhere = struct {
 
 // HardwareVendorRels is where relationship names are stored.
 var HardwareVendorRels = struct {
-	BMCS           string
 	HardwareModels string
+	ServerBMCS     string
 	VendorServers  string
 }{
-	BMCS:           "BMCS",
 	HardwareModels: "HardwareModels",
+	ServerBMCS:     "ServerBMCS",
 	VendorServers:  "VendorServers",
 }
 
 // hardwareVendorR is where relationships are stored.
 type hardwareVendorR struct {
-	BMCS           BMCSlice           `boil:"BMCS" json:"BMCS" toml:"BMCS" yaml:"BMCS"`
 	HardwareModels HardwareModelSlice `boil:"HardwareModels" json:"HardwareModels" toml:"HardwareModels" yaml:"HardwareModels"`
+	ServerBMCS     ServerBMCSlice     `boil:"ServerBMCS" json:"ServerBMCS" toml:"ServerBMCS" yaml:"ServerBMCS"`
 	VendorServers  ServerSlice        `boil:"VendorServers" json:"VendorServers" toml:"VendorServers" yaml:"VendorServers"`
 }
 
@@ -79,18 +79,18 @@ func (*hardwareVendorR) NewStruct() *hardwareVendorR {
 	return &hardwareVendorR{}
 }
 
-func (r *hardwareVendorR) GetBMCS() BMCSlice {
-	if r == nil {
-		return nil
-	}
-	return r.BMCS
-}
-
 func (r *hardwareVendorR) GetHardwareModels() HardwareModelSlice {
 	if r == nil {
 		return nil
 	}
 	return r.HardwareModels
+}
+
+func (r *hardwareVendorR) GetServerBMCS() ServerBMCSlice {
+	if r == nil {
+		return nil
+	}
+	return r.ServerBMCS
 }
 
 func (r *hardwareVendorR) GetVendorServers() ServerSlice {
@@ -389,20 +389,6 @@ func (q hardwareVendorQuery) Exists(ctx context.Context, exec boil.ContextExecut
 	return count > 0, nil
 }
 
-// BMCS retrieves all the bmc's BMCS with an executor.
-func (o *HardwareVendor) BMCS(mods ...qm.QueryMod) bmcQuery {
-	var queryMods []qm.QueryMod
-	if len(mods) != 0 {
-		queryMods = append(queryMods, mods...)
-	}
-
-	queryMods = append(queryMods,
-		qm.Where("\"bmcs\".\"hardware_vendor_id\"=?", o.ID),
-	)
-
-	return BMCS(queryMods...)
-}
-
 // HardwareModels retrieves all the hardware_model's HardwareModels with an executor.
 func (o *HardwareVendor) HardwareModels(mods ...qm.QueryMod) hardwareModelQuery {
 	var queryMods []qm.QueryMod
@@ -417,6 +403,20 @@ func (o *HardwareVendor) HardwareModels(mods ...qm.QueryMod) hardwareModelQuery 
 	return HardwareModels(queryMods...)
 }
 
+// ServerBMCS retrieves all the server_bmc's ServerBMCS with an executor.
+func (o *HardwareVendor) ServerBMCS(mods ...qm.QueryMod) serverBMCQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"server_bmcs\".\"hardware_vendor_id\"=?", o.ID),
+	)
+
+	return ServerBMCS(queryMods...)
+}
+
 // VendorServers retrieves all the server's Servers with an executor via vendor_id column.
 func (o *HardwareVendor) VendorServers(mods ...qm.QueryMod) serverQuery {
 	var queryMods []qm.QueryMod
@@ -429,120 +429,6 @@ func (o *HardwareVendor) VendorServers(mods ...qm.QueryMod) serverQuery {
 	)
 
 	return Servers(queryMods...)
-}
-
-// LoadBMCS allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (hardwareVendorL) LoadBMCS(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHardwareVendor interface{}, mods queries.Applicator) error {
-	var slice []*HardwareVendor
-	var object *HardwareVendor
-
-	if singular {
-		var ok bool
-		object, ok = maybeHardwareVendor.(*HardwareVendor)
-		if !ok {
-			object = new(HardwareVendor)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeHardwareVendor)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHardwareVendor))
-			}
-		}
-	} else {
-		s, ok := maybeHardwareVendor.(*[]*HardwareVendor)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeHardwareVendor)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHardwareVendor))
-			}
-		}
-	}
-
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &hardwareVendorR{}
-		}
-		args = append(args, object.ID)
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &hardwareVendorR{}
-			}
-
-			for _, a := range args {
-				if a == obj.ID {
-					continue Outer
-				}
-			}
-
-			args = append(args, obj.ID)
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`bmcs`),
-		qm.WhereIn(`bmcs.hardware_vendor_id in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load bmcs")
-	}
-
-	var resultSlice []*BMC
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice bmcs")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on bmcs")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for bmcs")
-	}
-
-	if len(bmcAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-	if singular {
-		object.R.BMCS = resultSlice
-		for _, foreign := range resultSlice {
-			if foreign.R == nil {
-				foreign.R = &bmcR{}
-			}
-			foreign.R.HardwareVendor = object
-		}
-		return nil
-	}
-
-	for _, foreign := range resultSlice {
-		for _, local := range slice {
-			if local.ID == foreign.HardwareVendorID {
-				local.R.BMCS = append(local.R.BMCS, foreign)
-				if foreign.R == nil {
-					foreign.R = &bmcR{}
-				}
-				foreign.R.HardwareVendor = local
-				break
-			}
-		}
-	}
-
-	return nil
 }
 
 // LoadHardwareModels allows an eager lookup of values, cached into the
@@ -649,6 +535,120 @@ func (hardwareVendorL) LoadHardwareModels(ctx context.Context, e boil.ContextExe
 				local.R.HardwareModels = append(local.R.HardwareModels, foreign)
 				if foreign.R == nil {
 					foreign.R = &hardwareModelR{}
+				}
+				foreign.R.HardwareVendor = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadServerBMCS allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (hardwareVendorL) LoadServerBMCS(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHardwareVendor interface{}, mods queries.Applicator) error {
+	var slice []*HardwareVendor
+	var object *HardwareVendor
+
+	if singular {
+		var ok bool
+		object, ok = maybeHardwareVendor.(*HardwareVendor)
+		if !ok {
+			object = new(HardwareVendor)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeHardwareVendor)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeHardwareVendor))
+			}
+		}
+	} else {
+		s, ok := maybeHardwareVendor.(*[]*HardwareVendor)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeHardwareVendor)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeHardwareVendor))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &hardwareVendorR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &hardwareVendorR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`server_bmcs`),
+		qm.WhereIn(`server_bmcs.hardware_vendor_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load server_bmcs")
+	}
+
+	var resultSlice []*ServerBMC
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice server_bmcs")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on server_bmcs")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for server_bmcs")
+	}
+
+	if len(serverBMCAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ServerBMCS = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &serverBMCR{}
+			}
+			foreign.R.HardwareVendor = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.HardwareVendorID {
+				local.R.ServerBMCS = append(local.R.ServerBMCS, foreign)
+				if foreign.R == nil {
+					foreign.R = &serverBMCR{}
 				}
 				foreign.R.HardwareVendor = local
 				break
@@ -774,59 +774,6 @@ func (hardwareVendorL) LoadVendorServers(ctx context.Context, e boil.ContextExec
 	return nil
 }
 
-// AddBMCS adds the given related objects to the existing relationships
-// of the hardware_vendor, optionally inserting them as new records.
-// Appends related to o.R.BMCS.
-// Sets related.R.HardwareVendor appropriately.
-func (o *HardwareVendor) AddBMCS(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*BMC) error {
-	var err error
-	for _, rel := range related {
-		if insert {
-			rel.HardwareVendorID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
-				return errors.Wrap(err, "failed to insert into foreign table")
-			}
-		} else {
-			updateQuery := fmt.Sprintf(
-				"UPDATE \"bmcs\" SET %s WHERE %s",
-				strmangle.SetParamNames("\"", "\"", 1, []string{"hardware_vendor_id"}),
-				strmangle.WhereClause("\"", "\"", 2, bmcPrimaryKeyColumns),
-			)
-			values := []interface{}{o.ID, rel.ID}
-
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
-			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-				return errors.Wrap(err, "failed to update foreign table")
-			}
-
-			rel.HardwareVendorID = o.ID
-		}
-	}
-
-	if o.R == nil {
-		o.R = &hardwareVendorR{
-			BMCS: related,
-		}
-	} else {
-		o.R.BMCS = append(o.R.BMCS, related...)
-	}
-
-	for _, rel := range related {
-		if rel.R == nil {
-			rel.R = &bmcR{
-				HardwareVendor: o,
-			}
-		} else {
-			rel.R.HardwareVendor = o
-		}
-	}
-	return nil
-}
-
 // AddHardwareModels adds the given related objects to the existing relationships
 // of the hardware_vendor, optionally inserting them as new records.
 // Appends related to o.R.HardwareModels.
@@ -871,6 +818,59 @@ func (o *HardwareVendor) AddHardwareModels(ctx context.Context, exec boil.Contex
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &hardwareModelR{
+				HardwareVendor: o,
+			}
+		} else {
+			rel.R.HardwareVendor = o
+		}
+	}
+	return nil
+}
+
+// AddServerBMCS adds the given related objects to the existing relationships
+// of the hardware_vendor, optionally inserting them as new records.
+// Appends related to o.R.ServerBMCS.
+// Sets related.R.HardwareVendor appropriately.
+func (o *HardwareVendor) AddServerBMCS(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ServerBMC) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.HardwareVendorID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"server_bmcs\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"hardware_vendor_id"}),
+				strmangle.WhereClause("\"", "\"", 2, serverBMCPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.HardwareVendorID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &hardwareVendorR{
+			ServerBMCS: related,
+		}
+	} else {
+		o.R.ServerBMCS = append(o.R.ServerBMCS, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &serverBMCR{
 				HardwareVendor: o,
 			}
 		} else {

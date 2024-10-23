@@ -11,7 +11,6 @@ var TableNames = struct {
 	BiosConfigSets             string
 	BiosConfigSettings         string
 	BMCMacAddress              string
-	BMCS                       string
 	BomInfo                    string
 	ComponentFirmwareSet       string
 	ComponentFirmwareSetMap    string
@@ -20,6 +19,7 @@ var TableNames = struct {
 	FirmwareSetValidationFacts string
 	HardwareModels             string
 	HardwareVendors            string
+	ServerBMCS                 string
 	ServerComponentTypes       string
 	ServerComponents           string
 	ServerCredentialTypes      string
@@ -34,7 +34,6 @@ var TableNames = struct {
 	BiosConfigSets:             "bios_config_sets",
 	BiosConfigSettings:         "bios_config_settings",
 	BMCMacAddress:              "bmc_mac_address",
-	BMCS:                       "bmcs",
 	BomInfo:                    "bom_info",
 	ComponentFirmwareSet:       "component_firmware_set",
 	ComponentFirmwareSetMap:    "component_firmware_set_map",
@@ -43,6 +42,7 @@ var TableNames = struct {
 	FirmwareSetValidationFacts: "firmware_set_validation_facts",
 	HardwareModels:             "hardware_models",
 	HardwareVendors:            "hardware_vendors",
+	ServerBMCS:                 "server_bmcs",
 	ServerComponentTypes:       "server_component_types",
 	ServerComponents:           "server_components",
 	ServerCredentialTypes:      "server_credential_types",

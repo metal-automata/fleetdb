@@ -20,8 +20,6 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("BMCMacAddresses", testBMCMacAddressesUpsert)
 
-	t.Run("BMCS", testBMCSUpsert)
-
 	t.Run("BomInfos", testBomInfosUpsert)
 
 	t.Run("ComponentFirmwareSets", testComponentFirmwareSetsUpsert)
@@ -37,6 +35,8 @@ func TestUpsert(t *testing.T) {
 	t.Run("HardwareModels", testHardwareModelsUpsert)
 
 	t.Run("HardwareVendors", testHardwareVendorsUpsert)
+
+	t.Run("ServerBMCS", testServerBMCSUpsert)
 
 	t.Run("ServerComponentTypes", testServerComponentTypesUpsert)
 

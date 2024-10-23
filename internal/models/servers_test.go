@@ -595,6 +595,129 @@ func testServersInsertWhitelist(t *testing.T) {
 	}
 }
 
+func testServerOneToOneServerBMCUsingServerBMC(t *testing.T) {
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var foreign ServerBMC
+	var local Server
+
+	seed := randomize.NewSeed()
+	if err := randomize.Struct(seed, &foreign, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
+	}
+	if err := randomize.Struct(seed, &local, serverDBTypes, true, serverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Server struct: %s", err)
+	}
+
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreign.ServerID = local.ID
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := local.ServerBMC().One(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if check.ServerID != foreign.ServerID {
+		t.Errorf("want: %v, got %v", foreign.ServerID, check.ServerID)
+	}
+
+	ranAfterSelectHook := false
+	AddServerBMCHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+		ranAfterSelectHook = true
+		return nil
+	})
+
+	slice := ServerSlice{&local}
+	if err = local.L.LoadServerBMC(ctx, tx, false, (*[]*Server)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.ServerBMC == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	local.R.ServerBMC = nil
+	if err = local.L.LoadServerBMC(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.ServerBMC == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
+	}
+}
+
+func testServerOneToOneSetOpServerBMCUsingServerBMC(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b, c ServerBMC
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, serverBMCDBTypes, false, strmangle.SetComplement(serverBMCPrimaryKeyColumns, serverBMCColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, serverBMCDBTypes, false, strmangle.SetComplement(serverBMCPrimaryKeyColumns, serverBMCColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*ServerBMC{&b, &c} {
+		err = a.SetServerBMC(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.ServerBMC != x {
+			t.Error("relationship struct not set to correct value")
+		}
+		if x.R.Server != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+
+		if a.ID != x.ServerID {
+			t.Error("foreign key was wrong value", a.ID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(x.ServerID))
+		reflect.Indirect(reflect.ValueOf(&x.ServerID)).Set(zero)
+
+		if err = x.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if a.ID != x.ServerID {
+			t.Error("foreign key was wrong value", a.ID, x.ServerID)
+		}
+
+		if _, err = x.Delete(ctx, tx); err != nil {
+			t.Fatal("failed to delete x", err)
+		}
+	}
+}
+
 func testServerToManyAttributes(t *testing.T) {
 	var err error
 	ctx := context.Background()
@@ -664,84 +787,6 @@ func testServerToManyAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := len(a.R.Attributes); got != 2 {
-		t.Error("number of eager loaded records wrong, got:", got)
-	}
-
-	if t.Failed() {
-		t.Logf("%#v", check)
-	}
-}
-
-func testServerToManyBMCS(t *testing.T) {
-	var err error
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-
-	var a Server
-	var b, c BMC
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, serverDBTypes, true, serverColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize Server struct: %s", err)
-	}
-
-	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	if err = randomize.Struct(seed, &b, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Fatal(err)
-	}
-	if err = randomize.Struct(seed, &c, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Fatal(err)
-	}
-
-	b.ServerID = a.ID
-	c.ServerID = a.ID
-
-	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	check, err := a.BMCS().All(ctx, tx)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	bFound, cFound := false, false
-	for _, v := range check {
-		if v.ServerID == b.ServerID {
-			bFound = true
-		}
-		if v.ServerID == c.ServerID {
-			cFound = true
-		}
-	}
-
-	if !bFound {
-		t.Error("expected to find b")
-	}
-	if !cFound {
-		t.Error("expected to find c")
-	}
-
-	slice := ServerSlice{&a}
-	if err = a.L.LoadBMCS(ctx, tx, false, (*[]*Server)(&slice), nil); err != nil {
-		t.Fatal(err)
-	}
-	if got := len(a.R.BMCS); got != 2 {
-		t.Error("number of eager loaded records wrong, got:", got)
-	}
-
-	a.R.BMCS = nil
-	if err = a.L.LoadBMCS(ctx, tx, true, &a, nil); err != nil {
-		t.Fatal(err)
-	}
-	if got := len(a.R.BMCS); got != 2 {
 		t.Error("number of eager loaded records wrong, got:", got)
 	}
 
@@ -1312,81 +1357,6 @@ func testServerToManyRemoveOpAttributes(t *testing.T) {
 	}
 }
 
-func testServerToManyAddOpBMCS(t *testing.T) {
-	var err error
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-
-	var a Server
-	var b, c, d, e BMC
-
-	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
-		t.Fatal(err)
-	}
-	foreigners := []*BMC{&b, &c, &d, &e}
-	for _, x := range foreigners {
-		if err = randomize.Struct(seed, x, bmcDBTypes, false, strmangle.SetComplement(bmcPrimaryKeyColumns, bmcColumnsWithoutDefault)...); err != nil {
-			t.Fatal(err)
-		}
-	}
-
-	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Fatal(err)
-	}
-
-	foreignersSplitByInsertion := [][]*BMC{
-		{&b, &c},
-		{&d, &e},
-	}
-
-	for i, x := range foreignersSplitByInsertion {
-		err = a.AddBMCS(ctx, tx, i != 0, x...)
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		first := x[0]
-		second := x[1]
-
-		if a.ID != first.ServerID {
-			t.Error("foreign key was wrong value", a.ID, first.ServerID)
-		}
-		if a.ID != second.ServerID {
-			t.Error("foreign key was wrong value", a.ID, second.ServerID)
-		}
-
-		if first.R.Server != &a {
-			t.Error("relationship was not added properly to the foreign slice")
-		}
-		if second.R.Server != &a {
-			t.Error("relationship was not added properly to the foreign slice")
-		}
-
-		if a.R.BMCS[i*2] != first {
-			t.Error("relationship struct slice not set to correct value")
-		}
-		if a.R.BMCS[i*2+1] != second {
-			t.Error("relationship struct slice not set to correct value")
-		}
-
-		count, err := a.BMCS().Count(ctx, tx)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if want := int64((i + 1) * 2); count != want {
-			t.Error("want", want, "got", count)
-		}
-	}
-}
 func testServerToManyAddOpTargetServerEventHistories(t *testing.T) {
 	var err error
 

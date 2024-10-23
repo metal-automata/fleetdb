@@ -66,18 +66,18 @@ var HardwareModelWhere = struct {
 // HardwareModelRels is where relationship names are stored.
 var HardwareModelRels = struct {
 	HardwareVendor string
-	BMCS           string
+	ServerBMCS     string
 	ModelServers   string
 }{
 	HardwareVendor: "HardwareVendor",
-	BMCS:           "BMCS",
+	ServerBMCS:     "ServerBMCS",
 	ModelServers:   "ModelServers",
 }
 
 // hardwareModelR is where relationships are stored.
 type hardwareModelR struct {
 	HardwareVendor *HardwareVendor `boil:"HardwareVendor" json:"HardwareVendor" toml:"HardwareVendor" yaml:"HardwareVendor"`
-	BMCS           BMCSlice        `boil:"BMCS" json:"BMCS" toml:"BMCS" yaml:"BMCS"`
+	ServerBMCS     ServerBMCSlice  `boil:"ServerBMCS" json:"ServerBMCS" toml:"ServerBMCS" yaml:"ServerBMCS"`
 	ModelServers   ServerSlice     `boil:"ModelServers" json:"ModelServers" toml:"ModelServers" yaml:"ModelServers"`
 }
 
@@ -93,11 +93,11 @@ func (r *hardwareModelR) GetHardwareVendor() *HardwareVendor {
 	return r.HardwareVendor
 }
 
-func (r *hardwareModelR) GetBMCS() BMCSlice {
+func (r *hardwareModelR) GetServerBMCS() ServerBMCSlice {
 	if r == nil {
 		return nil
 	}
-	return r.BMCS
+	return r.ServerBMCS
 }
 
 func (r *hardwareModelR) GetModelServers() ServerSlice {
@@ -407,18 +407,18 @@ func (o *HardwareModel) HardwareVendor(mods ...qm.QueryMod) hardwareVendorQuery 
 	return HardwareVendors(queryMods...)
 }
 
-// BMCS retrieves all the bmc's BMCS with an executor.
-func (o *HardwareModel) BMCS(mods ...qm.QueryMod) bmcQuery {
+// ServerBMCS retrieves all the server_bmc's ServerBMCS with an executor.
+func (o *HardwareModel) ServerBMCS(mods ...qm.QueryMod) serverBMCQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"bmcs\".\"hardware_model_id\"=?", o.ID),
+		qm.Where("\"server_bmcs\".\"hardware_model_id\"=?", o.ID),
 	)
 
-	return BMCS(queryMods...)
+	return ServerBMCS(queryMods...)
 }
 
 // ModelServers retrieves all the server's Servers with an executor via model_id column.
@@ -555,9 +555,9 @@ func (hardwareModelL) LoadHardwareVendor(ctx context.Context, e boil.ContextExec
 	return nil
 }
 
-// LoadBMCS allows an eager lookup of values, cached into the
+// LoadServerBMCS allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (hardwareModelL) LoadBMCS(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHardwareModel interface{}, mods queries.Applicator) error {
+func (hardwareModelL) LoadServerBMCS(ctx context.Context, e boil.ContextExecutor, singular bool, maybeHardwareModel interface{}, mods queries.Applicator) error {
 	var slice []*HardwareModel
 	var object *HardwareModel
 
@@ -611,8 +611,8 @@ func (hardwareModelL) LoadBMCS(ctx context.Context, e boil.ContextExecutor, sing
 	}
 
 	query := NewQuery(
-		qm.From(`bmcs`),
-		qm.WhereIn(`bmcs.hardware_model_id in ?`, args...),
+		qm.From(`server_bmcs`),
+		qm.WhereIn(`server_bmcs.hardware_model_id in ?`, args...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -620,22 +620,22 @@ func (hardwareModelL) LoadBMCS(ctx context.Context, e boil.ContextExecutor, sing
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load bmcs")
+		return errors.Wrap(err, "failed to eager load server_bmcs")
 	}
 
-	var resultSlice []*BMC
+	var resultSlice []*ServerBMC
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice bmcs")
+		return errors.Wrap(err, "failed to bind eager loaded slice server_bmcs")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on bmcs")
+		return errors.Wrap(err, "failed to close results in eager load on server_bmcs")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for bmcs")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for server_bmcs")
 	}
 
-	if len(bmcAfterSelectHooks) != 0 {
+	if len(serverBMCAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -643,10 +643,10 @@ func (hardwareModelL) LoadBMCS(ctx context.Context, e boil.ContextExecutor, sing
 		}
 	}
 	if singular {
-		object.R.BMCS = resultSlice
+		object.R.ServerBMCS = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &bmcR{}
+				foreign.R = &serverBMCR{}
 			}
 			foreign.R.HardwareModel = object
 		}
@@ -656,9 +656,9 @@ func (hardwareModelL) LoadBMCS(ctx context.Context, e boil.ContextExecutor, sing
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
 			if local.ID == foreign.HardwareModelID {
-				local.R.BMCS = append(local.R.BMCS, foreign)
+				local.R.ServerBMCS = append(local.R.ServerBMCS, foreign)
 				if foreign.R == nil {
-					foreign.R = &bmcR{}
+					foreign.R = &serverBMCR{}
 				}
 				foreign.R.HardwareModel = local
 				break
@@ -831,11 +831,11 @@ func (o *HardwareModel) SetHardwareVendor(ctx context.Context, exec boil.Context
 	return nil
 }
 
-// AddBMCS adds the given related objects to the existing relationships
+// AddServerBMCS adds the given related objects to the existing relationships
 // of the hardware_model, optionally inserting them as new records.
-// Appends related to o.R.BMCS.
+// Appends related to o.R.ServerBMCS.
 // Sets related.R.HardwareModel appropriately.
-func (o *HardwareModel) AddBMCS(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*BMC) error {
+func (o *HardwareModel) AddServerBMCS(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ServerBMC) error {
 	var err error
 	for _, rel := range related {
 		if insert {
@@ -845,9 +845,9 @@ func (o *HardwareModel) AddBMCS(ctx context.Context, exec boil.ContextExecutor, 
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"bmcs\" SET %s WHERE %s",
+				"UPDATE \"server_bmcs\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"hardware_model_id"}),
-				strmangle.WhereClause("\"", "\"", 2, bmcPrimaryKeyColumns),
+				strmangle.WhereClause("\"", "\"", 2, serverBMCPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -866,15 +866,15 @@ func (o *HardwareModel) AddBMCS(ctx context.Context, exec boil.ContextExecutor, 
 
 	if o.R == nil {
 		o.R = &hardwareModelR{
-			BMCS: related,
+			ServerBMCS: related,
 		}
 	} else {
-		o.R.BMCS = append(o.R.BMCS, related...)
+		o.R.ServerBMCS = append(o.R.ServerBMCS, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &bmcR{
+			rel.R = &serverBMCR{
 				HardwareModel: o,
 			}
 		} else {
