@@ -28,6 +28,7 @@ const (
 	inventoryEndpoint                   = "inventory"
 	hardwareVendorsEndpoint             = "hardware-vendors"
 	hardwareModelsEndpoint              = "hardware-models"
+	serverBMCsEndpoint                  = "server-bmcs"
 )
 
 // ClientInterface provides an interface for the expected calls to interact with a fleetdb api
@@ -677,5 +678,41 @@ func (c *Client) GetHardwareModel(ctx context.Context, name string) (*HardwareMo
 // DeleteHardwareModel purges a hardware model record
 func (c *Client) DeleteHardwareModel(ctx context.Context, name string) (*ServerResponse, error) {
 	endpoint := path.Join(hardwareModelsEndpoint, name)
+	return c.delete(ctx, endpoint)
+}
+
+// CreateServerBMC creates a server BMC record - requires the server relation
+func (c *Client) CreateServerBMC(ctx context.Context, serverBMC *ServerBMC) (*ServerResponse, error) {
+	return c.post(ctx, serverBMCsEndpoint, serverBMC)
+}
+
+// ListServerBMCs lists server BMC records
+func (c *Client) ListServerBMCs(ctx context.Context) ([]*ServerBMC, *ServerResponse, error) {
+	serverBMCs := []*ServerBMC{}
+	resp := ServerResponse{Records: &serverBMCs}
+
+	if err := c.list(ctx, serverBMCsEndpoint, nil, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	return serverBMCs, &resp, nil
+}
+
+// GetServerBMC retrieves a server's BMC record
+func (c *Client) GetServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerBMC, *ServerResponse, error) {
+	serverBMC := &ServerBMC{}
+	resp := ServerResponse{Record: serverBMC}
+
+	path := path.Join(serverBMCsEndpoint, serverID.String())
+	if err := c.get(ctx, path, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	return serverBMC, &resp, nil
+}
+
+// DeleteServerBMC purges a server's BMC record
+func (c *Client) DeleteServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerResponse, error) {
+	endpoint := path.Join(serverBMCsEndpoint, serverID.String())
 	return c.delete(ctx, endpoint)
 }
