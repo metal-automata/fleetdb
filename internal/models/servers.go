@@ -30,6 +30,9 @@ type Server struct {
 	CreatedAt    null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	UpdatedAt    null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
 	DeletedAt    null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	VendorID     null.String `boil:"vendor_id" json:"vendor_id,omitempty" toml:"vendor_id" yaml:"vendor_id,omitempty"`
+	SerialNumber null.String `boil:"serial_number" json:"serial_number,omitempty" toml:"serial_number" yaml:"serial_number,omitempty"`
+	ModelID      null.String `boil:"model_id" json:"model_id,omitempty" toml:"model_id" yaml:"model_id,omitempty"`
 
 	R *serverR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L serverL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -42,6 +45,9 @@ var ServerColumns = struct {
 	CreatedAt    string
 	UpdatedAt    string
 	DeletedAt    string
+	VendorID     string
+	SerialNumber string
+	ModelID      string
 }{
 	ID:           "id",
 	Name:         "name",
@@ -49,6 +55,9 @@ var ServerColumns = struct {
 	CreatedAt:    "created_at",
 	UpdatedAt:    "updated_at",
 	DeletedAt:    "deleted_at",
+	VendorID:     "vendor_id",
+	SerialNumber: "serial_number",
+	ModelID:      "model_id",
 }
 
 var ServerTableColumns = struct {
@@ -58,6 +67,9 @@ var ServerTableColumns = struct {
 	CreatedAt    string
 	UpdatedAt    string
 	DeletedAt    string
+	VendorID     string
+	SerialNumber string
+	ModelID      string
 }{
 	ID:           "servers.id",
 	Name:         "servers.name",
@@ -65,6 +77,9 @@ var ServerTableColumns = struct {
 	CreatedAt:    "servers.created_at",
 	UpdatedAt:    "servers.updated_at",
 	DeletedAt:    "servers.deleted_at",
+	VendorID:     "servers.vendor_id",
+	SerialNumber: "servers.serial_number",
+	ModelID:      "servers.model_id",
 }
 
 // Generated where
@@ -76,6 +91,9 @@ var ServerWhere = struct {
 	CreatedAt    whereHelpernull_Time
 	UpdatedAt    whereHelpernull_Time
 	DeletedAt    whereHelpernull_Time
+	VendorID     whereHelpernull_String
+	SerialNumber whereHelpernull_String
+	ModelID      whereHelpernull_String
 }{
 	ID:           whereHelperstring{field: "\"servers\".\"id\""},
 	Name:         whereHelpernull_String{field: "\"servers\".\"name\""},
@@ -83,17 +101,26 @@ var ServerWhere = struct {
 	CreatedAt:    whereHelpernull_Time{field: "\"servers\".\"created_at\""},
 	UpdatedAt:    whereHelpernull_Time{field: "\"servers\".\"updated_at\""},
 	DeletedAt:    whereHelpernull_Time{field: "\"servers\".\"deleted_at\""},
+	VendorID:     whereHelpernull_String{field: "\"servers\".\"vendor_id\""},
+	SerialNumber: whereHelpernull_String{field: "\"servers\".\"serial_number\""},
+	ModelID:      whereHelpernull_String{field: "\"servers\".\"model_id\""},
 }
 
 // ServerRels is where relationship names are stored.
 var ServerRels = struct {
+	Model                      string
+	Vendor                     string
 	Attributes                 string
+	BMCS                       string
 	TargetServerEventHistories string
 	ServerComponents           string
 	ServerCredentials          string
 	VersionedAttributes        string
 }{
+	Model:                      "Model",
+	Vendor:                     "Vendor",
 	Attributes:                 "Attributes",
+	BMCS:                       "BMCS",
 	TargetServerEventHistories: "TargetServerEventHistories",
 	ServerComponents:           "ServerComponents",
 	ServerCredentials:          "ServerCredentials",
@@ -102,7 +129,10 @@ var ServerRels = struct {
 
 // serverR is where relationships are stored.
 type serverR struct {
+	Model                      *HardwareModel          `boil:"Model" json:"Model" toml:"Model" yaml:"Model"`
+	Vendor                     *HardwareVendor         `boil:"Vendor" json:"Vendor" toml:"Vendor" yaml:"Vendor"`
 	Attributes                 AttributeSlice          `boil:"Attributes" json:"Attributes" toml:"Attributes" yaml:"Attributes"`
+	BMCS                       BMCSlice                `boil:"BMCS" json:"BMCS" toml:"BMCS" yaml:"BMCS"`
 	TargetServerEventHistories EventHistorySlice       `boil:"TargetServerEventHistories" json:"TargetServerEventHistories" toml:"TargetServerEventHistories" yaml:"TargetServerEventHistories"`
 	ServerComponents           ServerComponentSlice    `boil:"ServerComponents" json:"ServerComponents" toml:"ServerComponents" yaml:"ServerComponents"`
 	ServerCredentials          ServerCredentialSlice   `boil:"ServerCredentials" json:"ServerCredentials" toml:"ServerCredentials" yaml:"ServerCredentials"`
@@ -114,11 +144,32 @@ func (*serverR) NewStruct() *serverR {
 	return &serverR{}
 }
 
+func (r *serverR) GetModel() *HardwareModel {
+	if r == nil {
+		return nil
+	}
+	return r.Model
+}
+
+func (r *serverR) GetVendor() *HardwareVendor {
+	if r == nil {
+		return nil
+	}
+	return r.Vendor
+}
+
 func (r *serverR) GetAttributes() AttributeSlice {
 	if r == nil {
 		return nil
 	}
 	return r.Attributes
+}
+
+func (r *serverR) GetBMCS() BMCSlice {
+	if r == nil {
+		return nil
+	}
+	return r.BMCS
 }
 
 func (r *serverR) GetTargetServerEventHistories() EventHistorySlice {
@@ -153,9 +204,9 @@ func (r *serverR) GetVersionedAttributes() VersionedAttributeSlice {
 type serverL struct{}
 
 var (
-	serverAllColumns            = []string{"id", "name", "facility_code", "created_at", "updated_at", "deleted_at"}
+	serverAllColumns            = []string{"id", "name", "facility_code", "created_at", "updated_at", "deleted_at", "vendor_id", "serial_number", "model_id"}
 	serverColumnsWithoutDefault = []string{}
-	serverColumnsWithDefault    = []string{"id", "name", "facility_code", "created_at", "updated_at", "deleted_at"}
+	serverColumnsWithDefault    = []string{"id", "name", "facility_code", "created_at", "updated_at", "deleted_at", "vendor_id", "serial_number", "model_id"}
 	serverPrimaryKeyColumns     = []string{"id"}
 	serverGeneratedColumns      = []string{}
 )
@@ -438,6 +489,28 @@ func (q serverQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (boo
 	return count > 0, nil
 }
 
+// Model pointed to by the foreign key.
+func (o *Server) Model(mods ...qm.QueryMod) hardwareModelQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.ModelID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return HardwareModels(queryMods...)
+}
+
+// Vendor pointed to by the foreign key.
+func (o *Server) Vendor(mods ...qm.QueryMod) hardwareVendorQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.VendorID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return HardwareVendors(queryMods...)
+}
+
 // Attributes retrieves all the attribute's Attributes with an executor.
 func (o *Server) Attributes(mods ...qm.QueryMod) attributeQuery {
 	var queryMods []qm.QueryMod
@@ -450,6 +523,20 @@ func (o *Server) Attributes(mods ...qm.QueryMod) attributeQuery {
 	)
 
 	return Attributes(queryMods...)
+}
+
+// BMCS retrieves all the bmc's BMCS with an executor.
+func (o *Server) BMCS(mods ...qm.QueryMod) bmcQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"bmcs\".\"server_id\"=?", o.ID),
+	)
+
+	return BMCS(queryMods...)
 }
 
 // TargetServerEventHistories retrieves all the event_history's EventHistories with an executor via target_server column.
@@ -506,6 +593,254 @@ func (o *Server) VersionedAttributes(mods ...qm.QueryMod) versionedAttributeQuer
 	)
 
 	return VersionedAttributes(queryMods...)
+}
+
+// LoadModel allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (serverL) LoadModel(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServer interface{}, mods queries.Applicator) error {
+	var slice []*Server
+	var object *Server
+
+	if singular {
+		var ok bool
+		object, ok = maybeServer.(*Server)
+		if !ok {
+			object = new(Server)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServer))
+			}
+		}
+	} else {
+		s, ok := maybeServer.(*[]*Server)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServer))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverR{}
+		}
+		if !queries.IsNil(object.ModelID) {
+			args = append(args, object.ModelID)
+		}
+
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverR{}
+			}
+
+			for _, a := range args {
+				if queries.Equal(a, obj.ModelID) {
+					continue Outer
+				}
+			}
+
+			if !queries.IsNil(obj.ModelID) {
+				args = append(args, obj.ModelID)
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`hardware_models`),
+		qm.WhereIn(`hardware_models.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load HardwareModel")
+	}
+
+	var resultSlice []*HardwareModel
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice HardwareModel")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for hardware_models")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for hardware_models")
+	}
+
+	if len(hardwareModelAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.Model = foreign
+		if foreign.R == nil {
+			foreign.R = &hardwareModelR{}
+		}
+		foreign.R.ModelServers = append(foreign.R.ModelServers, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.ModelID, foreign.ID) {
+				local.R.Model = foreign
+				if foreign.R == nil {
+					foreign.R = &hardwareModelR{}
+				}
+				foreign.R.ModelServers = append(foreign.R.ModelServers, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadVendor allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (serverL) LoadVendor(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServer interface{}, mods queries.Applicator) error {
+	var slice []*Server
+	var object *Server
+
+	if singular {
+		var ok bool
+		object, ok = maybeServer.(*Server)
+		if !ok {
+			object = new(Server)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServer))
+			}
+		}
+	} else {
+		s, ok := maybeServer.(*[]*Server)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServer))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverR{}
+		}
+		if !queries.IsNil(object.VendorID) {
+			args = append(args, object.VendorID)
+		}
+
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverR{}
+			}
+
+			for _, a := range args {
+				if queries.Equal(a, obj.VendorID) {
+					continue Outer
+				}
+			}
+
+			if !queries.IsNil(obj.VendorID) {
+				args = append(args, obj.VendorID)
+			}
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`hardware_vendors`),
+		qm.WhereIn(`hardware_vendors.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load HardwareVendor")
+	}
+
+	var resultSlice []*HardwareVendor
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice HardwareVendor")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for hardware_vendors")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for hardware_vendors")
+	}
+
+	if len(hardwareVendorAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.Vendor = foreign
+		if foreign.R == nil {
+			foreign.R = &hardwareVendorR{}
+		}
+		foreign.R.VendorServers = append(foreign.R.VendorServers, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if queries.Equal(local.VendorID, foreign.ID) {
+				local.R.Vendor = foreign
+				if foreign.R == nil {
+					foreign.R = &hardwareVendorR{}
+				}
+				foreign.R.VendorServers = append(foreign.R.VendorServers, local)
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadAttributes allows an eager lookup of values, cached into the
@@ -612,6 +947,120 @@ func (serverL) LoadAttributes(ctx context.Context, e boil.ContextExecutor, singu
 				local.R.Attributes = append(local.R.Attributes, foreign)
 				if foreign.R == nil {
 					foreign.R = &attributeR{}
+				}
+				foreign.R.Server = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadBMCS allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (serverL) LoadBMCS(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServer interface{}, mods queries.Applicator) error {
+	var slice []*Server
+	var object *Server
+
+	if singular {
+		var ok bool
+		object, ok = maybeServer.(*Server)
+		if !ok {
+			object = new(Server)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServer))
+			}
+		}
+	} else {
+		s, ok := maybeServer.(*[]*Server)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServer))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`bmcs`),
+		qm.WhereIn(`bmcs.server_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load bmcs")
+	}
+
+	var resultSlice []*BMC
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice bmcs")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on bmcs")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for bmcs")
+	}
+
+	if len(bmcAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.BMCS = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &bmcR{}
+			}
+			foreign.R.Server = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ServerID {
+				local.R.BMCS = append(local.R.BMCS, foreign)
+				if foreign.R == nil {
+					foreign.R = &bmcR{}
 				}
 				foreign.R.Server = local
 				break
@@ -1078,6 +1527,166 @@ func (serverL) LoadVersionedAttributes(ctx context.Context, e boil.ContextExecut
 	return nil
 }
 
+// SetModel of the server to the related item.
+// Sets o.R.Model to related.
+// Adds o to related.R.ModelServers.
+func (o *Server) SetModel(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HardwareModel) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"servers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"model_id"}),
+		strmangle.WhereClause("\"", "\"", 2, serverPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.ModelID, related.ID)
+	if o.R == nil {
+		o.R = &serverR{
+			Model: related,
+		}
+	} else {
+		o.R.Model = related
+	}
+
+	if related.R == nil {
+		related.R = &hardwareModelR{
+			ModelServers: ServerSlice{o},
+		}
+	} else {
+		related.R.ModelServers = append(related.R.ModelServers, o)
+	}
+
+	return nil
+}
+
+// RemoveModel relationship.
+// Sets o.R.Model to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *Server) RemoveModel(ctx context.Context, exec boil.ContextExecutor, related *HardwareModel) error {
+	var err error
+
+	queries.SetScanner(&o.ModelID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("model_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.Model = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.ModelServers {
+		if queries.Equal(o.ModelID, ri.ModelID) {
+			continue
+		}
+
+		ln := len(related.R.ModelServers)
+		if ln > 1 && i < ln-1 {
+			related.R.ModelServers[i] = related.R.ModelServers[ln-1]
+		}
+		related.R.ModelServers = related.R.ModelServers[:ln-1]
+		break
+	}
+	return nil
+}
+
+// SetVendor of the server to the related item.
+// Sets o.R.Vendor to related.
+// Adds o to related.R.VendorServers.
+func (o *Server) SetVendor(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HardwareVendor) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"servers\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"vendor_id"}),
+		strmangle.WhereClause("\"", "\"", 2, serverPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	queries.Assign(&o.VendorID, related.ID)
+	if o.R == nil {
+		o.R = &serverR{
+			Vendor: related,
+		}
+	} else {
+		o.R.Vendor = related
+	}
+
+	if related.R == nil {
+		related.R = &hardwareVendorR{
+			VendorServers: ServerSlice{o},
+		}
+	} else {
+		related.R.VendorServers = append(related.R.VendorServers, o)
+	}
+
+	return nil
+}
+
+// RemoveVendor relationship.
+// Sets o.R.Vendor to nil.
+// Removes o from all passed in related items' relationships struct.
+func (o *Server) RemoveVendor(ctx context.Context, exec boil.ContextExecutor, related *HardwareVendor) error {
+	var err error
+
+	queries.SetScanner(&o.VendorID, nil)
+	if _, err = o.Update(ctx, exec, boil.Whitelist("vendor_id")); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	if o.R != nil {
+		o.R.Vendor = nil
+	}
+	if related == nil || related.R == nil {
+		return nil
+	}
+
+	for i, ri := range related.R.VendorServers {
+		if queries.Equal(o.VendorID, ri.VendorID) {
+			continue
+		}
+
+		ln := len(related.R.VendorServers)
+		if ln > 1 && i < ln-1 {
+			related.R.VendorServers[i] = related.R.VendorServers[ln-1]
+		}
+		related.R.VendorServers = related.R.VendorServers[:ln-1]
+		break
+	}
+	return nil
+}
+
 // AddAttributes adds the given related objects to the existing relationships
 // of the server, optionally inserting them as new records.
 // Appends related to o.R.Attributes.
@@ -1202,6 +1811,59 @@ func (o *Server) RemoveAttributes(ctx context.Context, exec boil.ContextExecutor
 		}
 	}
 
+	return nil
+}
+
+// AddBMCS adds the given related objects to the existing relationships
+// of the server, optionally inserting them as new records.
+// Appends related to o.R.BMCS.
+// Sets related.R.Server appropriately.
+func (o *Server) AddBMCS(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*BMC) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ServerID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"bmcs\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"server_id"}),
+				strmangle.WhereClause("\"", "\"", 2, bmcPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ServerID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &serverR{
+			BMCS: related,
+		}
+	} else {
+		o.R.BMCS = append(o.R.BMCS, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &bmcR{
+				Server: o,
+			}
+		} else {
+			rel.R.Server = o
+		}
+	}
 	return nil
 }
 

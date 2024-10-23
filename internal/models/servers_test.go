@@ -672,6 +672,84 @@ func testServerToManyAttributes(t *testing.T) {
 	}
 }
 
+func testServerToManyBMCS(t *testing.T) {
+	var err error
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b, c BMC
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, true, serverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Server struct: %s", err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = randomize.Struct(seed, &b, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+
+	b.ServerID = a.ID
+	c.ServerID = a.ID
+
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := a.BMCS().All(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bFound, cFound := false, false
+	for _, v := range check {
+		if v.ServerID == b.ServerID {
+			bFound = true
+		}
+		if v.ServerID == c.ServerID {
+			cFound = true
+		}
+	}
+
+	if !bFound {
+		t.Error("expected to find b")
+	}
+	if !cFound {
+		t.Error("expected to find c")
+	}
+
+	slice := ServerSlice{&a}
+	if err = a.L.LoadBMCS(ctx, tx, false, (*[]*Server)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.BMCS); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	a.R.BMCS = nil
+	if err = a.L.LoadBMCS(ctx, tx, true, &a, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.BMCS); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	if t.Failed() {
+		t.Logf("%#v", check)
+	}
+}
+
 func testServerToManyTargetServerEventHistories(t *testing.T) {
 	var err error
 	ctx := context.Background()
@@ -1234,6 +1312,81 @@ func testServerToManyRemoveOpAttributes(t *testing.T) {
 	}
 }
 
+func testServerToManyAddOpBMCS(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b, c, d, e BMC
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*BMC{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, bmcDBTypes, false, strmangle.SetComplement(bmcPrimaryKeyColumns, bmcColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreignersSplitByInsertion := [][]*BMC{
+		{&b, &c},
+		{&d, &e},
+	}
+
+	for i, x := range foreignersSplitByInsertion {
+		err = a.AddBMCS(ctx, tx, i != 0, x...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		first := x[0]
+		second := x[1]
+
+		if a.ID != first.ServerID {
+			t.Error("foreign key was wrong value", a.ID, first.ServerID)
+		}
+		if a.ID != second.ServerID {
+			t.Error("foreign key was wrong value", a.ID, second.ServerID)
+		}
+
+		if first.R.Server != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+		if second.R.Server != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+
+		if a.R.BMCS[i*2] != first {
+			t.Error("relationship struct slice not set to correct value")
+		}
+		if a.R.BMCS[i*2+1] != second {
+			t.Error("relationship struct slice not set to correct value")
+		}
+
+		count, err := a.BMCS().Count(ctx, tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64((i + 1) * 2); count != want {
+			t.Error("want", want, "got", count)
+		}
+	}
+}
 func testServerToManyAddOpTargetServerEventHistories(t *testing.T) {
 	var err error
 
@@ -1710,6 +1863,346 @@ func testServerToManyRemoveOpVersionedAttributes(t *testing.T) {
 	}
 }
 
+func testServerToOneHardwareModelUsingModel(t *testing.T) {
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var local Server
+	var foreign HardwareModel
+
+	seed := randomize.NewSeed()
+	if err := randomize.Struct(seed, &local, serverDBTypes, true, serverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Server struct: %s", err)
+	}
+	if err := randomize.Struct(seed, &foreign, hardwareModelDBTypes, false, hardwareModelColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize HardwareModel struct: %s", err)
+	}
+
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	queries.Assign(&local.ModelID, foreign.ID)
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := local.Model().One(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !queries.Equal(check.ID, foreign.ID) {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	}
+
+	ranAfterSelectHook := false
+	AddHardwareModelHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *HardwareModel) error {
+		ranAfterSelectHook = true
+		return nil
+	})
+
+	slice := ServerSlice{&local}
+	if err = local.L.LoadModel(ctx, tx, false, (*[]*Server)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.Model == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	local.R.Model = nil
+	if err = local.L.LoadModel(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.Model == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
+	}
+}
+
+func testServerToOneHardwareVendorUsingVendor(t *testing.T) {
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var local Server
+	var foreign HardwareVendor
+
+	seed := randomize.NewSeed()
+	if err := randomize.Struct(seed, &local, serverDBTypes, true, serverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Server struct: %s", err)
+	}
+	if err := randomize.Struct(seed, &foreign, hardwareVendorDBTypes, false, hardwareVendorColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize HardwareVendor struct: %s", err)
+	}
+
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	queries.Assign(&local.VendorID, foreign.ID)
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := local.Vendor().One(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !queries.Equal(check.ID, foreign.ID) {
+		t.Errorf("want: %v, got %v", foreign.ID, check.ID)
+	}
+
+	ranAfterSelectHook := false
+	AddHardwareVendorHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *HardwareVendor) error {
+		ranAfterSelectHook = true
+		return nil
+	})
+
+	slice := ServerSlice{&local}
+	if err = local.L.LoadVendor(ctx, tx, false, (*[]*Server)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.Vendor == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	local.R.Vendor = nil
+	if err = local.L.LoadVendor(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.Vendor == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
+	}
+}
+
+func testServerToOneSetOpHardwareModelUsingModel(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b, c HardwareModel
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, hardwareModelDBTypes, false, strmangle.SetComplement(hardwareModelPrimaryKeyColumns, hardwareModelColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, hardwareModelDBTypes, false, strmangle.SetComplement(hardwareModelPrimaryKeyColumns, hardwareModelColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*HardwareModel{&b, &c} {
+		err = a.SetModel(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.Model != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.ModelServers[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if !queries.Equal(a.ModelID, x.ID) {
+			t.Error("foreign key was wrong value", a.ModelID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.ModelID))
+		reflect.Indirect(reflect.ValueOf(&a.ModelID)).Set(zero)
+
+		if err = a.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if !queries.Equal(a.ModelID, x.ID) {
+			t.Error("foreign key was wrong value", a.ModelID, x.ID)
+		}
+	}
+}
+
+func testServerToOneRemoveOpHardwareModelUsingModel(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b HardwareModel
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, hardwareModelDBTypes, false, strmangle.SetComplement(hardwareModelPrimaryKeyColumns, hardwareModelColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.SetModel(ctx, tx, true, &b); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.RemoveModel(ctx, tx, &b); err != nil {
+		t.Error("failed to remove relationship")
+	}
+
+	count, err := a.Model().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Error("want no relationships remaining")
+	}
+
+	if a.R.Model != nil {
+		t.Error("R struct entry should be nil")
+	}
+
+	if !queries.IsValuerNil(a.ModelID) {
+		t.Error("foreign key value should be nil")
+	}
+
+	if len(b.R.ModelServers) != 0 {
+		t.Error("failed to remove a from b's relationships")
+	}
+}
+
+func testServerToOneSetOpHardwareVendorUsingVendor(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b, c HardwareVendor
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, hardwareVendorDBTypes, false, strmangle.SetComplement(hardwareVendorPrimaryKeyColumns, hardwareVendorColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, hardwareVendorDBTypes, false, strmangle.SetComplement(hardwareVendorPrimaryKeyColumns, hardwareVendorColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*HardwareVendor{&b, &c} {
+		err = a.SetVendor(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.Vendor != x {
+			t.Error("relationship struct not set to correct value")
+		}
+
+		if x.R.VendorServers[0] != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+		if !queries.Equal(a.VendorID, x.ID) {
+			t.Error("foreign key was wrong value", a.VendorID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(a.VendorID))
+		reflect.Indirect(reflect.ValueOf(&a.VendorID)).Set(zero)
+
+		if err = a.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if !queries.Equal(a.VendorID, x.ID) {
+			t.Error("foreign key was wrong value", a.VendorID, x.ID)
+		}
+	}
+}
+
+func testServerToOneRemoveOpHardwareVendorUsingVendor(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b HardwareVendor
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, hardwareVendorDBTypes, false, strmangle.SetComplement(hardwareVendorPrimaryKeyColumns, hardwareVendorColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.SetVendor(ctx, tx, true, &b); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = a.RemoveVendor(ctx, tx, &b); err != nil {
+		t.Error("failed to remove relationship")
+	}
+
+	count, err := a.Vendor().Count(ctx, tx)
+	if err != nil {
+		t.Error(err)
+	}
+	if count != 0 {
+		t.Error("want no relationships remaining")
+	}
+
+	if a.R.Vendor != nil {
+		t.Error("R struct entry should be nil")
+	}
+
+	if !queries.IsValuerNil(a.VendorID) {
+		t.Error("foreign key value should be nil")
+	}
+
+	if len(b.R.VendorServers) != 0 {
+		t.Error("failed to remove a from b's relationships")
+	}
+}
+
 func testServersReload(t *testing.T) {
 	t.Parallel()
 
@@ -1784,7 +2277,7 @@ func testServersSelect(t *testing.T) {
 }
 
 var (
-	serverDBTypes = map[string]string{`ID`: `uuid`, `Name`: `text`, `FacilityCode`: `text`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`, `DeletedAt`: `timestamp with time zone`}
+	serverDBTypes = map[string]string{`ID`: `uuid`, `Name`: `text`, `FacilityCode`: `text`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`, `DeletedAt`: `timestamp with time zone`, `VendorID`: `uuid`, `SerialNumber`: `text`, `ModelID`: `uuid`}
 	_             = bytes.MinRead
 )
 
