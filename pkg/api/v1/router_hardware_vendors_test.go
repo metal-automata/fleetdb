@@ -18,7 +18,7 @@ func TestIntegrationHardwareVendorCreate(t *testing.T) {
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, respCode int, expectError bool) error {
 		s.Client.SetToken(authToken)
 
-		hwv := &fleetdbapi.HardwareVendor{Name: "foo"}
+		hwv := &fleetdbapi.HardwareVendor{Name: "other"}
 		resp, err := s.Client.CreateHardwareVendor(ctx, hwv)
 		if !expectError {
 			require.NoError(t, err)
@@ -38,13 +38,15 @@ func TestIntegrationHardwareVendorList(t *testing.T) {
 	scopes := []string{"read:hardware-vendors"}
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, _ int, expectError bool) error {
 		s.Client.SetToken(authToken)
+
+		expectCount := len(dbtools.FixtureHardwareVendors)
 		hardwareVendors, resp, err := s.Client.ListHardwareVendors(ctx)
 		if !expectError {
 			require.NoError(t, err)
-			assert.Len(t, hardwareVendors, 2)
-			assert.EqualValues(t, 2, resp.PageCount)
+			assert.Len(t, hardwareVendors, expectCount)
+			assert.EqualValues(t, expectCount, resp.PageCount)
 			assert.EqualValues(t, 1, resp.TotalPages)
-			assert.EqualValues(t, 2, resp.TotalRecordCount)
+			assert.EqualValues(t, expectCount, resp.TotalRecordCount)
 			// We returned everything, so we shouldnt have a next page info
 			assert.Nil(t, resp.Links.Next)
 			assert.Nil(t, resp.Links.Previous)
@@ -88,7 +90,7 @@ func TestIntegrationHardwareVendorDelete(t *testing.T) {
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, _ int, expectError bool) error {
 		s.Client.SetToken(authToken)
 
-		resp, err := s.Client.DeleteHardwareVendor(ctx, dbtools.FixtureHardwareVendorNameBar)
+		resp, err := s.Client.DeleteHardwareVendor(ctx, dbtools.FixtureHardwareVendorNameFoo)
 		if !expectError {
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
@@ -98,6 +100,6 @@ func TestIntegrationHardwareVendorDelete(t *testing.T) {
 		return err
 	})
 
-	_, _, err := s.Client.GetHardwareVendor(context.Background(), dbtools.FixtureHardwareVendorNameBar)
+	_, _, err := s.Client.GetHardwareVendor(context.Background(), dbtools.FixtureHardwareVendorNameFoo)
 	assert.ErrorContainsf(t, err, "404", "")
 }

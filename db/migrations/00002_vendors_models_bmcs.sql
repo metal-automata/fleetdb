@@ -16,16 +16,18 @@ CREATE TABLE public.hardware_models (
     CONSTRAINT fk_hardware_vendor_id FOREIGN KEY (hardware_vendor_id) REFERENCES public.hardware_vendors(id) ON DELETE CASCADE
 );
 
-CREATE TABLE public.bmcs(
+CREATE TABLE public.server_bmcs(
     id UUID NOT NULL DEFAULT gen_random_uuid(),
     server_id UUID NOT NULL,
     hardware_vendor_id UUID NOT NULL,
     hardware_model_id UUID NOT NULL,
     username TEXT NOT NULL,
-    ipaddress INET NOT NULL,
+    ip_address INET NOT NULL,
+    mac_address macaddr,
     created_at TIMESTAMP WITH TIME ZONE NULL,
     updated_at TIMESTAMP WITH TIME ZONE NULL,
     CONSTRAINT bmcs_pk PRIMARY KEY (id),
+    CONSTRAINT bmc_server_id_unique  UNIQUE (server_id),
     CONSTRAINT fk_bmc_server_id FOREIGN KEY (server_id) REFERENCES public.servers(id) ON DELETE CASCADE,
     CONSTRAINT fk_bmc_hardware_vendor FOREIGN KEY (hardware_vendor_id) REFERENCES public.hardware_vendors(id),
     CONSTRAINT fk_bmc_hardware_model FOREIGN KEY (hardware_model_id) REFERENCES public.hardware_models(id)

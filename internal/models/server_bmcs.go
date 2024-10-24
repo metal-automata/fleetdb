@@ -22,28 +22,30 @@ import (
 	"github.com/volatiletech/strmangle"
 )
 
-// BMC is an object representing the database table.
-type BMC struct {
-	ID               string    `boil:"id" json:"id" toml:"id" yaml:"id"`
-	ServerID         string    `boil:"server_id" json:"server_id" toml:"server_id" yaml:"server_id"`
-	HardwareVendorID string    `boil:"hardware_vendor_id" json:"hardware_vendor_id" toml:"hardware_vendor_id" yaml:"hardware_vendor_id"`
-	HardwareModelID  string    `boil:"hardware_model_id" json:"hardware_model_id" toml:"hardware_model_id" yaml:"hardware_model_id"`
-	Username         string    `boil:"username" json:"username" toml:"username" yaml:"username"`
-	Ipaddress        string    `boil:"ipaddress" json:"ipaddress" toml:"ipaddress" yaml:"ipaddress"`
-	CreatedAt        null.Time `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
-	UpdatedAt        null.Time `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+// ServerBMC is an object representing the database table.
+type ServerBMC struct {
+	ID               string      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	ServerID         string      `boil:"server_id" json:"server_id" toml:"server_id" yaml:"server_id"`
+	HardwareVendorID string      `boil:"hardware_vendor_id" json:"hardware_vendor_id" toml:"hardware_vendor_id" yaml:"hardware_vendor_id"`
+	HardwareModelID  string      `boil:"hardware_model_id" json:"hardware_model_id" toml:"hardware_model_id" yaml:"hardware_model_id"`
+	Username         string      `boil:"username" json:"username" toml:"username" yaml:"username"`
+	IPAddress        string      `boil:"ip_address" json:"ip_address" toml:"ip_address" yaml:"ip_address"`
+	MacAddress       null.String `boil:"mac_address" json:"mac_address,omitempty" toml:"mac_address" yaml:"mac_address,omitempty"`
+	CreatedAt        null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
+	UpdatedAt        null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
 
-	R *bmcR `boil:"-" json:"-" toml:"-" yaml:"-"`
-	L bmcL  `boil:"-" json:"-" toml:"-" yaml:"-"`
+	R *serverBMCR `boil:"-" json:"-" toml:"-" yaml:"-"`
+	L serverBMCL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
-var BMCColumns = struct {
+var ServerBMCColumns = struct {
 	ID               string
 	ServerID         string
 	HardwareVendorID string
 	HardwareModelID  string
 	Username         string
-	Ipaddress        string
+	IPAddress        string
+	MacAddress       string
 	CreatedAt        string
 	UpdatedAt        string
 }{
@@ -52,55 +54,60 @@ var BMCColumns = struct {
 	HardwareVendorID: "hardware_vendor_id",
 	HardwareModelID:  "hardware_model_id",
 	Username:         "username",
-	Ipaddress:        "ipaddress",
+	IPAddress:        "ip_address",
+	MacAddress:       "mac_address",
 	CreatedAt:        "created_at",
 	UpdatedAt:        "updated_at",
 }
 
-var BMCTableColumns = struct {
+var ServerBMCTableColumns = struct {
 	ID               string
 	ServerID         string
 	HardwareVendorID string
 	HardwareModelID  string
 	Username         string
-	Ipaddress        string
+	IPAddress        string
+	MacAddress       string
 	CreatedAt        string
 	UpdatedAt        string
 }{
-	ID:               "bmcs.id",
-	ServerID:         "bmcs.server_id",
-	HardwareVendorID: "bmcs.hardware_vendor_id",
-	HardwareModelID:  "bmcs.hardware_model_id",
-	Username:         "bmcs.username",
-	Ipaddress:        "bmcs.ipaddress",
-	CreatedAt:        "bmcs.created_at",
-	UpdatedAt:        "bmcs.updated_at",
+	ID:               "server_bmcs.id",
+	ServerID:         "server_bmcs.server_id",
+	HardwareVendorID: "server_bmcs.hardware_vendor_id",
+	HardwareModelID:  "server_bmcs.hardware_model_id",
+	Username:         "server_bmcs.username",
+	IPAddress:        "server_bmcs.ip_address",
+	MacAddress:       "server_bmcs.mac_address",
+	CreatedAt:        "server_bmcs.created_at",
+	UpdatedAt:        "server_bmcs.updated_at",
 }
 
 // Generated where
 
-var BMCWhere = struct {
+var ServerBMCWhere = struct {
 	ID               whereHelperstring
 	ServerID         whereHelperstring
 	HardwareVendorID whereHelperstring
 	HardwareModelID  whereHelperstring
 	Username         whereHelperstring
-	Ipaddress        whereHelperstring
+	IPAddress        whereHelperstring
+	MacAddress       whereHelpernull_String
 	CreatedAt        whereHelpernull_Time
 	UpdatedAt        whereHelpernull_Time
 }{
-	ID:               whereHelperstring{field: "\"bmcs\".\"id\""},
-	ServerID:         whereHelperstring{field: "\"bmcs\".\"server_id\""},
-	HardwareVendorID: whereHelperstring{field: "\"bmcs\".\"hardware_vendor_id\""},
-	HardwareModelID:  whereHelperstring{field: "\"bmcs\".\"hardware_model_id\""},
-	Username:         whereHelperstring{field: "\"bmcs\".\"username\""},
-	Ipaddress:        whereHelperstring{field: "\"bmcs\".\"ipaddress\""},
-	CreatedAt:        whereHelpernull_Time{field: "\"bmcs\".\"created_at\""},
-	UpdatedAt:        whereHelpernull_Time{field: "\"bmcs\".\"updated_at\""},
+	ID:               whereHelperstring{field: "\"server_bmcs\".\"id\""},
+	ServerID:         whereHelperstring{field: "\"server_bmcs\".\"server_id\""},
+	HardwareVendorID: whereHelperstring{field: "\"server_bmcs\".\"hardware_vendor_id\""},
+	HardwareModelID:  whereHelperstring{field: "\"server_bmcs\".\"hardware_model_id\""},
+	Username:         whereHelperstring{field: "\"server_bmcs\".\"username\""},
+	IPAddress:        whereHelperstring{field: "\"server_bmcs\".\"ip_address\""},
+	MacAddress:       whereHelpernull_String{field: "\"server_bmcs\".\"mac_address\""},
+	CreatedAt:        whereHelpernull_Time{field: "\"server_bmcs\".\"created_at\""},
+	UpdatedAt:        whereHelpernull_Time{field: "\"server_bmcs\".\"updated_at\""},
 }
 
-// BMCRels is where relationship names are stored.
-var BMCRels = struct {
+// ServerBMCRels is where relationship names are stored.
+var ServerBMCRels = struct {
 	HardwareModel  string
 	HardwareVendor string
 	Server         string
@@ -110,73 +117,73 @@ var BMCRels = struct {
 	Server:         "Server",
 }
 
-// bmcR is where relationships are stored.
-type bmcR struct {
+// serverBMCR is where relationships are stored.
+type serverBMCR struct {
 	HardwareModel  *HardwareModel  `boil:"HardwareModel" json:"HardwareModel" toml:"HardwareModel" yaml:"HardwareModel"`
 	HardwareVendor *HardwareVendor `boil:"HardwareVendor" json:"HardwareVendor" toml:"HardwareVendor" yaml:"HardwareVendor"`
 	Server         *Server         `boil:"Server" json:"Server" toml:"Server" yaml:"Server"`
 }
 
 // NewStruct creates a new relationship struct
-func (*bmcR) NewStruct() *bmcR {
-	return &bmcR{}
+func (*serverBMCR) NewStruct() *serverBMCR {
+	return &serverBMCR{}
 }
 
-func (r *bmcR) GetHardwareModel() *HardwareModel {
+func (r *serverBMCR) GetHardwareModel() *HardwareModel {
 	if r == nil {
 		return nil
 	}
 	return r.HardwareModel
 }
 
-func (r *bmcR) GetHardwareVendor() *HardwareVendor {
+func (r *serverBMCR) GetHardwareVendor() *HardwareVendor {
 	if r == nil {
 		return nil
 	}
 	return r.HardwareVendor
 }
 
-func (r *bmcR) GetServer() *Server {
+func (r *serverBMCR) GetServer() *Server {
 	if r == nil {
 		return nil
 	}
 	return r.Server
 }
 
-// bmcL is where Load methods for each relationship are stored.
-type bmcL struct{}
+// serverBMCL is where Load methods for each relationship are stored.
+type serverBMCL struct{}
 
 var (
-	bmcAllColumns            = []string{"id", "server_id", "hardware_vendor_id", "hardware_model_id", "username", "ipaddress", "created_at", "updated_at"}
-	bmcColumnsWithoutDefault = []string{"server_id", "hardware_vendor_id", "hardware_model_id", "username", "ipaddress"}
-	bmcColumnsWithDefault    = []string{"id", "created_at", "updated_at"}
-	bmcPrimaryKeyColumns     = []string{"id"}
-	bmcGeneratedColumns      = []string{}
+	serverBMCAllColumns            = []string{"id", "server_id", "hardware_vendor_id", "hardware_model_id", "username", "ip_address", "mac_address", "created_at", "updated_at"}
+	serverBMCColumnsWithoutDefault = []string{"server_id", "hardware_vendor_id", "hardware_model_id", "username", "ip_address"}
+	serverBMCColumnsWithDefault    = []string{"id", "mac_address", "created_at", "updated_at"}
+	serverBMCPrimaryKeyColumns     = []string{"id"}
+	serverBMCGeneratedColumns      = []string{}
 )
 
 type (
-	// BMCSlice is an alias for a slice of pointers to BMC.
-	// This should almost always be used instead of []BMC.
-	BMCSlice []*BMC
-	// BMCHook is the signature for custom BMC hook methods
-	BMCHook func(context.Context, boil.ContextExecutor, *BMC) error
+	// ServerBMCSlice is an alias for a slice of pointers to ServerBMC.
+	// This should almost always be used instead of []ServerBMC.
+	ServerBMCSlice []*ServerBMC
+	// ServerBMCHook is the signature for custom ServerBMC hook methods
+	ServerBMCHook func(context.Context, boil.ContextExecutor, *ServerBMC) error
 
-	bmcQuery struct {
+	serverBMCQuery struct {
 		*queries.Query
 	}
 )
 
 // Cache for insert, update and upsert
 var (
-	bmcType                 = reflect.TypeOf(&BMC{})
-	bmcMapping              = queries.MakeStructMapping(bmcType)
-	bmcPrimaryKeyMapping, _ = queries.BindMapping(bmcType, bmcMapping, bmcPrimaryKeyColumns)
-	bmcInsertCacheMut       sync.RWMutex
-	bmcInsertCache          = make(map[string]insertCache)
-	bmcUpdateCacheMut       sync.RWMutex
-	bmcUpdateCache          = make(map[string]updateCache)
-	bmcUpsertCacheMut       sync.RWMutex
-	bmcUpsertCache          = make(map[string]insertCache)
+	serverBMCType                 = reflect.TypeOf(&ServerBMC{})
+	serverBMCMapping              = queries.MakeStructMapping(serverBMCType)
+	serverBMCPrimaryKeyMapping, _ = queries.BindMapping(serverBMCType, serverBMCMapping, serverBMCPrimaryKeyColumns)
+	serverBMCInsertCacheMut       sync.RWMutex
+	serverBMCInsertCache          = make(map[string]insertCache)
+	serverBMCUpdateCacheMut       sync.RWMutex
+	serverBMCUpdateCache          = make(map[string]updateCache)
+	serverBMCUpsertCacheMut       sync.RWMutex
+	serverBMCUpsertCache          = make(map[string]insertCache)
 )
 
 var (
@@ -187,27 +194,27 @@ var (
 	_ = qmhelper.Where
 )
 
-var bmcAfterSelectHooks []BMCHook
+var serverBMCAfterSelectHooks []ServerBMCHook
 
-var bmcBeforeInsertHooks []BMCHook
-var bmcAfterInsertHooks []BMCHook
+var serverBMCBeforeInsertHooks []ServerBMCHook
+var serverBMCAfterInsertHooks []ServerBMCHook
 
-var bmcBeforeUpdateHooks []BMCHook
-var bmcAfterUpdateHooks []BMCHook
+var serverBMCBeforeUpdateHooks []ServerBMCHook
+var serverBMCAfterUpdateHooks []ServerBMCHook
 
-var bmcBeforeDeleteHooks []BMCHook
-var bmcAfterDeleteHooks []BMCHook
+var serverBMCBeforeDeleteHooks []ServerBMCHook
+var serverBMCAfterDeleteHooks []ServerBMCHook
 
-var bmcBeforeUpsertHooks []BMCHook
-var bmcAfterUpsertHooks []BMCHook
+var serverBMCBeforeUpsertHooks []ServerBMCHook
+var serverBMCAfterUpsertHooks []ServerBMCHook
 
 // doAfterSelectHooks executes all "after Select" hooks.
-func (o *BMC) doAfterSelectHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doAfterSelectHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcAfterSelectHooks {
+	for _, hook := range serverBMCAfterSelectHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -217,12 +224,12 @@ func (o *BMC) doAfterSelectHooks(ctx context.Context, exec boil.ContextExecutor)
 }
 
 // doBeforeInsertHooks executes all "before insert" hooks.
-func (o *BMC) doBeforeInsertHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doBeforeInsertHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcBeforeInsertHooks {
+	for _, hook := range serverBMCBeforeInsertHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -232,12 +239,12 @@ func (o *BMC) doBeforeInsertHooks(ctx context.Context, exec boil.ContextExecutor
 }
 
 // doAfterInsertHooks executes all "after Insert" hooks.
-func (o *BMC) doAfterInsertHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doAfterInsertHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcAfterInsertHooks {
+	for _, hook := range serverBMCAfterInsertHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -247,12 +254,12 @@ func (o *BMC) doAfterInsertHooks(ctx context.Context, exec boil.ContextExecutor)
 }
 
 // doBeforeUpdateHooks executes all "before Update" hooks.
-func (o *BMC) doBeforeUpdateHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doBeforeUpdateHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcBeforeUpdateHooks {
+	for _, hook := range serverBMCBeforeUpdateHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -262,12 +269,12 @@ func (o *BMC) doBeforeUpdateHooks(ctx context.Context, exec boil.ContextExecutor
 }
 
 // doAfterUpdateHooks executes all "after Update" hooks.
-func (o *BMC) doAfterUpdateHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doAfterUpdateHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcAfterUpdateHooks {
+	for _, hook := range serverBMCAfterUpdateHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -277,12 +284,12 @@ func (o *BMC) doAfterUpdateHooks(ctx context.Context, exec boil.ContextExecutor)
 }
 
 // doBeforeDeleteHooks executes all "before Delete" hooks.
-func (o *BMC) doBeforeDeleteHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doBeforeDeleteHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcBeforeDeleteHooks {
+	for _, hook := range serverBMCBeforeDeleteHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -292,12 +299,12 @@ func (o *BMC) doBeforeDeleteHooks(ctx context.Context, exec boil.ContextExecutor
 }
 
 // doAfterDeleteHooks executes all "after Delete" hooks.
-func (o *BMC) doAfterDeleteHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doAfterDeleteHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcAfterDeleteHooks {
+	for _, hook := range serverBMCAfterDeleteHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -307,12 +314,12 @@ func (o *BMC) doAfterDeleteHooks(ctx context.Context, exec boil.ContextExecutor)
 }
 
 // doBeforeUpsertHooks executes all "before Upsert" hooks.
-func (o *BMC) doBeforeUpsertHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doBeforeUpsertHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcBeforeUpsertHooks {
+	for _, hook := range serverBMCBeforeUpsertHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -322,12 +329,12 @@ func (o *BMC) doBeforeUpsertHooks(ctx context.Context, exec boil.ContextExecutor
 }
 
 // doAfterUpsertHooks executes all "after Upsert" hooks.
-func (o *BMC) doAfterUpsertHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
+func (o *ServerBMC) doAfterUpsertHooks(ctx context.Context, exec boil.ContextExecutor) (err error) {
 	if boil.HooksAreSkipped(ctx) {
 		return nil
 	}
 
-	for _, hook := range bmcAfterUpsertHooks {
+	for _, hook := range serverBMCAfterUpsertHooks {
 		if err := hook(ctx, exec, o); err != nil {
 			return err
 		}
@@ -336,33 +343,33 @@ func (o *BMC) doAfterUpsertHooks(ctx context.Context, exec boil.ContextExecutor)
 	return nil
 }
 
-// AddBMCHook registers your hook function for all future operations.
-func AddBMCHook(hookPoint boil.HookPoint, bmcHook BMCHook) {
+// AddServerBMCHook registers your hook function for all future operations.
+func AddServerBMCHook(hookPoint boil.HookPoint, serverBMCHook ServerBMCHook) {
 	switch hookPoint {
 	case boil.AfterSelectHook:
-		bmcAfterSelectHooks = append(bmcAfterSelectHooks, bmcHook)
+		serverBMCAfterSelectHooks = append(serverBMCAfterSelectHooks, serverBMCHook)
 	case boil.BeforeInsertHook:
-		bmcBeforeInsertHooks = append(bmcBeforeInsertHooks, bmcHook)
+		serverBMCBeforeInsertHooks = append(serverBMCBeforeInsertHooks, serverBMCHook)
 	case boil.AfterInsertHook:
-		bmcAfterInsertHooks = append(bmcAfterInsertHooks, bmcHook)
+		serverBMCAfterInsertHooks = append(serverBMCAfterInsertHooks, serverBMCHook)
 	case boil.BeforeUpdateHook:
-		bmcBeforeUpdateHooks = append(bmcBeforeUpdateHooks, bmcHook)
+		serverBMCBeforeUpdateHooks = append(serverBMCBeforeUpdateHooks, serverBMCHook)
 	case boil.AfterUpdateHook:
-		bmcAfterUpdateHooks = append(bmcAfterUpdateHooks, bmcHook)
+		serverBMCAfterUpdateHooks = append(serverBMCAfterUpdateHooks, serverBMCHook)
 	case boil.BeforeDeleteHook:
-		bmcBeforeDeleteHooks = append(bmcBeforeDeleteHooks, bmcHook)
+		serverBMCBeforeDeleteHooks = append(serverBMCBeforeDeleteHooks, serverBMCHook)
 	case boil.AfterDeleteHook:
-		bmcAfterDeleteHooks = append(bmcAfterDeleteHooks, bmcHook)
+		serverBMCAfterDeleteHooks = append(serverBMCAfterDeleteHooks, serverBMCHook)
 	case boil.BeforeUpsertHook:
-		bmcBeforeUpsertHooks = append(bmcBeforeUpsertHooks, bmcHook)
+		serverBMCBeforeUpsertHooks = append(serverBMCBeforeUpsertHooks, serverBMCHook)
 	case boil.AfterUpsertHook:
-		bmcAfterUpsertHooks = append(bmcAfterUpsertHooks, bmcHook)
+		serverBMCAfterUpsertHooks = append(serverBMCAfterUpsertHooks, serverBMCHook)
 	}
 }
 
-// One returns a single bmc record from the query.
-func (q bmcQuery) One(ctx context.Context, exec boil.ContextExecutor) (*BMC, error) {
-	o := &BMC{}
+// One returns a single serverBMC record from the query.
+func (q serverBMCQuery) One(ctx context.Context, exec boil.ContextExecutor) (*ServerBMC, error) {
+	o := &ServerBMC{}
 
 	queries.SetLimit(q.Query, 1)
 
@@ -371,7 +378,7 @@ func (q bmcQuery) One(ctx context.Context, exec boil.ContextExecutor) (*BMC, err
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: failed to execute a one query for bmcs")
+		return nil, errors.Wrap(err, "models: failed to execute a one query for server_bmcs")
 	}
 
 	if err := o.doAfterSelectHooks(ctx, exec); err != nil {
@@ -381,16 +388,16 @@ func (q bmcQuery) One(ctx context.Context, exec boil.ContextExecutor) (*BMC, err
 	return o, nil
 }
 
-// All returns all BMC records from the query.
-func (q bmcQuery) All(ctx context.Context, exec boil.ContextExecutor) (BMCSlice, error) {
-	var o []*BMC
+// All returns all ServerBMC records from the query.
+func (q serverBMCQuery) All(ctx context.Context, exec boil.ContextExecutor) (ServerBMCSlice, error) {
+	var o []*ServerBMC
 
 	err := q.Bind(ctx, exec, &o)
 	if err != nil {
-		return nil, errors.Wrap(err, "models: failed to assign all query results to BMC slice")
+		return nil, errors.Wrap(err, "models: failed to assign all query results to ServerBMC slice")
 	}
 
-	if len(bmcAfterSelectHooks) != 0 {
+	if len(serverBMCAfterSelectHooks) != 0 {
 		for _, obj := range o {
 			if err := obj.doAfterSelectHooks(ctx, exec); err != nil {
 				return o, err
@@ -401,8 +408,8 @@ func (q bmcQuery) All(ctx context.Context, exec boil.ContextExecutor) (BMCSlice,
 	return o, nil
 }
 
-// Count returns the count of all BMC records in the query.
-func (q bmcQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+// Count returns the count of all ServerBMC records in the query.
+func (q serverBMCQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
@@ -410,14 +417,14 @@ func (q bmcQuery) Count(ctx context.Context, exec boil.ContextExecutor) (int64, 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to count bmcs rows")
+		return 0, errors.Wrap(err, "models: failed to count server_bmcs rows")
 	}
 
 	return count, nil
 }
 
 // Exists checks if the row exists in the table.
-func (q bmcQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+func (q serverBMCQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
 	var count int64
 
 	queries.SetSelect(q.Query, nil)
@@ -426,14 +433,14 @@ func (q bmcQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, 
 
 	err := q.Query.QueryRowContext(ctx, exec).Scan(&count)
 	if err != nil {
-		return false, errors.Wrap(err, "models: failed to check if bmcs exists")
+		return false, errors.Wrap(err, "models: failed to check if server_bmcs exists")
 	}
 
 	return count > 0, nil
 }
 
 // HardwareModel pointed to by the foreign key.
-func (o *BMC) HardwareModel(mods ...qm.QueryMod) hardwareModelQuery {
+func (o *ServerBMC) HardwareModel(mods ...qm.QueryMod) hardwareModelQuery {
 	queryMods := []qm.QueryMod{
 		qm.Where("\"id\" = ?", o.HardwareModelID),
 	}
@@ -444,7 +451,7 @@ func (o *BMC) HardwareModel(mods ...qm.QueryMod) hardwareModelQuery {
 }
 
 // HardwareVendor pointed to by the foreign key.
-func (o *BMC) HardwareVendor(mods ...qm.QueryMod) hardwareVendorQuery {
+func (o *ServerBMC) HardwareVendor(mods ...qm.QueryMod) hardwareVendorQuery {
 	queryMods := []qm.QueryMod{
 		qm.Where("\"id\" = ?", o.HardwareVendorID),
 	}
@@ -455,7 +462,7 @@ func (o *BMC) HardwareVendor(mods ...qm.QueryMod) hardwareVendorQuery {
 }
 
 // Server pointed to by the foreign key.
-func (o *BMC) Server(mods ...qm.QueryMod) serverQuery {
+func (o *ServerBMC) Server(mods ...qm.QueryMod) serverQuery {
 	queryMods := []qm.QueryMod{
 		qm.Where("\"id\" = ?", o.ServerID),
 	}
@@ -467,28 +474,28 @@ func (o *BMC) Server(mods ...qm.QueryMod) serverQuery {
 
 // LoadHardwareModel allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (bmcL) LoadHardwareModel(ctx context.Context, e boil.ContextExecutor, singular bool, maybeBMC interface{}, mods queries.Applicator) error {
-	var slice []*BMC
-	var object *BMC
+func (serverBMCL) LoadHardwareModel(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerBMC interface{}, mods queries.Applicator) error {
+	var slice []*ServerBMC
+	var object *ServerBMC
 
 	if singular {
 		var ok bool
-		object, ok = maybeBMC.(*BMC)
+		object, ok = maybeServerBMC.(*ServerBMC)
 		if !ok {
-			object = new(BMC)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeBMC)
+			object = new(ServerBMC)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerBMC)
 			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeBMC))
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerBMC))
 			}
 		}
 	} else {
-		s, ok := maybeBMC.(*[]*BMC)
+		s, ok := maybeServerBMC.(*[]*ServerBMC)
 		if ok {
 			slice = *s
 		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeBMC)
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerBMC)
 			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeBMC))
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerBMC))
 			}
 		}
 	}
@@ -496,7 +503,7 @@ func (bmcL) LoadHardwareModel(ctx context.Context, e boil.ContextExecutor, singu
 	args := make([]interface{}, 0, 1)
 	if singular {
 		if object.R == nil {
-			object.R = &bmcR{}
+			object.R = &serverBMCR{}
 		}
 		args = append(args, object.HardwareModelID)
 
@@ -504,7 +511,7 @@ func (bmcL) LoadHardwareModel(ctx context.Context, e boil.ContextExecutor, singu
 	Outer:
 		for _, obj := range slice {
 			if obj.R == nil {
-				obj.R = &bmcR{}
+				obj.R = &serverBMCR{}
 			}
 
 			for _, a := range args {
@@ -565,7 +572,7 @@ func (bmcL) LoadHardwareModel(ctx context.Context, e boil.ContextExecutor, singu
 		if foreign.R == nil {
 			foreign.R = &hardwareModelR{}
 		}
-		foreign.R.BMCS = append(foreign.R.BMCS, object)
+		foreign.R.ServerBMCS = append(foreign.R.ServerBMCS, object)
 		return nil
 	}
 
@@ -576,7 +583,7 @@ func (bmcL) LoadHardwareModel(ctx context.Context, e boil.ContextExecutor, singu
 				if foreign.R == nil {
 					foreign.R = &hardwareModelR{}
 				}
-				foreign.R.BMCS = append(foreign.R.BMCS, local)
+				foreign.R.ServerBMCS = append(foreign.R.ServerBMCS, local)
 				break
 			}
 		}
@@ -587,28 +594,28 @@ func (bmcL) LoadHardwareModel(ctx context.Context, e boil.ContextExecutor, singu
 
 // LoadHardwareVendor allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (bmcL) LoadHardwareVendor(ctx context.Context, e boil.ContextExecutor, singular bool, maybeBMC interface{}, mods queries.Applicator) error {
-	var slice []*BMC
-	var object *BMC
+func (serverBMCL) LoadHardwareVendor(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerBMC interface{}, mods queries.Applicator) error {
+	var slice []*ServerBMC
+	var object *ServerBMC
 
 	if singular {
 		var ok bool
-		object, ok = maybeBMC.(*BMC)
+		object, ok = maybeServerBMC.(*ServerBMC)
 		if !ok {
-			object = new(BMC)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeBMC)
+			object = new(ServerBMC)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerBMC)
 			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeBMC))
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerBMC))
 			}
 		}
 	} else {
-		s, ok := maybeBMC.(*[]*BMC)
+		s, ok := maybeServerBMC.(*[]*ServerBMC)
 		if ok {
 			slice = *s
 		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeBMC)
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerBMC)
 			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeBMC))
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerBMC))
 			}
 		}
 	}
@@ -616,7 +623,7 @@ func (bmcL) LoadHardwareVendor(ctx context.Context, e boil.ContextExecutor, sing
 	args := make([]interface{}, 0, 1)
 	if singular {
 		if object.R == nil {
-			object.R = &bmcR{}
+			object.R = &serverBMCR{}
 		}
 		args = append(args, object.HardwareVendorID)
 
@@ -624,7 +631,7 @@ func (bmcL) LoadHardwareVendor(ctx context.Context, e boil.ContextExecutor, sing
 	Outer:
 		for _, obj := range slice {
 			if obj.R == nil {
-				obj.R = &bmcR{}
+				obj.R = &serverBMCR{}
 			}
 
 			for _, a := range args {
@@ -685,7 +692,7 @@ func (bmcL) LoadHardwareVendor(ctx context.Context, e boil.ContextExecutor, sing
 		if foreign.R == nil {
 			foreign.R = &hardwareVendorR{}
 		}
-		foreign.R.BMCS = append(foreign.R.BMCS, object)
+		foreign.R.ServerBMCS = append(foreign.R.ServerBMCS, object)
 		return nil
 	}
 
@@ -696,7 +703,7 @@ func (bmcL) LoadHardwareVendor(ctx context.Context, e boil.ContextExecutor, sing
 				if foreign.R == nil {
 					foreign.R = &hardwareVendorR{}
 				}
-				foreign.R.BMCS = append(foreign.R.BMCS, local)
+				foreign.R.ServerBMCS = append(foreign.R.ServerBMCS, local)
 				break
 			}
 		}
@@ -707,28 +714,28 @@ func (bmcL) LoadHardwareVendor(ctx context.Context, e boil.ContextExecutor, sing
 
 // LoadServer allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
-func (bmcL) LoadServer(ctx context.Context, e boil.ContextExecutor, singular bool, maybeBMC interface{}, mods queries.Applicator) error {
-	var slice []*BMC
-	var object *BMC
+func (serverBMCL) LoadServer(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerBMC interface{}, mods queries.Applicator) error {
+	var slice []*ServerBMC
+	var object *ServerBMC
 
 	if singular {
 		var ok bool
-		object, ok = maybeBMC.(*BMC)
+		object, ok = maybeServerBMC.(*ServerBMC)
 		if !ok {
-			object = new(BMC)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeBMC)
+			object = new(ServerBMC)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerBMC)
 			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeBMC))
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerBMC))
 			}
 		}
 	} else {
-		s, ok := maybeBMC.(*[]*BMC)
+		s, ok := maybeServerBMC.(*[]*ServerBMC)
 		if ok {
 			slice = *s
 		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeBMC)
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerBMC)
 			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeBMC))
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerBMC))
 			}
 		}
 	}
@@ -736,7 +743,7 @@ func (bmcL) LoadServer(ctx context.Context, e boil.ContextExecutor, singular boo
 	args := make([]interface{}, 0, 1)
 	if singular {
 		if object.R == nil {
-			object.R = &bmcR{}
+			object.R = &serverBMCR{}
 		}
 		args = append(args, object.ServerID)
 
@@ -744,7 +751,7 @@ func (bmcL) LoadServer(ctx context.Context, e boil.ContextExecutor, singular boo
 	Outer:
 		for _, obj := range slice {
 			if obj.R == nil {
-				obj.R = &bmcR{}
+				obj.R = &serverBMCR{}
 			}
 
 			for _, a := range args {
@@ -806,7 +813,7 @@ func (bmcL) LoadServer(ctx context.Context, e boil.ContextExecutor, singular boo
 		if foreign.R == nil {
 			foreign.R = &serverR{}
 		}
-		foreign.R.BMCS = append(foreign.R.BMCS, object)
+		foreign.R.ServerBMC = object
 		return nil
 	}
 
@@ -817,7 +824,7 @@ func (bmcL) LoadServer(ctx context.Context, e boil.ContextExecutor, singular boo
 				if foreign.R == nil {
 					foreign.R = &serverR{}
 				}
-				foreign.R.BMCS = append(foreign.R.BMCS, local)
+				foreign.R.ServerBMC = local
 				break
 			}
 		}
@@ -826,10 +833,10 @@ func (bmcL) LoadServer(ctx context.Context, e boil.ContextExecutor, singular boo
 	return nil
 }
 
-// SetHardwareModel of the bmc to the related item.
+// SetHardwareModel of the serverBMC to the related item.
 // Sets o.R.HardwareModel to related.
-// Adds o to related.R.BMCS.
-func (o *BMC) SetHardwareModel(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HardwareModel) error {
+// Adds o to related.R.ServerBMCS.
+func (o *ServerBMC) SetHardwareModel(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HardwareModel) error {
 	var err error
 	if insert {
 		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
@@ -838,9 +845,9 @@ func (o *BMC) SetHardwareModel(ctx context.Context, exec boil.ContextExecutor, i
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE \"bmcs\" SET %s WHERE %s",
+		"UPDATE \"server_bmcs\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, []string{"hardware_model_id"}),
-		strmangle.WhereClause("\"", "\"", 2, bmcPrimaryKeyColumns),
+		strmangle.WhereClause("\"", "\"", 2, serverBMCPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -855,7 +862,7 @@ func (o *BMC) SetHardwareModel(ctx context.Context, exec boil.ContextExecutor, i
 
 	o.HardwareModelID = related.ID
 	if o.R == nil {
-		o.R = &bmcR{
+		o.R = &serverBMCR{
 			HardwareModel: related,
 		}
 	} else {
@@ -864,19 +871,19 @@ func (o *BMC) SetHardwareModel(ctx context.Context, exec boil.ContextExecutor, i
 
 	if related.R == nil {
 		related.R = &hardwareModelR{
-			BMCS: BMCSlice{o},
+			ServerBMCS: ServerBMCSlice{o},
 		}
 	} else {
-		related.R.BMCS = append(related.R.BMCS, o)
+		related.R.ServerBMCS = append(related.R.ServerBMCS, o)
 	}
 
 	return nil
 }
 
-// SetHardwareVendor of the bmc to the related item.
+// SetHardwareVendor of the serverBMC to the related item.
 // Sets o.R.HardwareVendor to related.
-// Adds o to related.R.BMCS.
-func (o *BMC) SetHardwareVendor(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HardwareVendor) error {
+// Adds o to related.R.ServerBMCS.
+func (o *ServerBMC) SetHardwareVendor(ctx context.Context, exec boil.ContextExecutor, insert bool, related *HardwareVendor) error {
 	var err error
 	if insert {
 		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
@@ -885,9 +892,9 @@ func (o *BMC) SetHardwareVendor(ctx context.Context, exec boil.ContextExecutor, 
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE \"bmcs\" SET %s WHERE %s",
+		"UPDATE \"server_bmcs\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, []string{"hardware_vendor_id"}),
-		strmangle.WhereClause("\"", "\"", 2, bmcPrimaryKeyColumns),
+		strmangle.WhereClause("\"", "\"", 2, serverBMCPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -902,7 +909,7 @@ func (o *BMC) SetHardwareVendor(ctx context.Context, exec boil.ContextExecutor, 
 
 	o.HardwareVendorID = related.ID
 	if o.R == nil {
-		o.R = &bmcR{
+		o.R = &serverBMCR{
 			HardwareVendor: related,
 		}
 	} else {
@@ -911,19 +918,19 @@ func (o *BMC) SetHardwareVendor(ctx context.Context, exec boil.ContextExecutor, 
 
 	if related.R == nil {
 		related.R = &hardwareVendorR{
-			BMCS: BMCSlice{o},
+			ServerBMCS: ServerBMCSlice{o},
 		}
 	} else {
-		related.R.BMCS = append(related.R.BMCS, o)
+		related.R.ServerBMCS = append(related.R.ServerBMCS, o)
 	}
 
 	return nil
 }
 
-// SetServer of the bmc to the related item.
+// SetServer of the serverBMC to the related item.
 // Sets o.R.Server to related.
-// Adds o to related.R.BMCS.
-func (o *BMC) SetServer(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Server) error {
+// Adds o to related.R.ServerBMC.
+func (o *ServerBMC) SetServer(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Server) error {
 	var err error
 	if insert {
 		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
@@ -932,9 +939,9 @@ func (o *BMC) SetServer(ctx context.Context, exec boil.ContextExecutor, insert b
 	}
 
 	updateQuery := fmt.Sprintf(
-		"UPDATE \"bmcs\" SET %s WHERE %s",
+		"UPDATE \"server_bmcs\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, []string{"server_id"}),
-		strmangle.WhereClause("\"", "\"", 2, bmcPrimaryKeyColumns),
+		strmangle.WhereClause("\"", "\"", 2, serverBMCPrimaryKeyColumns),
 	)
 	values := []interface{}{related.ID, o.ID}
 
@@ -949,7 +956,7 @@ func (o *BMC) SetServer(ctx context.Context, exec boil.ContextExecutor, insert b
 
 	o.ServerID = related.ID
 	if o.R == nil {
-		o.R = &bmcR{
+		o.R = &serverBMCR{
 			Server: related,
 		}
 	} else {
@@ -958,61 +965,61 @@ func (o *BMC) SetServer(ctx context.Context, exec boil.ContextExecutor, insert b
 
 	if related.R == nil {
 		related.R = &serverR{
-			BMCS: BMCSlice{o},
+			ServerBMC: o,
 		}
 	} else {
-		related.R.BMCS = append(related.R.BMCS, o)
+		related.R.ServerBMC = o
 	}
 
 	return nil
 }
 
-// BMCS retrieves all the records using an executor.
-func BMCS(mods ...qm.QueryMod) bmcQuery {
-	mods = append(mods, qm.From("\"bmcs\""))
+// ServerBMCS retrieves all the records using an executor.
+func ServerBMCS(mods ...qm.QueryMod) serverBMCQuery {
+	mods = append(mods, qm.From("\"server_bmcs\""))
 	q := NewQuery(mods...)
 	if len(queries.GetSelect(q)) == 0 {
-		queries.SetSelect(q, []string{"\"bmcs\".*"})
+		queries.SetSelect(q, []string{"\"server_bmcs\".*"})
 	}
 
-	return bmcQuery{q}
+	return serverBMCQuery{q}
 }
 
-// FindBMC retrieves a single record by ID with an executor.
+// FindServerBMC retrieves a single record by ID with an executor.
 // If selectCols is empty Find will return all columns.
-func FindBMC(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) (*BMC, error) {
-	bmcObj := &BMC{}
+func FindServerBMC(ctx context.Context, exec boil.ContextExecutor, iD string, selectCols ...string) (*ServerBMC, error) {
+	serverBMCObj := &ServerBMC{}
 
 	sel := "*"
 	if len(selectCols) > 0 {
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"bmcs\" where \"id\"=$1", sel,
+		"select %s from \"server_bmcs\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
 
-	err := q.Bind(ctx, exec, bmcObj)
+	err := q.Bind(ctx, exec, serverBMCObj)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, sql.ErrNoRows
 		}
-		return nil, errors.Wrap(err, "models: unable to select from bmcs")
+		return nil, errors.Wrap(err, "models: unable to select from server_bmcs")
 	}
 
-	if err = bmcObj.doAfterSelectHooks(ctx, exec); err != nil {
-		return bmcObj, err
+	if err = serverBMCObj.doAfterSelectHooks(ctx, exec); err != nil {
+		return serverBMCObj, err
 	}
 
-	return bmcObj, nil
+	return serverBMCObj, nil
 }
 
 // Insert a single record using an executor.
 // See boil.Columns.InsertColumnSet documentation to understand column list inference for inserts.
-func (o *BMC) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
+func (o *ServerBMC) Insert(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) error {
 	if o == nil {
-		return errors.New("models: no bmcs provided for insertion")
+		return errors.New("models: no server_bmcs provided for insertion")
 	}
 
 	var err error
@@ -1031,33 +1038,33 @@ func (o *BMC) Insert(ctx context.Context, exec boil.ContextExecutor, columns boi
 		return err
 	}
 
-	nzDefaults := queries.NonZeroDefaultSet(bmcColumnsWithDefault, o)
+	nzDefaults := queries.NonZeroDefaultSet(serverBMCColumnsWithDefault, o)
 
 	key := makeCacheKey(columns, nzDefaults)
-	bmcInsertCacheMut.RLock()
-	cache, cached := bmcInsertCache[key]
-	bmcInsertCacheMut.RUnlock()
+	serverBMCInsertCacheMut.RLock()
+	cache, cached := serverBMCInsertCache[key]
+	serverBMCInsertCacheMut.RUnlock()
 
 	if !cached {
 		wl, returnColumns := columns.InsertColumnSet(
-			bmcAllColumns,
-			bmcColumnsWithDefault,
-			bmcColumnsWithoutDefault,
+			serverBMCAllColumns,
+			serverBMCColumnsWithDefault,
+			serverBMCColumnsWithoutDefault,
 			nzDefaults,
 		)
 
-		cache.valueMapping, err = queries.BindMapping(bmcType, bmcMapping, wl)
+		cache.valueMapping, err = queries.BindMapping(serverBMCType, serverBMCMapping, wl)
 		if err != nil {
 			return err
 		}
-		cache.retMapping, err = queries.BindMapping(bmcType, bmcMapping, returnColumns)
+		cache.retMapping, err = queries.BindMapping(serverBMCType, serverBMCMapping, returnColumns)
 		if err != nil {
 			return err
 		}
 		if len(wl) != 0 {
-			cache.query = fmt.Sprintf("INSERT INTO \"bmcs\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
+			cache.query = fmt.Sprintf("INSERT INTO \"server_bmcs\" (\"%s\") %%sVALUES (%s)%%s", strings.Join(wl, "\",\""), strmangle.Placeholders(dialect.UseIndexPlaceholders, len(wl), 1, 1))
 		} else {
-			cache.query = "INSERT INTO \"bmcs\" %sDEFAULT VALUES%s"
+			cache.query = "INSERT INTO \"server_bmcs\" %sDEFAULT VALUES%s"
 		}
 
 		var queryOutput, queryReturning string
@@ -1085,22 +1092,22 @@ func (o *BMC) Insert(ctx context.Context, exec boil.ContextExecutor, columns boi
 	}
 
 	if err != nil {
-		return errors.Wrap(err, "models: unable to insert into bmcs")
+		return errors.Wrap(err, "models: unable to insert into server_bmcs")
 	}
 
 	if !cached {
-		bmcInsertCacheMut.Lock()
-		bmcInsertCache[key] = cache
-		bmcInsertCacheMut.Unlock()
+		serverBMCInsertCacheMut.Lock()
+		serverBMCInsertCache[key] = cache
+		serverBMCInsertCacheMut.Unlock()
 	}
 
 	return o.doAfterInsertHooks(ctx, exec)
 }
 
-// Update uses an executor to update the BMC.
+// Update uses an executor to update the ServerBMC.
 // See boil.Columns.UpdateColumnSet documentation to understand column list inference for updates.
 // Update does not automatically update the record in case of default values. Use .Reload() to refresh the records.
-func (o *BMC) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
+func (o *ServerBMC) Update(ctx context.Context, exec boil.ContextExecutor, columns boil.Columns) (int64, error) {
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
 
@@ -1112,28 +1119,28 @@ func (o *BMC) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 		return 0, err
 	}
 	key := makeCacheKey(columns, nil)
-	bmcUpdateCacheMut.RLock()
-	cache, cached := bmcUpdateCache[key]
-	bmcUpdateCacheMut.RUnlock()
+	serverBMCUpdateCacheMut.RLock()
+	cache, cached := serverBMCUpdateCache[key]
+	serverBMCUpdateCacheMut.RUnlock()
 
 	if !cached {
 		wl := columns.UpdateColumnSet(
-			bmcAllColumns,
-			bmcPrimaryKeyColumns,
+			serverBMCAllColumns,
+			serverBMCPrimaryKeyColumns,
 		)
 
 		if !columns.IsWhitelist() {
 			wl = strmangle.SetComplement(wl, []string{"created_at"})
 		}
 		if len(wl) == 0 {
-			return 0, errors.New("models: unable to update bmcs, could not build whitelist")
+			return 0, errors.New("models: unable to update server_bmcs, could not build whitelist")
 		}
 
-		cache.query = fmt.Sprintf("UPDATE \"bmcs\" SET %s WHERE %s",
+		cache.query = fmt.Sprintf("UPDATE \"server_bmcs\" SET %s WHERE %s",
 			strmangle.SetParamNames("\"", "\"", 1, wl),
-			strmangle.WhereClause("\"", "\"", len(wl)+1, bmcPrimaryKeyColumns),
+			strmangle.WhereClause("\"", "\"", len(wl)+1, serverBMCPrimaryKeyColumns),
 		)
-		cache.valueMapping, err = queries.BindMapping(bmcType, bmcMapping, append(wl, bmcPrimaryKeyColumns...))
+		cache.valueMapping, err = queries.BindMapping(serverBMCType, serverBMCMapping, append(wl, serverBMCPrimaryKeyColumns...))
 		if err != nil {
 			return 0, err
 		}
@@ -1149,42 +1156,42 @@ func (o *BMC) Update(ctx context.Context, exec boil.ContextExecutor, columns boi
 	var result sql.Result
 	result, err = exec.ExecContext(ctx, cache.query, values...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update bmcs row")
+		return 0, errors.Wrap(err, "models: unable to update server_bmcs row")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by update for bmcs")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by update for server_bmcs")
 	}
 
 	if !cached {
-		bmcUpdateCacheMut.Lock()
-		bmcUpdateCache[key] = cache
-		bmcUpdateCacheMut.Unlock()
+		serverBMCUpdateCacheMut.Lock()
+		serverBMCUpdateCache[key] = cache
+		serverBMCUpdateCacheMut.Unlock()
 	}
 
 	return rowsAff, o.doAfterUpdateHooks(ctx, exec)
 }
 
 // UpdateAll updates all rows with the specified column values.
-func (q bmcQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (q serverBMCQuery) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	queries.SetUpdate(q.Query, cols)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all for bmcs")
+		return 0, errors.Wrap(err, "models: unable to update all for server_bmcs")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for bmcs")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected for server_bmcs")
 	}
 
 	return rowsAff, nil
 }
 
 // UpdateAll updates all rows with the specified column values, using an executor.
-func (o BMCSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
+func (o ServerBMCSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols M) (int64, error) {
 	ln := int64(len(o))
 	if ln == 0 {
 		return 0, nil
@@ -1206,13 +1213,13 @@ func (o BMCSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 
 	// Append all of the primary key values for each column
 	for _, obj := range o {
-		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), bmcPrimaryKeyMapping)
+		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), serverBMCPrimaryKeyMapping)
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := fmt.Sprintf("UPDATE \"bmcs\" SET %s WHERE %s",
+	sql := fmt.Sprintf("UPDATE \"server_bmcs\" SET %s WHERE %s",
 		strmangle.SetParamNames("\"", "\"", 1, colNames),
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, bmcPrimaryKeyColumns, len(o)))
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), len(colNames)+1, serverBMCPrimaryKeyColumns, len(o)))
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1221,21 +1228,21 @@ func (o BMCSlice) UpdateAll(ctx context.Context, exec boil.ContextExecutor, cols
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to update all in bmc slice")
+		return 0, errors.Wrap(err, "models: unable to update all in serverBMC slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all bmc")
+		return 0, errors.Wrap(err, "models: unable to retrieve rows affected all in update all serverBMC")
 	}
 	return rowsAff, nil
 }
 
 // Upsert attempts an insert using an executor, and does an update or ignore on conflict.
 // See boil.Columns documentation for how to properly use updateColumns and insertColumns.
-func (o *BMC) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
+func (o *ServerBMC) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnConflict bool, conflictColumns []string, updateColumns, insertColumns boil.Columns) error {
 	if o == nil {
-		return errors.New("models: no bmcs provided for upsert")
+		return errors.New("models: no server_bmcs provided for upsert")
 	}
 	if !boil.TimestampsAreSkipped(ctx) {
 		currTime := time.Now().In(boil.GetLocation())
@@ -1250,7 +1257,7 @@ func (o *BMC) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		return err
 	}
 
-	nzDefaults := queries.NonZeroDefaultSet(bmcColumnsWithDefault, o)
+	nzDefaults := queries.NonZeroDefaultSet(serverBMCColumnsWithDefault, o)
 
 	// Build cache key in-line uglily - mysql vs psql problems
 	buf := strmangle.GetBuffer()
@@ -1280,42 +1287,42 @@ func (o *BMC) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 	key := buf.String()
 	strmangle.PutBuffer(buf)
 
-	bmcUpsertCacheMut.RLock()
-	cache, cached := bmcUpsertCache[key]
-	bmcUpsertCacheMut.RUnlock()
+	serverBMCUpsertCacheMut.RLock()
+	cache, cached := serverBMCUpsertCache[key]
+	serverBMCUpsertCacheMut.RUnlock()
 
 	var err error
 
 	if !cached {
 		insert, ret := insertColumns.InsertColumnSet(
-			bmcAllColumns,
-			bmcColumnsWithDefault,
-			bmcColumnsWithoutDefault,
+			serverBMCAllColumns,
+			serverBMCColumnsWithDefault,
+			serverBMCColumnsWithoutDefault,
 			nzDefaults,
 		)
 
 		update := updateColumns.UpdateColumnSet(
-			bmcAllColumns,
-			bmcPrimaryKeyColumns,
+			serverBMCAllColumns,
+			serverBMCPrimaryKeyColumns,
 		)
 
 		if updateOnConflict && len(update) == 0 {
-			return errors.New("models: unable to upsert bmcs, could not build update column list")
+			return errors.New("models: unable to upsert server_bmcs, could not build update column list")
 		}
 
 		conflict := conflictColumns
 		if len(conflict) == 0 {
-			conflict = make([]string, len(bmcPrimaryKeyColumns))
-			copy(conflict, bmcPrimaryKeyColumns)
+			conflict = make([]string, len(serverBMCPrimaryKeyColumns))
+			copy(conflict, serverBMCPrimaryKeyColumns)
 		}
-		cache.query = buildUpsertQueryPostgres(dialect, "\"bmcs\"", updateOnConflict, ret, update, conflict, insert)
+		cache.query = buildUpsertQueryPostgres(dialect, "\"server_bmcs\"", updateOnConflict, ret, update, conflict, insert)
 
-		cache.valueMapping, err = queries.BindMapping(bmcType, bmcMapping, insert)
+		cache.valueMapping, err = queries.BindMapping(serverBMCType, serverBMCMapping, insert)
 		if err != nil {
 			return err
 		}
 		if len(ret) != 0 {
-			cache.retMapping, err = queries.BindMapping(bmcType, bmcMapping, ret)
+			cache.retMapping, err = queries.BindMapping(serverBMCType, serverBMCMapping, ret)
 			if err != nil {
 				return err
 			}
@@ -1343,31 +1350,31 @@ func (o *BMC) Upsert(ctx context.Context, exec boil.ContextExecutor, updateOnCon
 		_, err = exec.ExecContext(ctx, cache.query, vals...)
 	}
 	if err != nil {
-		return errors.Wrap(err, "models: unable to upsert bmcs")
+		return errors.Wrap(err, "models: unable to upsert server_bmcs")
 	}
 
 	if !cached {
-		bmcUpsertCacheMut.Lock()
-		bmcUpsertCache[key] = cache
-		bmcUpsertCacheMut.Unlock()
+		serverBMCUpsertCacheMut.Lock()
+		serverBMCUpsertCache[key] = cache
+		serverBMCUpsertCacheMut.Unlock()
 	}
 
 	return o.doAfterUpsertHooks(ctx, exec)
 }
 
-// Delete deletes a single BMC record with an executor.
+// Delete deletes a single ServerBMC record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *BMC) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o *ServerBMC) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
-		return 0, errors.New("models: no BMC provided for delete")
+		return 0, errors.New("models: no ServerBMC provided for delete")
 	}
 
 	if err := o.doBeforeDeleteHooks(ctx, exec); err != nil {
 		return 0, err
 	}
 
-	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), bmcPrimaryKeyMapping)
-	sql := "DELETE FROM \"bmcs\" WHERE \"id\"=$1"
+	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), serverBMCPrimaryKeyMapping)
+	sql := "DELETE FROM \"server_bmcs\" WHERE \"id\"=$1"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1376,12 +1383,12 @@ func (o *BMC) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, err
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete from bmcs")
+		return 0, errors.Wrap(err, "models: unable to delete from server_bmcs")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for bmcs")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by delete for server_bmcs")
 	}
 
 	if err := o.doAfterDeleteHooks(ctx, exec); err != nil {
@@ -1392,33 +1399,33 @@ func (o *BMC) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, err
 }
 
 // DeleteAll deletes all matching rows.
-func (q bmcQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (q serverBMCQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
-		return 0, errors.New("models: no bmcQuery provided for delete all")
+		return 0, errors.New("models: no serverBMCQuery provided for delete all")
 	}
 
 	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from bmcs")
+		return 0, errors.Wrap(err, "models: unable to delete all from server_bmcs")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for bmcs")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for server_bmcs")
 	}
 
 	return rowsAff, nil
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o BMCSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
+func (o ServerBMCSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
 
-	if len(bmcBeforeDeleteHooks) != 0 {
+	if len(serverBMCBeforeDeleteHooks) != 0 {
 		for _, obj := range o {
 			if err := obj.doBeforeDeleteHooks(ctx, exec); err != nil {
 				return 0, err
@@ -1428,12 +1435,12 @@ func (o BMCSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 
 	var args []interface{}
 	for _, obj := range o {
-		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), bmcPrimaryKeyMapping)
+		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), serverBMCPrimaryKeyMapping)
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "DELETE FROM \"bmcs\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, bmcPrimaryKeyColumns, len(o))
+	sql := "DELETE FROM \"server_bmcs\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, serverBMCPrimaryKeyColumns, len(o))
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1442,15 +1449,15 @@ func (o BMCSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 	}
 	result, err := exec.ExecContext(ctx, sql, args...)
 	if err != nil {
-		return 0, errors.Wrap(err, "models: unable to delete all from bmc slice")
+		return 0, errors.Wrap(err, "models: unable to delete all from serverBMC slice")
 	}
 
 	rowsAff, err := result.RowsAffected()
 	if err != nil {
-		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for bmcs")
+		return 0, errors.Wrap(err, "models: failed to get rows affected by deleteall for server_bmcs")
 	}
 
-	if len(bmcAfterDeleteHooks) != 0 {
+	if len(serverBMCAfterDeleteHooks) != 0 {
 		for _, obj := range o {
 			if err := obj.doAfterDeleteHooks(ctx, exec); err != nil {
 				return 0, err
@@ -1463,8 +1470,8 @@ func (o BMCSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int
 
 // Reload refetches the object from the database
 // using the primary keys with an executor.
-func (o *BMC) Reload(ctx context.Context, exec boil.ContextExecutor) error {
-	ret, err := FindBMC(ctx, exec, o.ID)
+func (o *ServerBMC) Reload(ctx context.Context, exec boil.ContextExecutor) error {
+	ret, err := FindServerBMC(ctx, exec, o.ID)
 	if err != nil {
 		return err
 	}
@@ -1475,26 +1482,26 @@ func (o *BMC) Reload(ctx context.Context, exec boil.ContextExecutor) error {
 
 // ReloadAll refetches every row with matching primary key column values
 // and overwrites the original object slice with the newly updated slice.
-func (o *BMCSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
+func (o *ServerBMCSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) error {
 	if o == nil || len(*o) == 0 {
 		return nil
 	}
 
-	slice := BMCSlice{}
+	slice := ServerBMCSlice{}
 	var args []interface{}
 	for _, obj := range *o {
-		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), bmcPrimaryKeyMapping)
+		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), serverBMCPrimaryKeyMapping)
 		args = append(args, pkeyArgs...)
 	}
 
-	sql := "SELECT \"bmcs\".* FROM \"bmcs\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, bmcPrimaryKeyColumns, len(*o))
+	sql := "SELECT \"server_bmcs\".* FROM \"server_bmcs\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, serverBMCPrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
 	err := q.Bind(ctx, exec, &slice)
 	if err != nil {
-		return errors.Wrap(err, "models: unable to reload all in BMCSlice")
+		return errors.Wrap(err, "models: unable to reload all in ServerBMCSlice")
 	}
 
 	*o = slice
@@ -1502,10 +1509,10 @@ func (o *BMCSlice) ReloadAll(ctx context.Context, exec boil.ContextExecutor) err
 	return nil
 }
 
-// BMCExists checks if the BMC row exists.
-func BMCExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
+// ServerBMCExists checks if the ServerBMC row exists.
+func ServerBMCExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"bmcs\" where \"id\"=$1 limit 1)"
+	sql := "select exists(select 1 from \"server_bmcs\" where \"id\"=$1 limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1516,13 +1523,13 @@ func BMCExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool,
 
 	err := row.Scan(&exists)
 	if err != nil {
-		return false, errors.Wrap(err, "models: unable to check if bmcs exists")
+		return false, errors.Wrap(err, "models: unable to check if server_bmcs exists")
 	}
 
 	return exists, nil
 }
 
-// Exists checks if the BMC row exists.
-func (o *BMC) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
-	return BMCExists(ctx, exec, o.ID)
+// Exists checks if the ServerBMC row exists.
+func (o *ServerBMC) Exists(ctx context.Context, exec boil.ContextExecutor) (bool, error) {
+	return ServerBMCExists(ctx, exec, o.ID)
 }

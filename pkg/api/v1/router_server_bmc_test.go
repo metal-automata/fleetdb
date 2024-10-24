@@ -5,47 +5,55 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/metal-automata/fleetdb/internal/dbtools"
 	fleetdbapi "github.com/metal-automata/fleetdb/pkg/api/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestIntegrationHardwareModelCreate(t *testing.T) {
+func TestIntegrationServerBMCCreate(t *testing.T) {
 	s := serverTest(t)
 
-	scopes := []string{"create:hardware-models"}
+	scopes := []string{"create:server-bmcs"}
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, respCode int, expectError bool) error {
 		s.Client.SetToken(authToken)
+		serverBMC := &fleetdbapi.ServerBMC{
+			ID:                 uuid.New(),
+			ServerID:           uuid.MustParse(dbtools.FixtureMarlin.ID),
+			HardwareVendorName: dbtools.FixtureHardwareVendorNameBar,
+			HardwareModelName:  dbtools.FixtureHardwareModelBar456Name,
+			Username:           "user",
+			IPAddress:          "127.0.0.1",
+			MacAddress:         "de:ad:be:ef:ca:fe",
+		}
 
-		hwm := &fleetdbapi.HardwareModel{Name: "foo123", HardwareVendorName: dbtools.FixtureHardwareVendorNameBar}
-		resp, err := s.Client.CreateHardwareModel(ctx, hwm)
-
+		resp, err := s.Client.CreateServerBMC(ctx, serverBMC)
 		if !expectError {
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
-			assert.Equal(t, hwm.Name, resp.Slug)
+			assert.Equal(t, "resource created", resp.Message)
 			assert.NotNil(t, resp.Links.Self)
-			assert.Equal(t, fmt.Sprintf("http://test.hollow.com/api/v1/hardware-models/%s", resp.Slug), resp.Links.Self.Href)
+			assert.Equal(t, fmt.Sprintf("http://test.hollow.com/api/v1/server-bmcs/%s", resp.Slug), resp.Links.Self.Href)
 		}
 
 		return err
 	})
 }
 
-func TestIntegrationHardwareModelList(t *testing.T) {
+func TestIntegrationServerBMCList(t *testing.T) {
 	s := serverTest(t)
 
-	scopes := []string{"read:hardware-models"}
+	scopes := []string{"read:server-bmcs"}
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, respCode int, expectError bool) error {
 		s.Client.SetToken(authToken)
 
-		expectCount := len(dbtools.FixtureHardwareModels)
-		hardwareModels, resp, err := s.Client.ListHardwareModels(ctx)
+		expectCount := len(dbtools.FixtureServerBMCs)
+		serverBMCs, resp, err := s.Client.ListServerBMCs(ctx)
 		if !expectError {
 			require.NoError(t, err)
-			assert.Len(t, hardwareModels, expectCount)
-			assert.EqualValues(t, resp.PageCount, expectCount)
+			assert.Len(t, serverBMCs, expectCount)
+			assert.EqualValues(t, expectCount, resp.PageCount)
 			assert.EqualValues(t, 1, resp.TotalPages)
 			assert.EqualValues(t, expectCount, resp.TotalRecordCount)
 			// We returned everything, so we shouldnt have a next page info
@@ -57,23 +65,20 @@ func TestIntegrationHardwareModelList(t *testing.T) {
 	})
 }
 
-func TestIntegrationHardwareModelGet(t *testing.T) {
+func TestIntegrationServerBMCGet(t *testing.T) {
 	s := serverTest(t)
-
-	scopes := []string{"read:hardware-models"}
+	serverID := uuid.MustParse(dbtools.FixtureNemo.ID)
+	scopes := []string{"read:server-bmcs"}
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, _ int, expectError bool) error {
 		s.Client.SetToken(authToken)
-		hardwareModel, resp, err := s.Client.GetHardwareModel(ctx, dbtools.FixtureHardwareModelBaz123Name)
+		serverBMC, resp, err := s.Client.GetServerBMC(ctx, serverID)
 		if !expectError {
 			require.NoError(t, err)
 			assert.NotNil(t, resp.Record)
-			assert.NotNil(t, hardwareModel)
-
-			hwm, ok := resp.Record.(*fleetdbapi.HardwareModel)
+			assert.NotNil(t, serverBMC)
+			_, ok := resp.Record.(*fleetdbapi.ServerBMC)
 			assert.True(t, ok)
-
-			assert.Equal(t, dbtools.FixtureHardwareModelBaz123Name, hardwareModel.Name)
-			assert.NotNil(t, hwm.ID, dbtools.FixtureHardwareModelBar123)
+			assert.Equal(t, serverID, serverBMC.ServerID)
 			// We returned everything, so we shouldnt have a next page info
 			assert.Nil(t, resp.Links.Next)
 			assert.Nil(t, resp.Links.Previous)
@@ -82,18 +87,18 @@ func TestIntegrationHardwareModelGet(t *testing.T) {
 		return err
 	})
 
-	_, _, err := s.Client.GetHardwareModel(context.Background(), "non-existant")
+	_, _, err := s.Client.GetServerBMC(context.Background(), uuid.New())
 	assert.ErrorContainsf(t, err, "404", "")
 }
 
-func TestIntegrationHardwareModelDelete(t *testing.T) {
+func TestIntegrationServerBMCDelete(t *testing.T) {
 	s := serverTest(t)
-
-	scopes := []string{"delete:hardware-models", "read:hardware-models"}
+	serverID := uuid.MustParse(dbtools.FixtureNemo.ID)
+	scopes := []string{"delete:server-bmcs", "read:server-bmcs"}
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, _ int, expectError bool) error {
 		s.Client.SetToken(authToken)
 
-		resp, err := s.Client.DeleteHardwareModel(ctx, dbtools.FixtureHardwareModelFoo789Name)
+		resp, err := s.Client.DeleteServerBMC(ctx, serverID)
 		if !expectError {
 			require.NoError(t, err)
 			assert.NotNil(t, resp)
@@ -103,6 +108,6 @@ func TestIntegrationHardwareModelDelete(t *testing.T) {
 		return err
 	})
 
-	_, _, err := s.Client.GetHardwareModel(context.Background(), dbtools.FixtureHardwareModelFoo789Name)
+	_, _, err := s.Client.GetServerBMC(context.Background(), serverID)
 	assert.ErrorContainsf(t, err, "404", "")
 }

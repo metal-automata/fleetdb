@@ -190,6 +190,14 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		hardwareModels.GET("/:slug", amw.AuthRequired(readScopes("hardware-models")), r.hardwareModelGet)
 		hardwareModels.DELETE("/:slug", amw.AuthRequired(deleteScopes("hardware-models")), r.hardwareModelDelete)
 	}
+
+	serverBmcs := rg.Group("/server-bmcs")
+	{
+		serverBmcs.POST("", amw.AuthRequired(createScopes("server-bmcs")), r.serverBMCCreate)
+		serverBmcs.GET("", amw.AuthRequired(readScopes("server-bmcs")), r.serverBMCList)
+		serverBmcs.GET("/:serverID", amw.AuthRequired(readScopes("server-bmcs")), r.serverBMCGet)
+		serverBmcs.DELETE("/:serverID", amw.AuthRequired(deleteScopes("server-bmcs")), r.serverBMCDelete)
+	}
 }
 
 func createScopes(items ...string) []string {

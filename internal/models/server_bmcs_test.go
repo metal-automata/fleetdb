@@ -21,24 +21,24 @@ var (
 	_ = queries.Equal
 )
 
-func testBMCS(t *testing.T) {
+func testServerBMCS(t *testing.T) {
 	t.Parallel()
 
-	query := BMCS()
+	query := ServerBMCS()
 
 	if query.Query == nil {
 		t.Error("expected a query, got nothing")
 	}
 }
 
-func testBMCSDelete(t *testing.T) {
+func testServerBMCSDelete(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -54,7 +54,7 @@ func testBMCSDelete(t *testing.T) {
 		t.Error("should only have deleted one row, but affected:", rowsAff)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -64,14 +64,14 @@ func testBMCSDelete(t *testing.T) {
 	}
 }
 
-func testBMCSQueryDeleteAll(t *testing.T) {
+func testServerBMCSQueryDeleteAll(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -81,13 +81,13 @@ func testBMCSQueryDeleteAll(t *testing.T) {
 		t.Error(err)
 	}
 
-	if rowsAff, err := BMCS().DeleteAll(ctx, tx); err != nil {
+	if rowsAff, err := ServerBMCS().DeleteAll(ctx, tx); err != nil {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("should only have deleted one row, but affected:", rowsAff)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -97,14 +97,14 @@ func testBMCSQueryDeleteAll(t *testing.T) {
 	}
 }
 
-func testBMCSSliceDeleteAll(t *testing.T) {
+func testServerBMCSSliceDeleteAll(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -114,7 +114,7 @@ func testBMCSSliceDeleteAll(t *testing.T) {
 		t.Error(err)
 	}
 
-	slice := BMCSlice{o}
+	slice := ServerBMCSlice{o}
 
 	if rowsAff, err := slice.DeleteAll(ctx, tx); err != nil {
 		t.Error(err)
@@ -122,7 +122,7 @@ func testBMCSSliceDeleteAll(t *testing.T) {
 		t.Error("should only have deleted one row, but affected:", rowsAff)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -132,14 +132,14 @@ func testBMCSSliceDeleteAll(t *testing.T) {
 	}
 }
 
-func testBMCSExists(t *testing.T) {
+func testServerBMCSExists(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -149,23 +149,23 @@ func testBMCSExists(t *testing.T) {
 		t.Error(err)
 	}
 
-	e, err := BMCExists(ctx, tx, o.ID)
+	e, err := ServerBMCExists(ctx, tx, o.ID)
 	if err != nil {
-		t.Errorf("Unable to check if BMC exists: %s", err)
+		t.Errorf("Unable to check if ServerBMC exists: %s", err)
 	}
 	if !e {
-		t.Errorf("Expected BMCExists to return true, but got false.")
+		t.Errorf("Expected ServerBMCExists to return true, but got false.")
 	}
 }
 
-func testBMCSFind(t *testing.T) {
+func testServerBMCSFind(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -175,24 +175,24 @@ func testBMCSFind(t *testing.T) {
 		t.Error(err)
 	}
 
-	bmcFound, err := FindBMC(ctx, tx, o.ID)
+	serverBMCFound, err := FindServerBMC(ctx, tx, o.ID)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if bmcFound == nil {
+	if serverBMCFound == nil {
 		t.Error("want a record, got nil")
 	}
 }
 
-func testBMCSBind(t *testing.T) {
+func testServerBMCSBind(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -202,19 +202,19 @@ func testBMCSBind(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err = BMCS().Bind(ctx, tx, o); err != nil {
+	if err = ServerBMCS().Bind(ctx, tx, o); err != nil {
 		t.Error(err)
 	}
 }
 
-func testBMCSOne(t *testing.T) {
+func testServerBMCSOne(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -224,38 +224,38 @@ func testBMCSOne(t *testing.T) {
 		t.Error(err)
 	}
 
-	if x, err := BMCS().One(ctx, tx); err != nil {
+	if x, err := ServerBMCS().One(ctx, tx); err != nil {
 		t.Error(err)
 	} else if x == nil {
 		t.Error("expected to get a non nil record")
 	}
 }
 
-func testBMCSAll(t *testing.T) {
+func testServerBMCSAll(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	bmcOne := &BMC{}
-	bmcTwo := &BMC{}
-	if err = randomize.Struct(seed, bmcOne, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	serverBMCOne := &ServerBMC{}
+	serverBMCTwo := &ServerBMC{}
+	if err = randomize.Struct(seed, serverBMCOne, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
-	if err = randomize.Struct(seed, bmcTwo, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	if err = randomize.Struct(seed, serverBMCTwo, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
-	if err = bmcOne.Insert(ctx, tx, boil.Infer()); err != nil {
+	if err = serverBMCOne.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Error(err)
 	}
-	if err = bmcTwo.Insert(ctx, tx, boil.Infer()); err != nil {
+	if err = serverBMCTwo.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Error(err)
 	}
 
-	slice, err := BMCS().All(ctx, tx)
+	slice, err := ServerBMCS().All(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -265,31 +265,31 @@ func testBMCSAll(t *testing.T) {
 	}
 }
 
-func testBMCSCount(t *testing.T) {
+func testServerBMCSCount(t *testing.T) {
 	t.Parallel()
 
 	var err error
 	seed := randomize.NewSeed()
-	bmcOne := &BMC{}
-	bmcTwo := &BMC{}
-	if err = randomize.Struct(seed, bmcOne, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	serverBMCOne := &ServerBMC{}
+	serverBMCTwo := &ServerBMC{}
+	if err = randomize.Struct(seed, serverBMCOne, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
-	if err = randomize.Struct(seed, bmcTwo, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	if err = randomize.Struct(seed, serverBMCTwo, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
-	if err = bmcOne.Insert(ctx, tx, boil.Infer()); err != nil {
+	if err = serverBMCOne.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Error(err)
 	}
-	if err = bmcTwo.Insert(ctx, tx, boil.Infer()); err != nil {
+	if err = serverBMCTwo.Insert(ctx, tx, boil.Infer()); err != nil {
 		t.Error(err)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -299,155 +299,155 @@ func testBMCSCount(t *testing.T) {
 	}
 }
 
-func bmcBeforeInsertHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCBeforeInsertHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func bmcAfterInsertHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCAfterInsertHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func bmcAfterSelectHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCAfterSelectHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func bmcBeforeUpdateHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCBeforeUpdateHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func bmcAfterUpdateHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCAfterUpdateHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func bmcBeforeDeleteHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCBeforeDeleteHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func bmcAfterDeleteHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCAfterDeleteHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func bmcBeforeUpsertHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCBeforeUpsertHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func bmcAfterUpsertHook(ctx context.Context, e boil.ContextExecutor, o *BMC) error {
-	*o = BMC{}
+func serverBMCAfterUpsertHook(ctx context.Context, e boil.ContextExecutor, o *ServerBMC) error {
+	*o = ServerBMC{}
 	return nil
 }
 
-func testBMCSHooks(t *testing.T) {
+func testServerBMCSHooks(t *testing.T) {
 	t.Parallel()
 
 	var err error
 
 	ctx := context.Background()
-	empty := &BMC{}
-	o := &BMC{}
+	empty := &ServerBMC{}
+	o := &ServerBMC{}
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, o, bmcDBTypes, false); err != nil {
-		t.Errorf("Unable to randomize BMC object: %s", err)
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, false); err != nil {
+		t.Errorf("Unable to randomize ServerBMC object: %s", err)
 	}
 
-	AddBMCHook(boil.BeforeInsertHook, bmcBeforeInsertHook)
+	AddServerBMCHook(boil.BeforeInsertHook, serverBMCBeforeInsertHook)
 	if err = o.doBeforeInsertHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doBeforeInsertHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected BeforeInsertHook function to empty object, but got: %#v", o)
 	}
-	bmcBeforeInsertHooks = []BMCHook{}
+	serverBMCBeforeInsertHooks = []ServerBMCHook{}
 
-	AddBMCHook(boil.AfterInsertHook, bmcAfterInsertHook)
+	AddServerBMCHook(boil.AfterInsertHook, serverBMCAfterInsertHook)
 	if err = o.doAfterInsertHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doAfterInsertHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected AfterInsertHook function to empty object, but got: %#v", o)
 	}
-	bmcAfterInsertHooks = []BMCHook{}
+	serverBMCAfterInsertHooks = []ServerBMCHook{}
 
-	AddBMCHook(boil.AfterSelectHook, bmcAfterSelectHook)
+	AddServerBMCHook(boil.AfterSelectHook, serverBMCAfterSelectHook)
 	if err = o.doAfterSelectHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doAfterSelectHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected AfterSelectHook function to empty object, but got: %#v", o)
 	}
-	bmcAfterSelectHooks = []BMCHook{}
+	serverBMCAfterSelectHooks = []ServerBMCHook{}
 
-	AddBMCHook(boil.BeforeUpdateHook, bmcBeforeUpdateHook)
+	AddServerBMCHook(boil.BeforeUpdateHook, serverBMCBeforeUpdateHook)
 	if err = o.doBeforeUpdateHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doBeforeUpdateHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected BeforeUpdateHook function to empty object, but got: %#v", o)
 	}
-	bmcBeforeUpdateHooks = []BMCHook{}
+	serverBMCBeforeUpdateHooks = []ServerBMCHook{}
 
-	AddBMCHook(boil.AfterUpdateHook, bmcAfterUpdateHook)
+	AddServerBMCHook(boil.AfterUpdateHook, serverBMCAfterUpdateHook)
 	if err = o.doAfterUpdateHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doAfterUpdateHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected AfterUpdateHook function to empty object, but got: %#v", o)
 	}
-	bmcAfterUpdateHooks = []BMCHook{}
+	serverBMCAfterUpdateHooks = []ServerBMCHook{}
 
-	AddBMCHook(boil.BeforeDeleteHook, bmcBeforeDeleteHook)
+	AddServerBMCHook(boil.BeforeDeleteHook, serverBMCBeforeDeleteHook)
 	if err = o.doBeforeDeleteHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doBeforeDeleteHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected BeforeDeleteHook function to empty object, but got: %#v", o)
 	}
-	bmcBeforeDeleteHooks = []BMCHook{}
+	serverBMCBeforeDeleteHooks = []ServerBMCHook{}
 
-	AddBMCHook(boil.AfterDeleteHook, bmcAfterDeleteHook)
+	AddServerBMCHook(boil.AfterDeleteHook, serverBMCAfterDeleteHook)
 	if err = o.doAfterDeleteHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doAfterDeleteHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected AfterDeleteHook function to empty object, but got: %#v", o)
 	}
-	bmcAfterDeleteHooks = []BMCHook{}
+	serverBMCAfterDeleteHooks = []ServerBMCHook{}
 
-	AddBMCHook(boil.BeforeUpsertHook, bmcBeforeUpsertHook)
+	AddServerBMCHook(boil.BeforeUpsertHook, serverBMCBeforeUpsertHook)
 	if err = o.doBeforeUpsertHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doBeforeUpsertHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected BeforeUpsertHook function to empty object, but got: %#v", o)
 	}
-	bmcBeforeUpsertHooks = []BMCHook{}
+	serverBMCBeforeUpsertHooks = []ServerBMCHook{}
 
-	AddBMCHook(boil.AfterUpsertHook, bmcAfterUpsertHook)
+	AddServerBMCHook(boil.AfterUpsertHook, serverBMCAfterUpsertHook)
 	if err = o.doAfterUpsertHooks(ctx, nil); err != nil {
 		t.Errorf("Unable to execute doAfterUpsertHooks: %s", err)
 	}
 	if !reflect.DeepEqual(o, empty) {
 		t.Errorf("Expected AfterUpsertHook function to empty object, but got: %#v", o)
 	}
-	bmcAfterUpsertHooks = []BMCHook{}
+	serverBMCAfterUpsertHooks = []ServerBMCHook{}
 }
 
-func testBMCSInsert(t *testing.T) {
+func testServerBMCSInsert(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -457,7 +457,7 @@ func testBMCSInsert(t *testing.T) {
 		t.Error(err)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -467,24 +467,24 @@ func testBMCSInsert(t *testing.T) {
 	}
 }
 
-func testBMCSInsertWhitelist(t *testing.T) {
+func testServerBMCSInsertWhitelist(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
-	if err = o.Insert(ctx, tx, boil.Whitelist(bmcColumnsWithoutDefault...)); err != nil {
+	if err = o.Insert(ctx, tx, boil.Whitelist(serverBMCColumnsWithoutDefault...)); err != nil {
 		t.Error(err)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -494,17 +494,17 @@ func testBMCSInsertWhitelist(t *testing.T) {
 	}
 }
 
-func testBMCToOneHardwareModelUsingHardwareModel(t *testing.T) {
+func testServerBMCToOneHardwareModelUsingHardwareModel(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var local BMC
+	var local ServerBMC
 	var foreign HardwareModel
 
 	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	if err := randomize.Struct(seed, &local, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 	if err := randomize.Struct(seed, &foreign, hardwareModelDBTypes, false, hardwareModelColumnsWithDefault...); err != nil {
 		t.Errorf("Unable to randomize HardwareModel struct: %s", err)
@@ -534,8 +534,8 @@ func testBMCToOneHardwareModelUsingHardwareModel(t *testing.T) {
 		return nil
 	})
 
-	slice := BMCSlice{&local}
-	if err = local.L.LoadHardwareModel(ctx, tx, false, (*[]*BMC)(&slice), nil); err != nil {
+	slice := ServerBMCSlice{&local}
+	if err = local.L.LoadHardwareModel(ctx, tx, false, (*[]*ServerBMC)(&slice), nil); err != nil {
 		t.Fatal(err)
 	}
 	if local.R.HardwareModel == nil {
@@ -555,17 +555,17 @@ func testBMCToOneHardwareModelUsingHardwareModel(t *testing.T) {
 	}
 }
 
-func testBMCToOneHardwareVendorUsingHardwareVendor(t *testing.T) {
+func testServerBMCToOneHardwareVendorUsingHardwareVendor(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var local BMC
+	var local ServerBMC
 	var foreign HardwareVendor
 
 	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	if err := randomize.Struct(seed, &local, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 	if err := randomize.Struct(seed, &foreign, hardwareVendorDBTypes, false, hardwareVendorColumnsWithDefault...); err != nil {
 		t.Errorf("Unable to randomize HardwareVendor struct: %s", err)
@@ -595,8 +595,8 @@ func testBMCToOneHardwareVendorUsingHardwareVendor(t *testing.T) {
 		return nil
 	})
 
-	slice := BMCSlice{&local}
-	if err = local.L.LoadHardwareVendor(ctx, tx, false, (*[]*BMC)(&slice), nil); err != nil {
+	slice := ServerBMCSlice{&local}
+	if err = local.L.LoadHardwareVendor(ctx, tx, false, (*[]*ServerBMC)(&slice), nil); err != nil {
 		t.Fatal(err)
 	}
 	if local.R.HardwareVendor == nil {
@@ -616,17 +616,17 @@ func testBMCToOneHardwareVendorUsingHardwareVendor(t *testing.T) {
 	}
 }
 
-func testBMCToOneServerUsingServer(t *testing.T) {
+func testServerBMCToOneServerUsingServer(t *testing.T) {
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var local BMC
+	var local ServerBMC
 	var foreign Server
 
 	seed := randomize.NewSeed()
-	if err := randomize.Struct(seed, &local, bmcDBTypes, false, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	if err := randomize.Struct(seed, &local, serverBMCDBTypes, false, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 	if err := randomize.Struct(seed, &foreign, serverDBTypes, false, serverColumnsWithDefault...); err != nil {
 		t.Errorf("Unable to randomize Server struct: %s", err)
@@ -656,8 +656,8 @@ func testBMCToOneServerUsingServer(t *testing.T) {
 		return nil
 	})
 
-	slice := BMCSlice{&local}
-	if err = local.L.LoadServer(ctx, tx, false, (*[]*BMC)(&slice), nil); err != nil {
+	slice := ServerBMCSlice{&local}
+	if err = local.L.LoadServer(ctx, tx, false, (*[]*ServerBMC)(&slice), nil); err != nil {
 		t.Fatal(err)
 	}
 	if local.R.Server == nil {
@@ -677,18 +677,18 @@ func testBMCToOneServerUsingServer(t *testing.T) {
 	}
 }
 
-func testBMCToOneSetOpHardwareModelUsingHardwareModel(t *testing.T) {
+func testServerBMCToOneSetOpHardwareModelUsingHardwareModel(t *testing.T) {
 	var err error
 
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var a BMC
+	var a ServerBMC
 	var b, c HardwareModel
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, bmcDBTypes, false, strmangle.SetComplement(bmcPrimaryKeyColumns, bmcColumnsWithoutDefault)...); err != nil {
+	if err = randomize.Struct(seed, &a, serverBMCDBTypes, false, strmangle.SetComplement(serverBMCPrimaryKeyColumns, serverBMCColumnsWithoutDefault)...); err != nil {
 		t.Fatal(err)
 	}
 	if err = randomize.Struct(seed, &b, hardwareModelDBTypes, false, strmangle.SetComplement(hardwareModelPrimaryKeyColumns, hardwareModelColumnsWithoutDefault)...); err != nil {
@@ -715,7 +715,7 @@ func testBMCToOneSetOpHardwareModelUsingHardwareModel(t *testing.T) {
 			t.Error("relationship struct not set to correct value")
 		}
 
-		if x.R.BMCS[0] != &a {
+		if x.R.ServerBMCS[0] != &a {
 			t.Error("failed to append to foreign relationship struct")
 		}
 		if a.HardwareModelID != x.ID {
@@ -734,18 +734,18 @@ func testBMCToOneSetOpHardwareModelUsingHardwareModel(t *testing.T) {
 		}
 	}
 }
-func testBMCToOneSetOpHardwareVendorUsingHardwareVendor(t *testing.T) {
+func testServerBMCToOneSetOpHardwareVendorUsingHardwareVendor(t *testing.T) {
 	var err error
 
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var a BMC
+	var a ServerBMC
 	var b, c HardwareVendor
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, bmcDBTypes, false, strmangle.SetComplement(bmcPrimaryKeyColumns, bmcColumnsWithoutDefault)...); err != nil {
+	if err = randomize.Struct(seed, &a, serverBMCDBTypes, false, strmangle.SetComplement(serverBMCPrimaryKeyColumns, serverBMCColumnsWithoutDefault)...); err != nil {
 		t.Fatal(err)
 	}
 	if err = randomize.Struct(seed, &b, hardwareVendorDBTypes, false, strmangle.SetComplement(hardwareVendorPrimaryKeyColumns, hardwareVendorColumnsWithoutDefault)...); err != nil {
@@ -772,7 +772,7 @@ func testBMCToOneSetOpHardwareVendorUsingHardwareVendor(t *testing.T) {
 			t.Error("relationship struct not set to correct value")
 		}
 
-		if x.R.BMCS[0] != &a {
+		if x.R.ServerBMCS[0] != &a {
 			t.Error("failed to append to foreign relationship struct")
 		}
 		if a.HardwareVendorID != x.ID {
@@ -791,18 +791,18 @@ func testBMCToOneSetOpHardwareVendorUsingHardwareVendor(t *testing.T) {
 		}
 	}
 }
-func testBMCToOneSetOpServerUsingServer(t *testing.T) {
+func testServerBMCToOneSetOpServerUsingServer(t *testing.T) {
 	var err error
 
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 
-	var a BMC
+	var a ServerBMC
 	var b, c Server
 
 	seed := randomize.NewSeed()
-	if err = randomize.Struct(seed, &a, bmcDBTypes, false, strmangle.SetComplement(bmcPrimaryKeyColumns, bmcColumnsWithoutDefault)...); err != nil {
+	if err = randomize.Struct(seed, &a, serverBMCDBTypes, false, strmangle.SetComplement(serverBMCPrimaryKeyColumns, serverBMCColumnsWithoutDefault)...); err != nil {
 		t.Fatal(err)
 	}
 	if err = randomize.Struct(seed, &b, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
@@ -829,7 +829,7 @@ func testBMCToOneSetOpServerUsingServer(t *testing.T) {
 			t.Error("relationship struct not set to correct value")
 		}
 
-		if x.R.BMCS[0] != &a {
+		if x.R.ServerBMC != &a {
 			t.Error("failed to append to foreign relationship struct")
 		}
 		if a.ServerID != x.ID {
@@ -849,14 +849,14 @@ func testBMCToOneSetOpServerUsingServer(t *testing.T) {
 	}
 }
 
-func testBMCSReload(t *testing.T) {
+func testServerBMCSReload(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -871,14 +871,14 @@ func testBMCSReload(t *testing.T) {
 	}
 }
 
-func testBMCSReloadAll(t *testing.T) {
+func testServerBMCSReloadAll(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -888,21 +888,21 @@ func testBMCSReloadAll(t *testing.T) {
 		t.Error(err)
 	}
 
-	slice := BMCSlice{o}
+	slice := ServerBMCSlice{o}
 
 	if err = slice.ReloadAll(ctx, tx); err != nil {
 		t.Error(err)
 	}
 }
 
-func testBMCSSelect(t *testing.T) {
+func testServerBMCSSelect(t *testing.T) {
 	t.Parallel()
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -912,7 +912,7 @@ func testBMCSSelect(t *testing.T) {
 		t.Error(err)
 	}
 
-	slice, err := BMCS().All(ctx, tx)
+	slice, err := ServerBMCS().All(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -923,25 +923,25 @@ func testBMCSSelect(t *testing.T) {
 }
 
 var (
-	bmcDBTypes = map[string]string{`ID`: `uuid`, `ServerID`: `uuid`, `HardwareVendorID`: `uuid`, `HardwareModelID`: `uuid`, `Username`: `text`, `Ipaddress`: `inet`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`}
-	_          = bytes.MinRead
+	serverBMCDBTypes = map[string]string{`ID`: `uuid`, `ServerID`: `uuid`, `HardwareVendorID`: `uuid`, `HardwareModelID`: `uuid`, `Username`: `text`, `IPAddress`: `inet`, `MacAddress`: `macaddr`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`}
+	_                = bytes.MinRead
 )
 
-func testBMCSUpdate(t *testing.T) {
+func testServerBMCSUpdate(t *testing.T) {
 	t.Parallel()
 
-	if 0 == len(bmcPrimaryKeyColumns) {
+	if 0 == len(serverBMCPrimaryKeyColumns) {
 		t.Skip("Skipping table with no primary key columns")
 	}
-	if len(bmcAllColumns) == len(bmcPrimaryKeyColumns) {
+	if len(serverBMCAllColumns) == len(serverBMCPrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -951,7 +951,7 @@ func testBMCSUpdate(t *testing.T) {
 		t.Error(err)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -960,8 +960,8 @@ func testBMCSUpdate(t *testing.T) {
 		t.Error("want one record, got:", count)
 	}
 
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcPrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCPrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	if rowsAff, err := o.Update(ctx, tx, boil.Infer()); err != nil {
@@ -971,18 +971,18 @@ func testBMCSUpdate(t *testing.T) {
 	}
 }
 
-func testBMCSSliceUpdateAll(t *testing.T) {
+func testServerBMCSSliceUpdateAll(t *testing.T) {
 	t.Parallel()
 
-	if len(bmcAllColumns) == len(bmcPrimaryKeyColumns) {
+	if len(serverBMCAllColumns) == len(serverBMCPrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
 
 	seed := randomize.NewSeed()
 	var err error
-	o := &BMC{}
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := &ServerBMC{}
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
@@ -992,7 +992,7 @@ func testBMCSSliceUpdateAll(t *testing.T) {
 		t.Error(err)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -1001,18 +1001,18 @@ func testBMCSSliceUpdateAll(t *testing.T) {
 		t.Error("want one record, got:", count)
 	}
 
-	if err = randomize.Struct(seed, o, bmcDBTypes, true, bmcPrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	if err = randomize.Struct(seed, o, serverBMCDBTypes, true, serverBMCPrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	// Remove Primary keys and unique columns from what we plan to update
 	var fields []string
-	if strmangle.StringSliceMatch(bmcAllColumns, bmcPrimaryKeyColumns) {
-		fields = bmcAllColumns
+	if strmangle.StringSliceMatch(serverBMCAllColumns, serverBMCPrimaryKeyColumns) {
+		fields = serverBMCAllColumns
 	} else {
 		fields = strmangle.SetComplement(
-			bmcAllColumns,
-			bmcPrimaryKeyColumns,
+			serverBMCAllColumns,
+			serverBMCPrimaryKeyColumns,
 		)
 	}
 
@@ -1030,7 +1030,7 @@ func testBMCSSliceUpdateAll(t *testing.T) {
 		}
 	}
 
-	slice := BMCSlice{o}
+	slice := ServerBMCSlice{o}
 	if rowsAff, err := slice.UpdateAll(ctx, tx, updateMap); err != nil {
 		t.Error(err)
 	} else if rowsAff != 1 {
@@ -1038,29 +1038,29 @@ func testBMCSSliceUpdateAll(t *testing.T) {
 	}
 }
 
-func testBMCSUpsert(t *testing.T) {
+func testServerBMCSUpsert(t *testing.T) {
 	t.Parallel()
 
-	if len(bmcAllColumns) == len(bmcPrimaryKeyColumns) {
+	if len(serverBMCAllColumns) == len(serverBMCPrimaryKeyColumns) {
 		t.Skip("Skipping table with only primary key columns")
 	}
 
 	seed := randomize.NewSeed()
 	var err error
 	// Attempt the INSERT side of an UPSERT
-	o := BMC{}
-	if err = randomize.Struct(seed, &o, bmcDBTypes, true); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	o := ServerBMC{}
+	if err = randomize.Struct(seed, &o, serverBMCDBTypes, true); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	ctx := context.Background()
 	tx := MustTx(boil.BeginTx(ctx, nil))
 	defer func() { _ = tx.Rollback() }()
 	if err = o.Upsert(ctx, tx, false, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert BMC: %s", err)
+		t.Errorf("Unable to upsert ServerBMC: %s", err)
 	}
 
-	count, err := BMCS().Count(ctx, tx)
+	count, err := ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
@@ -1069,15 +1069,15 @@ func testBMCSUpsert(t *testing.T) {
 	}
 
 	// Attempt the UPDATE side of an UPSERT
-	if err = randomize.Struct(seed, &o, bmcDBTypes, false, bmcPrimaryKeyColumns...); err != nil {
-		t.Errorf("Unable to randomize BMC struct: %s", err)
+	if err = randomize.Struct(seed, &o, serverBMCDBTypes, false, serverBMCPrimaryKeyColumns...); err != nil {
+		t.Errorf("Unable to randomize ServerBMC struct: %s", err)
 	}
 
 	if err = o.Upsert(ctx, tx, true, nil, boil.Infer(), boil.Infer()); err != nil {
-		t.Errorf("Unable to upsert BMC: %s", err)
+		t.Errorf("Unable to upsert ServerBMC: %s", err)
 	}
 
-	count, err = BMCS().Count(ctx, tx)
+	count, err = ServerBMCS().Count(ctx, tx)
 	if err != nil {
 		t.Error(err)
 	}
