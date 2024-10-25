@@ -126,6 +126,9 @@ var (
 	FixtureServerBMCs []*models.ServerBMC
 	FixtureServerBMC1 *models.ServerBMC
 	FixtureServerBMC2 *models.ServerBMC
+
+	FixtureInstalledFirmwares []*models.InstalledFirmware
+	FixtureInstalledFirmware  *models.InstalledFirmware
 )
 
 func addFixtures(t *testing.T) error {
@@ -221,6 +224,10 @@ func addFixtures(t *testing.T) error {
 	}
 
 	if err := setupServerBMCFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupInstalledFirmwareFixtures(ctx, testDB); err != nil {
 		return err
 	}
 
@@ -1023,6 +1030,27 @@ func setupServerBMCFixtures(ctx context.Context, db *sqlx.DB) error {
 	for _, serverBMC := range FixtureServerBMCs {
 		if err := serverBMC.Insert(ctx, db, boil.Infer()); err != nil {
 			return errors.Wrap(err, "server BMC insert fixture")
+		}
+	}
+
+	return nil
+}
+
+func setupInstalledFirmwareFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureInstalledFirmwares = []*models.InstalledFirmware{
+		{
+			Version:           "1.0",
+			ServerComponentID: FixtureNemoLeftFin.ID,
+		},
+		{
+			Version:           "1.0",
+			ServerComponentID: FixtureNemoRightFin.ID,
+		},
+	}
+
+	for _, fixture := range FixtureInstalledFirmwares {
+		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "InstalledFirmware insert fixture")
 		}
 	}
 
