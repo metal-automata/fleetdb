@@ -198,6 +198,14 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		serverBmcs.GET("/:serverID", amw.AuthRequired(readScopes("server-bmcs")), r.serverBMCGet)
 		serverBmcs.DELETE("/:serverID", amw.AuthRequired(deleteScopes("server-bmcs")), r.serverBMCDelete)
 	}
+
+	installedFirmware := rg.Group("/installed-firmware")
+	{
+		installedFirmware.POST("", amw.AuthRequired(createScopes("installed-firmware")), r.installedFirmwareSet)
+		installedFirmware.GET("", amw.AuthRequired(readScopes("installed-firmware")), r.installedFirmwareList)
+		installedFirmware.GET("/:componentID", amw.AuthRequired(readScopes("installed-firmware")), r.installedFirmwareGet)
+		installedFirmware.DELETE("/:componentID", amw.AuthRequired(deleteScopes("installed-firmware")), r.installedFirmwareDelete)
+	}
 }
 
 func createScopes(items ...string) []string {
