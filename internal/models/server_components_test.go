@@ -571,6 +571,84 @@ func testServerComponentToManyAttributes(t *testing.T) {
 	}
 }
 
+func testServerComponentToManyInstalledFirmwares(t *testing.T) {
+	var err error
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a ServerComponent
+	var b, c InstalledFirmware
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverComponentDBTypes, true, serverComponentColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerComponent struct: %s", err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = randomize.Struct(seed, &b, installedFirmwareDBTypes, false, installedFirmwareColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, installedFirmwareDBTypes, false, installedFirmwareColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+
+	b.ServerComponentID = a.ID
+	c.ServerComponentID = a.ID
+
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := a.InstalledFirmwares().All(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bFound, cFound := false, false
+	for _, v := range check {
+		if v.ServerComponentID == b.ServerComponentID {
+			bFound = true
+		}
+		if v.ServerComponentID == c.ServerComponentID {
+			cFound = true
+		}
+	}
+
+	if !bFound {
+		t.Error("expected to find b")
+	}
+	if !cFound {
+		t.Error("expected to find c")
+	}
+
+	slice := ServerComponentSlice{&a}
+	if err = a.L.LoadInstalledFirmwares(ctx, tx, false, (*[]*ServerComponent)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.InstalledFirmwares); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	a.R.InstalledFirmwares = nil
+	if err = a.L.LoadInstalledFirmwares(ctx, tx, true, &a, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.InstalledFirmwares); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	if t.Failed() {
+		t.Logf("%#v", check)
+	}
+}
+
 func testServerComponentToManyVersionedAttributes(t *testing.T) {
 	var err error
 	ctx := context.Background()
@@ -899,6 +977,81 @@ func testServerComponentToManyRemoveOpAttributes(t *testing.T) {
 	}
 }
 
+func testServerComponentToManyAddOpInstalledFirmwares(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a ServerComponent
+	var b, c, d, e InstalledFirmware
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverComponentDBTypes, false, strmangle.SetComplement(serverComponentPrimaryKeyColumns, serverComponentColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*InstalledFirmware{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, installedFirmwareDBTypes, false, strmangle.SetComplement(installedFirmwarePrimaryKeyColumns, installedFirmwareColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreignersSplitByInsertion := [][]*InstalledFirmware{
+		{&b, &c},
+		{&d, &e},
+	}
+
+	for i, x := range foreignersSplitByInsertion {
+		err = a.AddInstalledFirmwares(ctx, tx, i != 0, x...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		first := x[0]
+		second := x[1]
+
+		if a.ID != first.ServerComponentID {
+			t.Error("foreign key was wrong value", a.ID, first.ServerComponentID)
+		}
+		if a.ID != second.ServerComponentID {
+			t.Error("foreign key was wrong value", a.ID, second.ServerComponentID)
+		}
+
+		if first.R.ServerComponent != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+		if second.R.ServerComponent != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+
+		if a.R.InstalledFirmwares[i*2] != first {
+			t.Error("relationship struct slice not set to correct value")
+		}
+		if a.R.InstalledFirmwares[i*2+1] != second {
+			t.Error("relationship struct slice not set to correct value")
+		}
+
+		count, err := a.InstalledFirmwares().Count(ctx, tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64((i + 1) * 2); count != want {
+			t.Error("want", want, "got", count)
+		}
+	}
+}
 func testServerComponentToManyAddOpVersionedAttributes(t *testing.T) {
 	var err error
 
