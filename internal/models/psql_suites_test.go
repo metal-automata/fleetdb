@@ -36,6 +36,8 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("HardwareVendors", testHardwareVendorsUpsert)
 
+	t.Run("InstalledFirmwares", testInstalledFirmwaresUpsert)
+
 	t.Run("ServerBMCS", testServerBMCSUpsert)
 
 	t.Run("ServerComponentTypes", testServerComponentTypesUpsert)

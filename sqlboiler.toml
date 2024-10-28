@@ -2,6 +2,7 @@ wipe = true
 pkgname = "models"
 output = "internal/models"
 strict-verify-mod-version = true
+add-soft-deletes = true
 
 [psql]
 dbname = "fleetdb_test"

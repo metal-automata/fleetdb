@@ -29,6 +29,7 @@ const (
 	hardwareVendorsEndpoint             = "hardware-vendors"
 	hardwareModelsEndpoint              = "hardware-models"
 	serverBMCsEndpoint                  = "server-bmcs"
+	installedFirmwareEndpoint           = "installed-firmware"
 )
 
 // ClientInterface provides an interface for the expected calls to interact with a fleetdb api
@@ -714,5 +715,41 @@ func (c *Client) GetServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerB
 // DeleteServerBMC purges a server's BMC record
 func (c *Client) DeleteServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerResponse, error) {
 	endpoint := path.Join(serverBMCsEndpoint, serverID.String())
+	return c.delete(ctx, endpoint)
+}
+
+// SetInstalledFirmware creates a server component installed firmware record - requires the component relation
+func (c *Client) SetInstalledFirmware(ctx context.Context, installedFirmware *InstalledFirmware) (*ServerResponse, error) {
+	return c.post(ctx, installedFirmwareEndpoint, installedFirmware)
+}
+
+// ListInstalledFirmware lists server component firmware installed records
+func (c *Client) ListInstalledFirmware(ctx context.Context) ([]*InstalledFirmware, *ServerResponse, error) {
+	installedFirmware := []*InstalledFirmware{}
+	resp := ServerResponse{Records: &installedFirmware}
+
+	if err := c.list(ctx, installedFirmwareEndpoint, nil, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	return installedFirmware, &resp, nil
+}
+
+// GetInstalledFirmware retrieves a server component firmware installed record by the componentID
+func (c *Client) GetInstalledFirmware(ctx context.Context, componentID uuid.UUID) (*InstalledFirmware, *ServerResponse, error) {
+	installedFirmware := &InstalledFirmware{}
+	resp := ServerResponse{Record: installedFirmware}
+
+	path := path.Join(installedFirmwareEndpoint, componentID.String())
+	if err := c.get(ctx, path, &resp); err != nil {
+		return nil, nil, err
+	}
+
+	return installedFirmware, &resp, nil
+}
+
+// DeleteInstalledFirmware purges a installed firmware record (soft delete)
+func (c *Client) DeleteInstalledFirmware(ctx context.Context, componentID uuid.UUID) (*ServerResponse, error) {
+	endpoint := path.Join(installedFirmwareEndpoint, componentID.String())
 	return c.delete(ctx, endpoint)
 }

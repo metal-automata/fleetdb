@@ -131,6 +131,9 @@ func cleanDB(t *testing.T) {
 	deleteFixture(ctx, t, models.HardwareVendors())
 	deleteFixture(ctx, t, models.HardwareModels())
 	deleteFixture(ctx, t, models.ServerBMCS())
+	if _, err := models.InstalledFirmwares(qm.WithDeleted()).DeleteAll(ctx, boil.GetContextDB(), true); err != nil {
+		t.Error(errors.Wrap(err, "table: model.InstalledFirmwares"))
+	}
 
 	testDB.Exec("SET sql_safe_updates = true;")
 }

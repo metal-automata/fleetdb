@@ -19,6 +19,7 @@ var TableNames = struct {
 	FirmwareSetValidationFacts string
 	HardwareModels             string
 	HardwareVendors            string
+	InstalledFirmware          string
 	ServerBMCS                 string
 	ServerComponentTypes       string
 	ServerComponents           string
@@ -42,6 +43,7 @@ var TableNames = struct {
 	FirmwareSetValidationFacts: "firmware_set_validation_facts",
 	HardwareModels:             "hardware_models",
 	HardwareVendors:            "hardware_vendors",
+	InstalledFirmware:          "installed_firmware",
 	ServerBMCS:                 "server_bmcs",
 	ServerComponentTypes:       "server_component_types",
 	ServerComponents:           "server_components",
