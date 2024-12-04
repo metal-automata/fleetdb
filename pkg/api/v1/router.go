@@ -31,9 +31,8 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	// /servers
 	srvs := rg.Group("/servers")
 	{
-		srvs.GET("", amw.AuthRequired(readScopes("server")), r.serverList)
+		// srvs.GET("", amw.AuthRequired(readScopes("server")), r.serverList)
 		srvs.POST("", amw.AuthRequired(createScopes("server")), r.serverCreate)
-
 		srvs.GET("/components", amw.AuthRequired(readScopes("server:component")), r.serverComponentList)
 
 		// /servers/:uuid
@@ -56,10 +55,20 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 			// /servers/:uuid/components
 			srvComponents := srv.Group("/components")
 			{
-				srvComponents.POST("", amw.AuthRequired(createScopes("server", "server:component")), r.serverComponentsCreate)
+				// collection method is inband OR outofband
+				srvComponents.POST("/init/:collection-method", amw.AuthRequired(createScopes("server", "server:component")), r.serverComponentsInitCollection)
 				srvComponents.GET("", amw.AuthRequired(readScopes("server", "server:component")), r.serverComponentGet)
-				srvComponents.PUT("", amw.AuthRequired(updateScopes("server", "server:component")), r.serverComponentUpdate)
-				srvComponents.DELETE("", amw.AuthRequired(deleteScopes("server", "server:component")), r.serverComponentDelete)
+				// serverComponentUpdateCollection will update existing component record and its relations for existing server component records
+				srvComponents.PUT("/update/:collection-method", amw.AuthRequired(updateScopes("server", "server:component")), r.serverComponentUpdateCollection)
+				srvComponents.DELETE("", amw.AuthRequired(deleteScopes("server", "server:component")), r.serverComponentDeleteAll)
+			}
+
+			// /server/:uuid/component-changes
+			componentChanges := srv.Group("/component-changes")
+			{
+				componentChanges.POST("/report", amw.AuthRequired(createScopes("component-change")), r.componentChangeReport)
+				componentChanges.POST("/accept", amw.AuthRequired(updateScopes("component-change")), r.componentChangeAccept)
+				componentChanges.DELETE("/report", amw.AuthRequired(deleteScopes("component-change")), r.componentChangeReportDeleteAll)
 			}
 
 			// /servers/:uuid/credentials/:slug
