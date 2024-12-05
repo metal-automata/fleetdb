@@ -47,7 +47,7 @@ func TestFleetdbGet(t *testing.T) {
 		require.Nil(t, err)
 
 		c := mockClient(string(jsonResponse), respCode)
-		res, _, err := c.Get(ctx, srv.UUID)
+		res, _, err := c.GetServer(ctx, srv.UUID, nil)
 
 		if !expectError {
 			assert.Equal(t, srv.UUID, res.UUID)
@@ -58,22 +58,23 @@ func TestFleetdbGet(t *testing.T) {
 	})
 }
 
-func TestFleetdbList(t *testing.T) {
-	mockClientTests(t, func(ctx context.Context, respCode int, expectError bool) error {
-		srv := []fleetdbapi.Server{{UUID: uuid.New(), FacilityCode: "Test1"}}
-		jsonResponse, err := json.Marshal(fleetdbapi.ServerResponse{Records: srv})
-		require.Nil(t, err)
-
-		c := mockClient(string(jsonResponse), respCode)
-		res, _, err := c.List(ctx, nil)
-
-		if !expectError {
-			assert.ElementsMatch(t, srv, res)
-		}
-
-		return err
-	})
-}
+// TODO: for when list is implemented
+//func TestFleetdbList(t *testing.T) {
+//	mockClientTests(t, func(ctx context.Context, respCode int, expectError bool) error {
+//		srv := []fleetdbapi.Server{{UUID: uuid.New(), FacilityCode: "Test1"}}
+//		jsonResponse, err := json.Marshal(fleetdbapi.ServerResponse{Records: srv})
+//		require.Nil(t, err)
+//
+//		c := mockClient(string(jsonResponse), respCode)
+//		res, _, err := c.List(ctx, nil)
+//
+//		if !expectError {
+//			assert.ElementsMatch(t, srv, res)
+//		}
+//
+//		return err
+//	})
+//}
 
 func TestFleetdbUpdate(t *testing.T) {
 	mockClientTests(t, func(ctx context.Context, respCode int, _ bool) error {
@@ -158,7 +159,7 @@ func TestFleetdbUpdateAttributes(t *testing.T) {
 
 func TestFleetdbComponentsGet(t *testing.T) {
 	mockClientTests(t, func(ctx context.Context, respCode int, expectError bool) error {
-		sc := []fleetdbapi.ServerComponent{{Name: "unit-test", Serial: "1234"}}
+		sc := []*fleetdbapi.ServerComponent{{Name: "unit-test", Serial: "1234"}}
 		jsonResponse, err := json.Marshal(fleetdbapi.ServerResponse{Records: sc})
 		require.Nil(t, err)
 
@@ -175,7 +176,7 @@ func TestFleetdbComponentsGet(t *testing.T) {
 
 func TestFleetdbComponentsList(t *testing.T) {
 	mockClientTests(t, func(ctx context.Context, respCode int, expectError bool) error {
-		sc := []fleetdbapi.ServerComponent{{Name: "unit-test", Serial: "1234"}}
+		sc := []*fleetdbapi.ServerComponent{{Name: "unit-test", Serial: "1234"}}
 		jsonResponse, err := json.Marshal(fleetdbapi.ServerResponse{Records: sc})
 		require.Nil(t, err)
 
@@ -196,7 +197,7 @@ func TestFleetdbComponentsCreate(t *testing.T) {
 		require.Nil(t, err)
 
 		c := mockClient(string(jsonResponse), respCode)
-		res, err := c.CreateComponents(ctx, uuid.New(), fleetdbapi.ServerComponentSlice{{Name: "unit-test"}})
+		res, err := c.InitComponentCollection(ctx, uuid.New(), fleetdbapi.ServerComponentSlice{{Name: "unit-test"}}, fleetdbapi.Inband)
 
 		if !expectError {
 			assert.Contains(t, res.Message, "resource created")
@@ -207,17 +208,25 @@ func TestFleetdbComponentsCreate(t *testing.T) {
 }
 
 func TestFleetdbComponentsUpdate(t *testing.T) {
+	testUUID := uuid.New()
+	testComponents := fleetdbapi.ServerComponentSlice{
+		{
+			Name:       "unit-test",
+			Model:      "TestModel",
+			Serial:     "TestSerial",
+			ServerUUID: testUUID,
+		},
+	}
+
 	mockClientTests(t, func(ctx context.Context, respCode int, expectError bool) error {
-		jsonResponse, err := json.Marshal(fleetdbapi.ServerResponse{Message: "resource updated"})
+		jsonResponse, err := json.Marshal(fleetdbapi.ServerResponse{Message: "component(s) updated"})
 		require.Nil(t, err)
 
 		c := mockClient(string(jsonResponse), respCode)
-		res, err := c.UpdateComponents(ctx, uuid.New(), fleetdbapi.ServerComponentSlice{{Name: "unit-test"}})
-
+		res, err := c.UpdateComponentCollection(ctx, testUUID, testComponents, fleetdbapi.Inband)
 		if !expectError {
-			assert.Contains(t, res.Message, "resource updated")
+			assert.Contains(t, res.Message, "component(s) updated")
 		}
-
 		return err
 	})
 }
