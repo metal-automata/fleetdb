@@ -78,15 +78,8 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 				svrCreds.PUT("", amw.AuthRequired([]string{"write:server:credentials"}), r.serverCredentialUpsert)
 				svrCreds.DELETE("", amw.AuthRequired([]string{"write:server:credentials"}), r.serverCredentialDelete)
 			}
-
-			// /servers/:uuid/versioned-attributes
-			srvVerAttrs := srv.Group("/versioned-attributes")
-			{
-				srvVerAttrs.GET("", amw.AuthRequired(readScopes("server", "server:versioned-attributes")), r.serverVersionedAttributesList)
-				srvVerAttrs.POST("", amw.AuthRequired(createScopes("server", "server:versioned-attributes")), r.serverVersionedAttributesCreate)
-				srvVerAttrs.GET("/:namespace", amw.AuthRequired(readScopes("server", "server:versioned-attributes")), r.serverVersionedAttributesGet)
-			}
 		}
+
 	}
 
 	// /server-component-types
@@ -207,6 +200,38 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		installedFirmware.GET("/:componentID", amw.AuthRequired(readScopes("installed-firmware")), r.installedFirmwareGet)
 		installedFirmware.DELETE("/:componentID", amw.AuthRequired(deleteScopes("installed-firmware")), r.installedFirmwareDelete)
 	}
+
+	componentStatus := rg.Group("/component-status")
+	{
+		componentStatus.POST("", amw.AuthRequired(createScopes("component-status")), r.componentStatusSet)
+		componentStatus.GET("", amw.AuthRequired(readScopes("component-status")), r.componentStatusList)
+		componentStatus.GET("/:componentID", amw.AuthRequired(readScopes("component-status")), r.componentStatusGet)
+		componentStatus.DELETE("/:componentID", amw.AuthRequired(deleteScopes("component-status")), r.componentStatusDelete)
+	}
+
+	serverStatus := rg.Group("/server-status")
+	{
+		serverStatus.POST("", amw.AuthRequired(createScopes("server-status")), r.serverStatusSet)
+		serverStatus.GET("", amw.AuthRequired(readScopes("server-status")), r.serverStatusList)
+		serverStatus.GET("/:serverID", amw.AuthRequired(readScopes("server-status")), r.serverStatusGet)
+		serverStatus.DELETE("/:serverID", amw.AuthRequired(deleteScopes("server-status")), r.serverStatusDelete)
+	}
+
+	componentCapability := rg.Group("/component-capability")
+	{
+		componentCapability.POST("", amw.AuthRequired(createScopes("component-capability")), r.componentCapabilitySet)
+		componentCapability.GET("/:componentID", amw.AuthRequired(readScopes("component-capability")), r.componentCapabilityGet)
+		componentCapability.DELETE("/:componentID", amw.AuthRequired(deleteScopes("component-capability")), r.componentCapabilityDelete)
+	}
+
+	componentMetadata := rg.Group("/component-metadata")
+	{
+		componentMetadata.POST("", amw.AuthRequired(createScopes("component-metadata")), r.componentMetadataSet)
+		componentMetadata.GET("/:componentID", amw.AuthRequired(readScopes("component-metadata")), r.componentMetadataList)
+		componentMetadata.GET("/:componentID/:namespace", amw.AuthRequired(readScopes("component-metadata")), r.componentMetadataGet)
+		componentMetadata.DELETE("/:componentID/:namespace", amw.AuthRequired(deleteScopes("component-metadata")), r.componentMetadataDelete)
+	}
+
 }
 
 func createScopes(items ...string) []string {
