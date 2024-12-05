@@ -12,7 +12,7 @@ import (
 )
 
 func (r *Router) serverAttributesList(c *gin.Context) {
-	srv, err := r.loadServerFromParams(c)
+	srv, err := r.loadServerFromParams(c.Request.Context(), c.Param("uuid"))
 	if err != nil {
 		if errors.Is(err, ErrUUIDParse) {
 			badRequestResponse(c, "", err)
@@ -58,7 +58,7 @@ func (r *Router) serverAttributesList(c *gin.Context) {
 }
 
 func (r *Router) serverAttributesGet(c *gin.Context) {
-	srv, err := r.loadServerFromParams(c)
+	srv, err := r.loadServerFromParams(c.Request.Context(), c.Param("uuid"))
 	if err != nil {
 		if errors.Is(err, ErrUUIDParse) {
 			badRequestResponse(c, "", err)
@@ -88,7 +88,7 @@ func (r *Router) serverAttributesGet(c *gin.Context) {
 }
 
 func (r *Router) serverAttributesCreate(c *gin.Context) {
-	srv, err := r.loadServerFromParams(c)
+	srv, err := r.loadServerFromParams(c.Request.Context(), c.Param("uuid"))
 	if err != nil {
 		if errors.Is(err, ErrUUIDParse) {
 			badRequestResponse(c, "", err)
@@ -121,7 +121,7 @@ func (r *Router) serverAttributesCreate(c *gin.Context) {
 }
 
 func (r *Router) serverAttributesUpdate(c *gin.Context) {
-	u, err := r.parseUUID(c)
+	u, err := r.parseUUID(c.Param("uuid"))
 	if err != nil {
 		return
 	}

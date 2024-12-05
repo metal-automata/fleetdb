@@ -667,7 +667,7 @@ func (r *Router) serverComponentFirmwareSetDelete(c *gin.Context) {
 }
 
 func (r *Router) componentFirmwareSetFromParams(c *gin.Context) (*models.ComponentFirmwareSet, error) {
-	u, err := r.parseUUID(c)
+	u, err := r.parseUUID(c.Param("uuid"))
 	if err != nil {
 		return nil, err
 	}

@@ -83,7 +83,7 @@ func (r *Router) serverCredentialDelete(c *gin.Context) {
 }
 
 func (r *Router) serverCredentialUpsert(c *gin.Context) {
-	srvUUID, err := r.parseUUID(c)
+	srvUUID, err := r.parseUUID(c.Param("uuid"))
 	if err != nil {
 		return
 	}

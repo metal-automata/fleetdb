@@ -245,31 +245,18 @@ func deleteScopes(items ...string) []string {
 	return s
 }
 
-func (r *Router) parseUUID(c *gin.Context) (uuid.UUID, error) {
-	u, err := uuid.Parse(c.Param("uuid"))
+func (r *Router) parseUUID(id string) (uuid.UUID, error) {
+	u, err := uuid.Parse(id)
 	if err != nil {
-		badRequestResponse(c, "failed to parse uuid", err)
+		return uuid.Nil, errors.Wrap(ErrUUIDParse, err.Error())
 	}
 
-	return u, err
+	return u, nil
 }
 
-func (r *Router) loadServerFromParams(c *gin.Context) (*models.Server, error) {
-	u, err := r.parseUUID(c)
-	if err != nil {
-		return nil, errors.Wrap(ErrUUIDParse, err.Error())
-	}
-
-	srv, err := models.FindServer(c.Request.Context(), r.DB, u.String())
-	if err != nil {
-		return nil, err
-	}
-
-	return srv, nil
-}
-
+// TODO: purge method, most likely broken
 func (r *Router) loadOrCreateServerFromParams(c *gin.Context) (*models.Server, error) {
-	u, err := r.parseUUID(c)
+	u, err := r.parseUUID(c.Param("uuid"))
 	if err != nil {
 		return nil, err
 	}
@@ -294,8 +281,9 @@ func (r *Router) loadOrCreateServerFromParams(c *gin.Context) (*models.Server, e
 	return srv, nil
 }
 
+// TODO: purge method, most likely broken
 func (r *Router) loadComponentFirmwareVersionFromParams(c *gin.Context) (*models.ComponentFirmwareVersion, error) {
-	u, err := r.parseUUID(c)
+	u, err := r.parseUUID(c.Param("uuid"))
 	if err != nil {
 		return nil, err
 	}
