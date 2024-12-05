@@ -1,6 +1,7 @@
 package fleetdbapi
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -14,14 +15,18 @@ import (
 	"github.com/metal-automata/fleetdb/internal/models"
 )
 
+// TODO
+// - reference server credentials for Username, Password attributes and drop those columns from server_bmcs table
+
 type ServerBMC struct {
 	ID                 uuid.UUID `json:"id"`
 	ServerID           uuid.UUID `json:"server_id" binding:"required,uuid"` // Note: binding attributes should not have spaces
 	HardwareVendorName string    `json:"hardware_vendor_name" binding:"required"`
 	HardwareVendorID   string    `json:"-"`
-	HardwareModelName  string    `json:"hardware_model_name"`
+	HardwareModelName  string    `json:"hardware_model_name,omitempty"`
 	HardwareModelID    string    `json:"-"`
 	Username           string    `json:"username" binding:"required"`
+	Password           string    `json:"password" binding:"required"`
 	IPAddress          string    `json:"ipaddress" binding:"required,ip"`
 	MacAddress         string    `json:"macaddress" binding:"mac"`
 	CreatedAt          time.Time `json:"created_at"`
@@ -67,36 +72,42 @@ func (r *Router) serverBMCCreate(c *gin.Context) {
 		badRequestResponse(c, "invalid ServerBMC payload", err)
 		return
 	}
+	dbBmc := t.toDBModel()
+	ctx := c.Request.Context()
 
-	bmc := t.toDBModel()
-
-	// identify hardware vendor id
-	dbHardwareVendor, err := r.hardwareVendorBySlug(c.Request.Context(), t.HardwareVendorName)
+	id, err := r.insertServerBMC(ctx, r.DB, t.HardwareVendorName, t.HardwareModelName, dbBmc)
 	if err != nil {
-		badRequestResponse(c, "", errors.Wrap(err, "hardware_vendor not identified: "+t.HardwareVendorName))
+		dbErrorResponse2(c, "ServerBMC insert error", err)
 		return
+	}
+
+	createdResponse(c, id)
+}
+
+func (r *Router) insertServerBMC(ctx context.Context, tx boil.ContextExecutor, hwVendor, hwModel string, bmc *models.ServerBMC) (string, error) {
+	// identify hardware vendor id
+	dbHardwareVendor, err := r.hardwareVendorBySlug(ctx, hwVendor)
+	if err != nil {
+		return "", err
 	}
 
 	bmc.HardwareVendorID = dbHardwareVendor.ID
 
 	// identify hardware model id
-	if t.HardwareModelName != "" {
-		mod := qm.Where("name=?", t.HardwareModelName)
-		dbHardwareModel, err := models.HardwareModels(mod).One(c.Request.Context(), r.DB)
+	if hwModel != "" {
+		dbHm, err := r.hardwareModelBySlug(ctx, hwModel)
 		if err != nil {
-			dbErrorResponse2(c, "hardware model lookup error", err)
-			return
+			return "", err
 		}
 
-		bmc.HardwareModelID = dbHardwareModel.ID
+		bmc.HardwareModelID = dbHm.ID
 	}
 
-	if err := bmc.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
-		dbErrorResponse(c, err)
-		return
+	if err := bmc.Insert(ctx, tx, boil.Infer()); err != nil {
+		return "", err
 	}
 
-	createdResponse(c, bmc.ID)
+	return bmc.ID, nil
 }
 
 func (r *Router) serverBMCList(c *gin.Context) {
