@@ -32,6 +32,7 @@ type ServerResponse struct {
 	Message          string              `json:"message,omitempty"`
 	Error            string              `json:"error,omitempty"`
 	Slug             string              `json:"slug,omitempty"`
+	Data             interface{}         `json:"data,omitempty"` // data is not a DB record/records, but is structured
 	Record           interface{}         `json:"record,omitempty"`
 	Records          interface{}         `json:"records,omitempty"`
 }
@@ -125,9 +126,13 @@ func dbErrorResponse2(c *gin.Context, message string, err error) {
 	if pgErr, ok := err.(*pq.Error); ok {
 		if pgErr.Code == pgUniqueViolationErrorCode { // Unique violation error code in PostgreSQL
 			err = errors.Wrapf(err, "duplicate key value violates unique constraint %s: %s", pgErr.Constraint, pgErr.Detail)
-			badRequestResponse(c, "", err)
+			badRequestResponse(c, pgErr.Detail, err)
 			return
 		}
+
+		// TODO: fix this to log or return the error detail
+		badRequestResponse(c, pgErr.Detail, err)
+		return
 	}
 
 	if errors.Is(err, sql.ErrNoRows) {
