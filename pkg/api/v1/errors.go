@@ -16,6 +16,12 @@ var (
 	ErrNoNextPage = errors.New("no next page found")
 	// ErrUUIDParse is returned when the UUID is invalid.
 	ErrUUIDParse = errors.New("UUID parse error")
+	// ErrValidatePayload is returned when the recieved payload failed validation
+	ErrValidatePayload = errors.New("payload validation error")
+	// ErrDBQuery indicates a DB query returned an error
+	ErrDBQuery = errors.New("DB query returned error")
+	// ErrComponentType indicates the component type is not supported
+	ErrComponentType = errors.New("Component type error")
 )
 
 // ClientError is returned when invalid arguments are provided to the client
