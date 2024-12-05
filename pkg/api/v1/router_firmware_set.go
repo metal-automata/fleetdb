@@ -130,7 +130,7 @@ func (r *Router) selectFirmware(c *gin.Context, mods []qm.QueryMod) {
 	listResponse(c, firmwareSets, pd)
 }
 
-func (r *Router) serverComponentFirmwareSetsSelect(c *gin.Context, vendor, model, labels string) ([]AttributeListParams, error) {
+func (r *Router) serverComponentFirmwareSetsSelect(_ *gin.Context, vendor, model, labels string) ([]AttributeListParams, error) {
 	listParams := make([]AttributeListParams, 0)
 
 	listParams = appendToQueryFirmwareSetsParams(listParams, "vendor", "eq", vendor)
@@ -358,8 +358,8 @@ func (r *Router) serverComponentFirmwareSetUpdate(c *gin.Context) {
 	}
 
 	var newValues ComponentFirmwareSetRequest
-	if err := c.ShouldBindJSON(&newValues); err != nil {
-		badRequestResponse(c, "invalid payload: ComponentFirmwareSet{}", err)
+	if errBind := c.ShouldBindJSON(&newValues); errBind != nil {
+		badRequestResponse(c, "invalid payload: ComponentFirmwareSet{}", errBind)
 		return
 	}
 
@@ -574,8 +574,8 @@ func (r *Router) serverComponentFirmwareSetRemoveFirmware(c *gin.Context) {
 	}
 
 	var payload ComponentFirmwareSetRequest
-	if err := c.ShouldBindJSON(&payload); err != nil {
-		badRequestResponse(c, "invalid payload: ComponentFirmwareSet{}", err)
+	if errBind := c.ShouldBindJSON(&payload); errBind != nil {
+		badRequestResponse(c, "invalid payload: ComponentFirmwareSet{}", errBind)
 		return
 	}
 
@@ -606,21 +606,21 @@ func (r *Router) serverComponentFirmwareSetRemoveFirmware(c *gin.Context) {
 
 	for _, firmwareUUID := range payload.ComponentFirmwareUUIDs {
 		// parse uuid
-		firmwareUUIDParsed, err := uuid.Parse(firmwareUUID)
-		if err != nil {
+		firmwareUUIDParsed, errUUID := uuid.Parse(firmwareUUID)
+		if errUUID != nil {
 			badRequestResponse(
 				c,
 				"invalid firmware UUID: "+firmwareUUID,
-				errors.Wrap(errComponentFirmwareSetRequest, err.Error()),
+				errors.Wrap(errComponentFirmwareSetRequest, errUUID.Error()),
 			)
 
 			return
 		}
 
 		// validate firmware is part of set
-		setMap, err := r.firmwareSetMap(c.Request.Context(), firmwareSet, firmwareUUIDParsed)
-		if err != nil {
-			dbErrorResponse(c, err)
+		setMap, errSet := r.firmwareSetMap(c.Request.Context(), firmwareSet, firmwareUUIDParsed)
+		if errSet != nil {
+			dbErrorResponse(c, errSet)
 
 			return
 		}

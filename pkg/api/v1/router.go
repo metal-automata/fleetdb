@@ -1,7 +1,6 @@
 package fleetdbapi
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +8,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-automata/rivets/ginauth"
 	"github.com/pkg/errors"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 	"go.uber.org/zap"
 	"gocloud.dev/secrets"
 
@@ -42,16 +40,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 			srv.PUT("", amw.AuthRequired(updateScopes("server")), r.serverUpdate)
 			srv.DELETE("", amw.AuthRequired(deleteScopes("server")), r.serverDelete)
 
-			// /servers/:uuid/attributes
-			srvAttrs := srv.Group("/attributes")
-			{
-				srvAttrs.GET("", amw.AuthRequired(readScopes("server", "server:attributes")), r.serverAttributesList)
-				srvAttrs.POST("", amw.AuthRequired(createScopes("server", "server:attributes")), r.serverAttributesCreate)
-				srvAttrs.GET("/:namespace", amw.AuthRequired(readScopes("server", "server:attributes")), r.serverAttributesGet)
-				srvAttrs.PUT("/:namespace", amw.AuthRequired(updateScopes("server", "server:attributes")), r.serverAttributesUpdate)
-				srvAttrs.DELETE("/:namespace", amw.AuthRequired(deleteScopes("server", "server:attributes")), r.serverAttributesDelete)
-			}
-
 			// /servers/:uuid/components
 			srvComponents := srv.Group("/components")
 			{
@@ -79,7 +67,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 				svrCreds.DELETE("", amw.AuthRequired([]string{"write:server:credentials"}), r.serverCredentialDelete)
 			}
 		}
-
 	}
 
 	// /server-component-types
@@ -231,7 +218,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		componentMetadata.GET("/:componentID/:namespace", amw.AuthRequired(readScopes("component-metadata")), r.componentMetadataGet)
 		componentMetadata.DELETE("/:componentID/:namespace", amw.AuthRequired(deleteScopes("component-metadata")), r.componentMetadataDelete)
 	}
-
 }
 
 func createScopes(items ...string) []string {
@@ -277,33 +263,6 @@ func (r *Router) parseUUID(id string) (uuid.UUID, error) {
 	}
 
 	return u, nil
-}
-
-// TODO: purge method, most likely broken
-func (r *Router) loadOrCreateServerFromParams(c *gin.Context) (*models.Server, error) {
-	u, err := r.parseUUID(c.Param("uuid"))
-	if err != nil {
-		return nil, err
-	}
-
-	srv, err := models.FindServer(c.Request.Context(), r.DB, u.String())
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			srv = &models.Server{ID: u.String()}
-			if err := srv.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
-				dbErrorResponse(c, err)
-				return nil, err
-			}
-
-			return srv, nil
-		}
-
-		dbErrorResponse(c, err)
-
-		return nil, err
-	}
-
-	return srv, nil
 }
 
 // TODO: purge method, most likely broken

@@ -43,27 +43,27 @@ func (c *ComponentStatus) Equals(b *ComponentStatus) bool {
 	return true
 }
 
-func (t *ComponentStatus) fromDBModel(dbT *models.ComponentStatus) {
-	t.ID = uuid.MustParse(dbT.ID)
-	t.ServerComponentID = uuid.MustParse(dbT.ServerComponentID)
-	t.Health = dbT.Health
-	t.State = dbT.State
-	t.Info = dbT.Info.String
-	t.CreatedAt = dbT.CreatedAt.Time
-	t.UpdatedAt = dbT.UpdatedAt.Time
+func (c *ComponentStatus) fromDBModel(dbT *models.ComponentStatus) {
+	c.ID = uuid.MustParse(dbT.ID)
+	c.ServerComponentID = uuid.MustParse(dbT.ServerComponentID)
+	c.Health = dbT.Health
+	c.State = dbT.State
+	c.Info = dbT.Info.String
+	c.CreatedAt = dbT.CreatedAt.Time
+	c.UpdatedAt = dbT.UpdatedAt.Time
 
 	if dbT.R != nil {
-		t.ComponentName = dbT.R.ServerComponent.Name.String
+		c.ComponentName = dbT.R.ServerComponent.Name.String
 	}
 }
 
-func (t *ComponentStatus) toDBModel(componentID string) (*models.ComponentStatus, error) {
-	if t.ID == uuid.Nil {
-		t.ID = uuid.New()
+func (c *ComponentStatus) toDBModel(componentID string) (*models.ComponentStatus, error) {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
 	}
 
-	if componentID == "" && t.ServerComponentID != uuid.Nil {
-		componentID = t.ServerComponentID.String()
+	if componentID == "" && c.ServerComponentID != uuid.Nil {
+		componentID = c.ServerComponentID.String()
 	}
 
 	if _, err := uuid.Parse(componentID); err != nil {
@@ -71,11 +71,11 @@ func (t *ComponentStatus) toDBModel(componentID string) (*models.ComponentStatus
 	}
 
 	return &models.ComponentStatus{
-		ID:                t.ID.String(),
+		ID:                c.ID.String(),
 		ServerComponentID: componentID,
-		Health:            t.Health,
-		State:             t.State,
-		Info:              null.StringFrom(t.Info),
+		Health:            c.Health,
+		State:             c.State,
+		Info:              null.StringFrom(c.Info),
 	}, nil
 }
 

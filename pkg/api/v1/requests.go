@@ -89,12 +89,12 @@ func (c *Client) do(req *http.Request, result interface{}) error {
 	}
 
 	// dump response if c.dumper is set
-	if err := c.dumpResponse(resp); err != nil {
-		return err
+	if errDmp := c.dumpResponse(resp); errDmp != nil {
+		return errDmp
 	}
 
-	if err := ensureValidServerResponse(resp); err != nil {
-		return err
+	if errValid := ensureValidServerResponse(resp); errValid != nil {
+		return errValid
 	}
 
 	defer resp.Body.Close()

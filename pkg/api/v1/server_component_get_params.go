@@ -5,9 +5,10 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/metal-automata/fleetdb/internal/models"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go.uber.org/zap"
+
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 const (
@@ -54,7 +55,7 @@ func (p *ServerComponentGetParams) setQuery(q url.Values) {
 		q.Set(k, v[0])
 	}
 
-	//url.ParseQuery()
+	// url.ParseQuery()
 	if p.Pagination != nil {
 		p.Pagination.setQuery(q)
 	}
@@ -167,6 +168,41 @@ func (p *ServerComponentGetParams) encode() string {
 	return "include=" + strings.Join(includes, ",")
 }
 
+// returns query mods based get parameters
+func (p *ServerComponentGetParams) queryMods(joinComponentTypeIDs bool) []qm.QueryMod {
+	//	TODO: make mods reusable
+	scqm := &serverComponentQueryMods{}
+
+	mods := []qm.QueryMod{}
+
+	// join server component on server component types
+	if joinComponentTypeIDs {
+		mods = append(mods, scqm.types()...)
+	}
+
+	// join server components on installed firmware
+	if p.InstalledFirmware {
+		mods = append(mods, scqm.installedFirmware()...)
+	}
+
+	// join server components on status
+	if p.Status {
+		mods = append(mods, scqm.status()...)
+	}
+
+	// join server components on capabilities
+	if p.Capabilities {
+		mods = append(mods, scqm.capabilities()...)
+	}
+
+	// join server components on metadaa
+	if len(p.Metadata) > 0 {
+		mods = append(mods, scqm.metadata(p.Metadata)...)
+	}
+
+	return mods
+}
+
 // struct holds methods to return JOIN query mods on the server components table
 type serverComponentQueryMods struct{}
 
@@ -256,39 +292,4 @@ func (s *serverComponentQueryMods) capabilities() []qm.QueryMod {
 		// Load relationship in db model struct field R
 		qm.Load(models.ServerComponentRels.ComponentCapabilities),
 	}
-}
-
-// returns query mods based get parameters
-func (s *ServerComponentGetParams) queryMods(joinComponentTypeIDs bool) []qm.QueryMod {
-	//	TODO: make mods reusable
-	scqm := &serverComponentQueryMods{}
-
-	mods := []qm.QueryMod{}
-
-	// join server component on server component types
-	if joinComponentTypeIDs {
-		mods = append(mods, scqm.types()...)
-	}
-
-	// join server components on installed firmware
-	if s.InstalledFirmware {
-		mods = append(mods, scqm.installedFirmware()...)
-	}
-
-	// join server components on status
-	if s.Status {
-		mods = append(mods, scqm.status()...)
-	}
-
-	// join server components on capabilities
-	if s.Capabilities {
-		mods = append(mods, scqm.capabilities()...)
-	}
-
-	// join server components on metadaa
-	if len(s.Metadata) > 0 {
-		mods = append(mods, scqm.metadata(s.Metadata)...)
-	}
-
-	return mods
 }

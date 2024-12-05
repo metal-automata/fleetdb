@@ -62,9 +62,9 @@ func serve(ctx context.Context) {
 
 	dbtools.RegisterHooks()
 
-	if err := dbtools.SetupComponentTypes(ctx, db); err != nil {
+	if errSetup := dbtools.SetupComponentTypes(ctx, db); errSetup != nil {
 		logger.With(
-			zap.Error(err),
+			zap.Error(errSetup),
 		).Fatal("set up component types")
 	}
 

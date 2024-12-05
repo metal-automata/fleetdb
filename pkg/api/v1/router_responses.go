@@ -123,7 +123,7 @@ func dbErrorResponse(c *gin.Context, err error) {
 }
 
 func dbErrorResponse2(c *gin.Context, message string, err error) {
-	if pgErr, ok := err.(*pq.Error); ok {
+	if pgErr, ok := err.(*pq.Error); ok { // nolint:errorlint // TODO fixme - use errors.As
 		if pgErr.Code == pgUniqueViolationErrorCode { // Unique violation error code in PostgreSQL
 			err = errors.Wrapf(err, "duplicate key value violates unique constraint %s: %s", pgErr.Constraint, pgErr.Detail)
 			badRequestResponse(c, pgErr.Detail, err)

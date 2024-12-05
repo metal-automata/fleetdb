@@ -71,8 +71,8 @@ func (s ServerComponentSlice) Compare(incomming ServerComponentSlice) (creates, 
 	for key, inc := range incommingMap {
 		if current, exists := currentMap[key]; exists {
 			if _, equal := current.Equals(inc); !equal {
-				// uncomment for debugging comparision
-				//fmt.Printf("component not equal, key: %s cause: %s\n", key, cause)
+				// uncomment for debugging comparison
+				// fmt.Printf("component not equal, key: %s cause: %s\n", key, cause)
 				updates = append(updates, inc)
 			}
 			delete(currentMap, key) // Remove from map to track deletes
@@ -89,23 +89,12 @@ func (s ServerComponentSlice) Compare(incomming ServerComponentSlice) (creates, 
 	return creates, updates, deletes
 }
 
-// findBySlugSerial returns a pointer to a component that matches the given slug, serial attributes
-func (t ServerComponentSlice) findBySlugSerial(slug, serial string) *ServerComponent {
-	for _, c := range t {
-		if strings.EqualFold(slug, c.Name) && strings.EqualFold(serial, c.Serial) {
-			return c
-		}
-	}
-
-	return nil
-}
-
-func (t *ServerComponentSlice) fromDBModel(dbTs models.ServerComponentSlice) {
-	for _, dbC := range dbTs {
+func (s *ServerComponentSlice) fromDBModel(dbTS models.ServerComponentSlice) {
+	for _, dbC := range dbTS {
 		c := ServerComponent{}
 		c.fromDBModel(dbC)
 
-		*t = append(*t, &c)
+		*s = append(*s, &c)
 	}
 }
 
@@ -323,14 +312,14 @@ func (r *Router) serverComponentGet(c *gin.Context) {
 	params := &ServerComponentGetParams{}
 	params.decode(c.Request.URL.Query())
 
-	dbTs, err := srv.ServerComponents(params.queryMods(true)...).All(c.Request.Context(), r.DB)
+	dbTS, err := srv.ServerComponents(params.queryMods(true)...).All(c.Request.Context(), r.DB)
 	if err != nil {
 		dbErrorResponse(c, err)
 		return
 	}
 
-	serverComponents := make(ServerComponentSlice, 0, len(dbTs))
-	serverComponents.fromDBModel(dbTs)
+	serverComponents := make(ServerComponentSlice, 0, len(dbTS))
+	serverComponents.fromDBModel(dbTS)
 
 	pd := paginationData{
 		pageCount:  len(serverComponents),
@@ -375,12 +364,13 @@ func (r *Router) serverComponentsInitCollection(c *gin.Context) {
 
 	// components payload
 	var incoming ServerComponentSlice
-	if err := c.ShouldBindJSON(&incoming); err != nil {
+	if errBind := c.ShouldBindJSON(&incoming); errBind != nil {
 		badRequestResponse(
 			c,
 			"",
 			errors.Wrap(
-				errSrvComponentPayload, "failed to unmarshal JSON as ServerComponentSlice: "+err.Error()),
+				errSrvComponentPayload, "failed to unmarshal JSON as ServerComponentSlice: "+errBind.Error(),
+			),
 		)
 		return
 	}
@@ -531,12 +521,12 @@ func (r *Router) serverComponentUpdateCollection(c *gin.Context) {
 
 	// components payload
 	var incoming ServerComponentSlice
-	if err := c.ShouldBindJSON(&incoming); err != nil {
+	if errBind := c.ShouldBindJSON(&incoming); errBind != nil {
 		badRequestResponse(
 			c,
 			"",
 			errors.Wrap(
-				errSrvComponentPayload, err.Error()),
+				errSrvComponentPayload, errBind.Error()),
 		)
 		return
 	}

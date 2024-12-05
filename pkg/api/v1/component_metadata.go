@@ -68,48 +68,48 @@ func fromComponentMetadatumDBSlice(sl models.ComponentMetadatumSlice) []*Compone
 	return list
 }
 
-func (t *ComponentMetadata) fromDBModel(dbT *models.ComponentMetadatum) {
-	t.ID = uuid.MustParse(dbT.ID)
-	t.ServerComponentID = uuid.MustParse(dbT.ServerComponentID)
-	t.Namespace = dbT.Namespace
-	t.Data = dbT.Data
-	t.CreatedAt = dbT.CreatedAt.Time
-	t.UpdatedAt = dbT.UpdatedAt.Time
+func (c *ComponentMetadata) fromDBModel(dbT *models.ComponentMetadatum) {
+	c.ID = uuid.MustParse(dbT.ID)
+	c.ServerComponentID = uuid.MustParse(dbT.ServerComponentID)
+	c.Namespace = dbT.Namespace
+	c.Data = dbT.Data
+	c.CreatedAt = dbT.CreatedAt.Time
+	c.UpdatedAt = dbT.UpdatedAt.Time
 
 	if dbT.R != nil {
-		t.ComponentName = dbT.R.ServerComponent.Name.String
+		c.ComponentName = dbT.R.ServerComponent.Name.String
 	}
 }
 
-func (t *ComponentMetadata) toDBModel(componentID string) (*models.ComponentMetadatum, error) {
-	if t.ID == uuid.Nil {
-		t.ID = uuid.New()
+func (c *ComponentMetadata) toDBModel(componentID string) (*models.ComponentMetadatum, error) {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
 	}
 
-	if componentID == "" && t.ServerComponentID != uuid.Nil {
-		componentID = t.ServerComponentID.String()
+	if componentID == "" && c.ServerComponentID != uuid.Nil {
+		componentID = c.ServerComponentID.String()
 	}
 
 	if _, err := uuid.Parse(componentID); err != nil {
 		return nil, errors.Wrap(ErrValidatePayload, "invalid componentID, "+err.Error())
 	}
 
-	if t.Namespace != ComponentMetadataGenericNS {
-		return nil, errors.Wrap(ErrValidatePayload, "unsupported metadata namespace: "+t.Namespace)
+	if c.Namespace != ComponentMetadataGenericNS {
+		return nil, errors.Wrap(ErrValidatePayload, "unsupported metadata namespace: "+c.Namespace)
 	}
 
 	return &models.ComponentMetadatum{
-		ID:                t.ID.String(),
+		ID:                c.ID.String(),
 		ServerComponentID: componentID,
-		Namespace:         t.Namespace,
-		Data:              t.Data,
+		Namespace:         c.Namespace,
+		Data:              c.Data,
 	}, nil
 }
 
 // insert/update component metadata - the caller needs to invoke this within a transaction.
 func (r *Router) upsertComponentMetadata(ctx context.Context, tx boil.ContextExecutor, componentID string, cm []*ComponentMetadata) error {
 	for _, metadata := range cm {
-		dbComponentMetadata, err := metadata.toDBModel(componentID) // component ID passed by paramter for validation
+		dbComponentMetadata, err := metadata.toDBModel(componentID) // component ID passed by parameter for validation
 		if err != nil {
 			return err
 		}

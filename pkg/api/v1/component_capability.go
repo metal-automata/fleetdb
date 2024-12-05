@@ -43,39 +43,27 @@ func (c *ComponentCapability) Equals(b *ComponentCapability) bool {
 	return true
 }
 
-func fromComponentCapabilityDBSlice(sl models.ComponentCapabilitySlice) []*ComponentCapability {
-	list := make([]*ComponentCapability, 0, len(sl))
-	for _, dbCap := range sl {
-		cap := &ComponentCapability{}
-		cap.fromDBModel(dbCap)
-
-		list = append(list, cap)
-	}
-
-	return list
-}
-
-func (t *ComponentCapability) fromDBModel(dbT *models.ComponentCapability) {
-	t.ID = uuid.MustParse(dbT.ID)
-	t.ServerComponentID = uuid.MustParse(dbT.ServerComponentID)
-	t.Name = dbT.Name
-	t.Description = dbT.Description.String
-	t.Enabled = dbT.Enabled.Bool
-	t.CreatedAt = dbT.CreatedAt.Time
-	t.UpdatedAt = dbT.UpdatedAt.Time
+func (c *ComponentCapability) fromDBModel(dbT *models.ComponentCapability) {
+	c.ID = uuid.MustParse(dbT.ID)
+	c.ServerComponentID = uuid.MustParse(dbT.ServerComponentID)
+	c.Name = dbT.Name
+	c.Description = dbT.Description.String
+	c.Enabled = dbT.Enabled.Bool
+	c.CreatedAt = dbT.CreatedAt.Time
+	c.UpdatedAt = dbT.UpdatedAt.Time
 
 	if dbT.R != nil {
-		t.ComponentName = dbT.R.ServerComponent.Name.String
+		c.ComponentName = dbT.R.ServerComponent.Name.String
 	}
 }
 
-func (t *ComponentCapability) toDBModel(componentID string) (*models.ComponentCapability, error) {
-	if t.ID == uuid.Nil {
-		t.ID = uuid.New()
+func (c *ComponentCapability) toDBModel(componentID string) (*models.ComponentCapability, error) {
+	if c.ID == uuid.Nil {
+		c.ID = uuid.New()
 	}
 
-	if componentID == "" && t.ServerComponentID != uuid.Nil {
-		componentID = t.ServerComponentID.String()
+	if componentID == "" && c.ServerComponentID != uuid.Nil {
+		componentID = c.ServerComponentID.String()
 	}
 
 	if _, err := uuid.Parse(componentID); err != nil {
@@ -83,11 +71,11 @@ func (t *ComponentCapability) toDBModel(componentID string) (*models.ComponentCa
 	}
 
 	return &models.ComponentCapability{
-		ID:                t.ID.String(),
+		ID:                c.ID.String(),
 		ServerComponentID: componentID,
-		Name:              t.Name,
-		Description:       null.StringFrom(t.Description),
-		Enabled:           null.BoolFrom(t.Enabled),
+		Name:              c.Name,
+		Description:       null.StringFrom(c.Description),
+		Enabled:           null.BoolFrom(c.Enabled),
 	}, nil
 }
 

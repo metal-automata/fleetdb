@@ -108,8 +108,8 @@ func (r *Router) serverCredentialUpsert(c *gin.Context) {
 	}
 
 	var newValue serverCredentialValues
-	if err := c.ShouldBindJSON(&newValue); err != nil {
-		badRequestResponse(c, "invalid server secret value", err)
+	if errBind := c.ShouldBindJSON(&newValue); errBind != nil {
+		badRequestResponse(c, "invalid server secret value", errBind)
 		return
 	}
 

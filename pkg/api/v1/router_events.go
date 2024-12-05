@@ -196,8 +196,8 @@ func (r *Router) updateEvent(c *gin.Context) {
 	}
 
 	evt := &Event{}
-	if err := c.ShouldBindJSON(evt); err != nil {
-		badRequestResponse(c, "invalid event payload", err)
+	if errBind := c.ShouldBindJSON(evt); errBind != nil {
+		badRequestResponse(c, "invalid event payload", errBind)
 		return
 	}
 

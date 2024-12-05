@@ -53,7 +53,6 @@ func (r *Converter) FromCommonDevice(serverID uuid.UUID, hw *common.Device) (*Se
 		Vendor:     common.FormatVendorName(hw.Vendor),
 		Components: components,
 	}, nil
-
 }
 
 // toComponentSlice converts a common.Device object into a slice of components along with its attributes

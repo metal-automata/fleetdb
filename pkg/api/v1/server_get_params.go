@@ -5,8 +5,9 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/metal-automata/fleetdb/internal/models"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 const (
@@ -198,7 +199,7 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 			),
 			qm.Where(fmt.Sprintf("t.%s=?", models.ServerCredentialTypeColumns.Slug), "bmc"),
 			// Load relationship in db model struct field R
-			//qm.Load(models.ServerCredentialRels.ServerCredentialType),
+			// qm.Load(models.ServerCredentialRels.ServerCredentialType),
 		)
 	}
 

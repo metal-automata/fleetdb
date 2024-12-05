@@ -2,7 +2,6 @@ package fleetdbapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path"
 	"time"
@@ -45,21 +44,11 @@ type ClientInterface interface {
 	// List(context.Context, *ServerListParams) ([]Server, *ServerResponse, error)
 	Update(context.Context, uuid.UUID, Server) (*ServerResponse, error)
 
-	CreateAttributes(context.Context, uuid.UUID, Attributes) (*ServerResponse, error)
-	DeleteAttributes(ctx context.Context, u uuid.UUID, ns string) (*ServerResponse, error)
-	GetAttributes(context.Context, uuid.UUID, string) (*Attributes, *ServerResponse, error)
-	ListAttributes(context.Context, uuid.UUID, *PaginationParams) ([]Attributes, *ServerResponse, error)
-	UpdateAttributes(ctx context.Context, u uuid.UUID, ns string, data json.RawMessage) (*ServerResponse, error)
-
 	GetComponents(context.Context, uuid.UUID, *PaginationParams) ([]ServerComponent, *ServerResponse, error)
 	ListComponents(context.Context, *ServerComponentListParams) ([]ServerComponent, *ServerResponse, error)
 	CreateComponents(context.Context, uuid.UUID, ServerComponentSlice) (*ServerResponse, error)
 	UpdateComponents(context.Context, uuid.UUID, ServerComponentSlice) (*ServerResponse, error)
 	DeleteServerComponents(context.Context, uuid.UUID) (*ServerResponse, error)
-
-	CreateVersionedAttributes(context.Context, uuid.UUID, VersionedAttributes) (*ServerResponse, error)
-	GetVersionedAttributes(context.Context, uuid.UUID, string) ([]VersionedAttributes, *ServerResponse, error)
-	ListVersionedAttributes(context.Context, uuid.UUID) ([]VersionedAttributes, *ServerResponse, error)
 
 	CreateServerComponentFirmware(context.Context, ComponentFirmwareVersion) (*uuid.UUID, *ServerResponse, error)
 	DeleteServerComponentFirmware(context.Context, ComponentFirmwareVersion) (*ServerResponse, error)
@@ -117,7 +106,7 @@ func (c *Client) Create(ctx context.Context, srv Server) (*uuid.UUID, *ServerRes
 
 	u, err := uuid.Parse(resp.Slug)
 	if err != nil {
-		return nil, resp, nil
+		return nil, resp, err
 	}
 
 	return &u, resp, nil
@@ -143,7 +132,7 @@ func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *Serve
 
 // TODO: for when list is implemented
 // List will return all servers with optional params to filter the results
-//func (c *Client) List(ctx context.Context, params *ServerListParams) ([]Server, *ServerResponse, error) {
+// func (c *Client) List(ctx context.Context, params *ServerListParams) ([]Server, *ServerResponse, error) {
 //	servers := &[]Server{}
 //	r := ServerResponse{Records: servers}
 //
@@ -158,50 +147,6 @@ func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *Serve
 func (c *Client) Update(ctx context.Context, srvUUID uuid.UUID, srv Server) (*ServerResponse, error) {
 	path := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
 	return c.put(ctx, path, srv)
-}
-
-// CreateAttributes will to create the given attributes for a given server
-func (c *Client) CreateAttributes(ctx context.Context, srvUUID uuid.UUID, attr Attributes) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint)
-	return c.post(ctx, path, attr)
-}
-
-// GetAttributes will get all the attributes in a namespace for a given server
-func (c *Client) GetAttributes(ctx context.Context, srvUUID uuid.UUID, ns string) (*Attributes, *ServerResponse, error) {
-	attrs := &Attributes{}
-	r := ServerResponse{Record: attrs}
-
-	path := fmt.Sprintf("%s/%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint, ns)
-	if err := c.get(ctx, path, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return attrs, &r, nil
-}
-
-// DeleteAttributes will attempt to delete attributes by server uuid and namespace return an error on failure
-func (c *Client) DeleteAttributes(ctx context.Context, srvUUID uuid.UUID, ns string) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint, ns)
-	return c.delete(ctx, path)
-}
-
-// ListAttributes will get all the attributes for a given server
-func (c *Client) ListAttributes(ctx context.Context, srvUUID uuid.UUID, params *PaginationParams) ([]Attributes, *ServerResponse, error) {
-	attrs := &[]Attributes{}
-	r := ServerResponse{Records: attrs}
-
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint)
-	if err := c.list(ctx, path, params, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return *attrs, &r, nil
-}
-
-// UpdateAttributes will to update the data stored in a given namespace for a given server
-func (c *Client) UpdateAttributes(ctx context.Context, srvUUID uuid.UUID, ns string, data json.RawMessage) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint, ns)
-	return c.put(ctx, path, Attributes{Data: data})
 }
 
 // GetComponents will get all the components for a given server
@@ -276,39 +221,6 @@ func (c *Client) AcceptComponentChanges(ctx context.Context, serverID string, ch
 	return c.post(ctx, endpoint, report)
 }
 
-// CreateVersionedAttributes will create a new versioned attribute for a given server
-func (c *Client) CreateVersionedAttributes(ctx context.Context, srvUUID uuid.UUID, va VersionedAttributes) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverVersionedAttributesEndpoint)
-
-	return c.post(ctx, path, va)
-}
-
-// GetVersionedAttributes will return all the versioned attributes for a given server
-func (c *Client) GetVersionedAttributes(ctx context.Context, srvUUID uuid.UUID, ns string) ([]VersionedAttributes, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s/%s", serversEndpoint, srvUUID, serverVersionedAttributesEndpoint, ns)
-	val := &[]VersionedAttributes{}
-	r := ServerResponse{Records: val}
-
-	if err := c.list(ctx, path, nil, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return *val, &r, nil
-}
-
-// ListVersionedAttributes will return all the versioned attributes for a given server
-func (c *Client) ListVersionedAttributes(ctx context.Context, srvUUID uuid.UUID) ([]VersionedAttributes, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverVersionedAttributesEndpoint)
-	val := &[]VersionedAttributes{}
-	r := ServerResponse{Records: val}
-
-	if err := c.list(ctx, path, nil, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return *val, &r, nil
-}
-
 // CreateServerComponentFirmware will attempt to create a firmware in Hollow and return the firmware UUID
 func (c *Client) CreateServerComponentFirmware(ctx context.Context, firmware ComponentFirmwareVersion) (*uuid.UUID, *ServerResponse, error) {
 	resp, err := c.post(ctx, serverComponentFirmwaresEndpoint, firmware)
@@ -318,7 +230,7 @@ func (c *Client) CreateServerComponentFirmware(ctx context.Context, firmware Com
 
 	u, err := uuid.Parse(resp.Slug)
 	if err != nil {
-		return nil, resp, nil
+		return nil, resp, err
 	}
 
 	return &u, resp, nil
@@ -369,7 +281,7 @@ func (c *Client) CreateServerComponentFirmwareSet(ctx context.Context, set Compo
 
 	u, err := uuid.Parse(resp.Slug)
 	if err != nil {
-		return nil, resp, nil
+		return nil, resp, err
 	}
 
 	return &u, resp, nil

@@ -9,16 +9,16 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/metal-automata/fleetdb/internal/models"
 	"github.com/pkg/errors"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
+
+	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 var (
-	errrComponentChangeReportPayload = errors.New("server component report payload error")
-	errrComponentChangeAcceptPayload = errors.New("server component changes payload error")
+	errComponentChangeReportPayload = errors.New("server component report payload error")
 )
 
 // ComponentChangeReport represents addition/removal of server components to or from an existing set.
@@ -170,12 +170,12 @@ func (r *Router) componentChangeReport(c *gin.Context) {
 
 	// components payload
 	var incoming ComponentChangeReport
-	if err := c.ShouldBindJSON(&incoming); err != nil {
+	if errBind := c.ShouldBindJSON(&incoming); errBind != nil {
 		badRequestResponse(
 			c,
 			"",
 			errors.Wrap(
-				errrComponentChangeReportPayload, err.Error()),
+				errComponentChangeReportPayload, errBind.Error()),
 		)
 		return
 	}
@@ -185,7 +185,7 @@ func (r *Router) componentChangeReport(c *gin.Context) {
 		badRequestResponse(
 			c,
 			"",
-			errors.Wrap(errrComponentChangeReportPayload, "expected components to Creates/Deletes"),
+			errors.Wrap(errComponentChangeReportPayload, "expected components to Creates/Deletes"),
 		)
 		return
 	}
@@ -194,7 +194,7 @@ func (r *Router) componentChangeReport(c *gin.Context) {
 		badRequestResponse(
 			c,
 			"",
-			errors.Wrap(errrComponentChangeReportPayload, "unexpected CollectionMethod: "+incoming.CollectionMethod),
+			errors.Wrap(errComponentChangeReportPayload, "unexpected CollectionMethod: "+incoming.CollectionMethod),
 		)
 		return
 	}
@@ -283,12 +283,12 @@ func (r *Router) componentChangeAccept(c *gin.Context) {
 	}
 
 	var incoming ComponentChangeAccept
-	if err := c.ShouldBindJSON(&incoming); err != nil {
+	if errBind := c.ShouldBindJSON(&incoming); errBind != nil {
 		badRequestResponse(
 			c,
 			"",
 			errors.Wrap(
-				errrComponentChangeReportPayload, err.Error()),
+				errComponentChangeReportPayload, errBind.Error()),
 		)
 
 		return
@@ -299,7 +299,7 @@ func (r *Router) componentChangeAccept(c *gin.Context) {
 			c,
 			"",
 			errors.Wrap(
-				errrComponentChangeReportPayload, "mergeIDs empty"),
+				errComponentChangeReportPayload, "mergeIDs empty"),
 		)
 		return
 	}
@@ -332,7 +332,7 @@ func (r *Router) componentChangeAccept(c *gin.Context) {
 			c,
 			"",
 			errors.Wrap(
-				errrComponentChangeReportPayload,
+				errComponentChangeReportPayload,
 				"no changes identified for review",
 			),
 		)
@@ -364,7 +364,7 @@ func (r *Router) componentChangeAccept(c *gin.Context) {
 					c,
 					"",
 					errors.Wrap(
-						errrComponentChangeReportPayload,
+						errComponentChangeReportPayload,
 						err.Error()+" unable to unmarshal component data from change record",
 					),
 				)

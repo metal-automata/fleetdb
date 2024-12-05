@@ -46,7 +46,7 @@ func (s *Server) fromDBModel(dbS *models.Server) error {
 
 	s.Name = dbS.Name.String
 	s.FacilityCode = dbS.FacilityCode.String
-	//s.Vendor = dbS.Vend
+	// s.Vendor = dbS.Vend
 	s.CreatedAt = dbS.CreatedAt.Time
 	s.UpdatedAt = dbS.UpdatedAt.Time
 
@@ -177,9 +177,9 @@ func (r *Router) serverCreate(c *gin.Context) {
 	// hw model is optional at server create, its populated at inventory collection
 	var hwModelID string
 	if srv.Model != "" {
-		hwModel, err := r.hardwareModelBySlug(ctx, srv.Model)
-		if err != nil {
-			dbErrorResponse2(c, "hardware model query error: "+srv.Model, err)
+		hwModel, errHwModel := r.hardwareModelBySlug(ctx, srv.Model)
+		if errHwModel != nil {
+			dbErrorResponse2(c, "hardware model query error: "+srv.Model, errHwModel)
 			return
 		}
 
