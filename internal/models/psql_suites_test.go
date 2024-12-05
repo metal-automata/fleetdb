@@ -22,11 +22,19 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("BomInfos", testBomInfosUpsert)
 
+	t.Run("ComponentCapabilities", testComponentCapabilitiesUpsert)
+
+	t.Run("ComponentChangeReports", testComponentChangeReportsUpsert)
+
 	t.Run("ComponentFirmwareSets", testComponentFirmwareSetsUpsert)
 
 	t.Run("ComponentFirmwareSetMaps", testComponentFirmwareSetMapsUpsert)
 
 	t.Run("ComponentFirmwareVersions", testComponentFirmwareVersionsUpsert)
+
+	t.Run("ComponentMetadata", testComponentMetadataUpsert)
+
+	t.Run("ComponentStatuses", testComponentStatusesUpsert)
 
 	t.Run("EventHistories", testEventHistoriesUpsert)
 
@@ -47,6 +55,8 @@ func TestUpsert(t *testing.T) {
 	t.Run("ServerCredentialTypes", testServerCredentialTypesUpsert)
 
 	t.Run("ServerCredentials", testServerCredentialsUpsert)
+
+	t.Run("ServerStatuses", testServerStatusesUpsert)
 
 	t.Run("Servers", testServersUpsert)
 
