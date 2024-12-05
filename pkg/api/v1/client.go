@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"os"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 var apiVersion = "v1"
@@ -112,7 +114,7 @@ func (c *Client) NextPage(ctx context.Context, resp ServerResponse, recs interfa
 	return &r, err
 }
 
-// post provides a reusable method for a standard POST to a hollow server
+// post provides a reusable method for a standard POST to a fleetdbapi server
 func (c *Client) post(ctx context.Context, path string, body interface{}) (*ServerResponse, error) {
 	request, err := newPostRequest(ctx, c.url, path, body)
 	if err != nil {
@@ -122,13 +124,27 @@ func (c *Client) post(ctx context.Context, path string, body interface{}) (*Serv
 	r := ServerResponse{}
 
 	if err := c.do(request, &r); err != nil {
+		if r.Error != "" {
+			return nil, errors.Wrap(err, r.Error)
+		}
+
 		return nil, err
 	}
 
 	return &r, nil
 }
 
-// put provides a reusable method for a standard PUT to a hollow server
+// postWithReciever provides a reusable method for a standard POST to a fleetdbapi server
+func (c *Client) postWithReciever(ctx context.Context, path string, body interface{}, resp interface{}) error {
+	request, err := newPostRequest(ctx, c.url, path, body)
+	if err != nil {
+		return err
+	}
+
+	return c.do(request, &resp)
+}
+
+// put provides a reusable method for a standard PUT to a fleetdbapi server
 func (c *Client) put(ctx context.Context, path string, body interface{}) (*ServerResponse, error) {
 	request, err := newPutRequest(ctx, c.url, path, body)
 	if err != nil {
@@ -148,7 +164,7 @@ type queryParams interface {
 	setQuery(url.Values)
 }
 
-// list provides a reusable method for a standard list to a hollow server
+// list provides a reusable method for a standard list to a fleetdbapi server
 func (c *Client) list(ctx context.Context, path string, params queryParams, resp interface{}) error {
 	request, err := newGetRequest(ctx, c.url, path)
 	if err != nil {
@@ -174,7 +190,23 @@ func (c *Client) get(ctx context.Context, path string, resp interface{}) error {
 	return c.do(request, &resp)
 }
 
-// post provides a reusable method for a standard post to a hollow server
+// getWithParams provides a reusable method that accepts query params for a standard GET of a single item
+func (c *Client) getWithParams(ctx context.Context, path string, params queryParams, resp interface{}) error {
+	request, err := newGetRequest(ctx, c.url, path)
+	if err != nil {
+		return err
+	}
+
+	if params != nil {
+		q := request.URL.Query()
+		params.setQuery(q)
+		request.URL.RawQuery = q.Encode()
+	}
+
+	return c.do(request, &resp)
+}
+
+// post provides a reusable method for a standard post to a fleetdbapi server
 func (c *Client) delete(ctx context.Context, path string) (*ServerResponse, error) {
 	request, err := newDeleteRequest(ctx, c.url, path)
 	if err != nil {
