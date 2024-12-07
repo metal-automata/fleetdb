@@ -83,7 +83,8 @@ issues:
   exclude-files:
     - "(.*/)*.*_test.go"
     - "fixtures.go"
-    - "/pkg/api/v1/fixtures/*.go"
+    - "dell.go"
+    - "smc.go"
 
   exclude-rules:
     - linters:
