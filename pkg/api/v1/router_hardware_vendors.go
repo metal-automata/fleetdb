@@ -12,6 +12,10 @@ import (
 	"github.com/metal-automata/fleetdb/internal/models"
 )
 
+var (
+	ErrHardwareVendorNotFound = errors.New("hardware vendor not found")
+)
+
 type HardwareVendor struct {
 	ID   string `json:"id"`
 	Name string `json:"name" binding:"required"`

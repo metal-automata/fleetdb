@@ -91,23 +91,6 @@ func (p *PaginationParams) queryMods() []qm.QueryMod {
 	return mods
 }
 
-// serverQueryMods queryMods converts the list params into sql conditions that can be added to sql queries
-func (p *PaginationParams) serverQueryMods() []qm.QueryMod {
-	mods := p.queryMods()
-
-	if p.Preload {
-		preload := []qm.QueryMod{
-			qm.Load("Attributes"),
-			qm.Load("VersionedAttributes", qm.Where("(server_id, namespace, created_at) IN (select server_id, namespace, max(created_at) from versioned_attributes group by server_id, namespace)")),
-			qm.Load("ServerComponents.Attributes"),
-			qm.Load("ServerComponents.ServerComponentType"),
-		}
-		mods = append(mods, preload...)
-	}
-
-	return mods
-}
-
 // serverComponentQueryMods converts the server component list params into sql conditions that can be added to sql queries
 func (p *PaginationParams) serverComponentsQueryMods() []qm.QueryMod {
 	mods := p.queryMods()

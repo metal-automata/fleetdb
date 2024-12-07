@@ -38,7 +38,7 @@ coverage: | test-database
 ## lint
 lint:
 	@echo Linting Go files...
-	@golangci-lint run
+	@golangci-lint run --config .golangci.yml
 
 ## clean docker files
 clean: docker-clean test-clean

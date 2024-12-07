@@ -28,11 +28,13 @@ type ServerComponent struct {
 	Name                  null.String `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
 	Vendor                null.String `boil:"vendor" json:"vendor,omitempty" toml:"vendor" yaml:"vendor,omitempty"`
 	Model                 null.String `boil:"model" json:"model,omitempty" toml:"model" yaml:"model,omitempty"`
-	Serial                null.String `boil:"serial" json:"serial,omitempty" toml:"serial" yaml:"serial,omitempty"`
+	Serial                string      `boil:"serial" json:"serial" toml:"serial" yaml:"serial"`
 	ServerComponentTypeID string      `boil:"server_component_type_id" json:"server_component_type_id" toml:"server_component_type_id" yaml:"server_component_type_id"`
 	ServerID              string      `boil:"server_id" json:"server_id" toml:"server_id" yaml:"server_id"`
 	CreatedAt             null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	UpdatedAt             null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+	Description           null.String `boil:"description" json:"description,omitempty" toml:"description" yaml:"description,omitempty"`
+	Oem                   null.Bool   `boil:"oem" json:"oem,omitempty" toml:"oem" yaml:"oem,omitempty"`
 
 	R *serverComponentR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L serverComponentL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -48,6 +50,8 @@ var ServerComponentColumns = struct {
 	ServerID              string
 	CreatedAt             string
 	UpdatedAt             string
+	Description           string
+	Oem                   string
 }{
 	ID:                    "id",
 	Name:                  "name",
@@ -58,6 +62,8 @@ var ServerComponentColumns = struct {
 	ServerID:              "server_id",
 	CreatedAt:             "created_at",
 	UpdatedAt:             "updated_at",
+	Description:           "description",
+	Oem:                   "oem",
 }
 
 var ServerComponentTableColumns = struct {
@@ -70,6 +76,8 @@ var ServerComponentTableColumns = struct {
 	ServerID              string
 	CreatedAt             string
 	UpdatedAt             string
+	Description           string
+	Oem                   string
 }{
 	ID:                    "server_components.id",
 	Name:                  "server_components.name",
@@ -80,6 +88,8 @@ var ServerComponentTableColumns = struct {
 	ServerID:              "server_components.server_id",
 	CreatedAt:             "server_components.created_at",
 	UpdatedAt:             "server_components.updated_at",
+	Description:           "server_components.description",
+	Oem:                   "server_components.oem",
 }
 
 // Generated where
@@ -89,45 +99,58 @@ var ServerComponentWhere = struct {
 	Name                  whereHelpernull_String
 	Vendor                whereHelpernull_String
 	Model                 whereHelpernull_String
-	Serial                whereHelpernull_String
+	Serial                whereHelperstring
 	ServerComponentTypeID whereHelperstring
 	ServerID              whereHelperstring
 	CreatedAt             whereHelpernull_Time
 	UpdatedAt             whereHelpernull_Time
+	Description           whereHelpernull_String
+	Oem                   whereHelpernull_Bool
 }{
 	ID:                    whereHelperstring{field: "\"server_components\".\"id\""},
 	Name:                  whereHelpernull_String{field: "\"server_components\".\"name\""},
 	Vendor:                whereHelpernull_String{field: "\"server_components\".\"vendor\""},
 	Model:                 whereHelpernull_String{field: "\"server_components\".\"model\""},
-	Serial:                whereHelpernull_String{field: "\"server_components\".\"serial\""},
+	Serial:                whereHelperstring{field: "\"server_components\".\"serial\""},
 	ServerComponentTypeID: whereHelperstring{field: "\"server_components\".\"server_component_type_id\""},
 	ServerID:              whereHelperstring{field: "\"server_components\".\"server_id\""},
 	CreatedAt:             whereHelpernull_Time{field: "\"server_components\".\"created_at\""},
 	UpdatedAt:             whereHelpernull_Time{field: "\"server_components\".\"updated_at\""},
+	Description:           whereHelpernull_String{field: "\"server_components\".\"description\""},
+	Oem:                   whereHelpernull_Bool{field: "\"server_components\".\"oem\""},
 }
 
 // ServerComponentRels is where relationship names are stored.
 var ServerComponentRels = struct {
-	ServerComponentType string
-	Server              string
-	Attributes          string
-	InstalledFirmwares  string
-	VersionedAttributes string
+	ServerComponentType   string
+	Server                string
+	ComponentStatus       string
+	InstalledFirmware     string
+	Attributes            string
+	ComponentCapabilities string
+	ComponentMetadata     string
+	VersionedAttributes   string
 }{
-	ServerComponentType: "ServerComponentType",
-	Server:              "Server",
-	Attributes:          "Attributes",
-	InstalledFirmwares:  "InstalledFirmwares",
-	VersionedAttributes: "VersionedAttributes",
+	ServerComponentType:   "ServerComponentType",
+	Server:                "Server",
+	ComponentStatus:       "ComponentStatus",
+	InstalledFirmware:     "InstalledFirmware",
+	Attributes:            "Attributes",
+	ComponentCapabilities: "ComponentCapabilities",
+	ComponentMetadata:     "ComponentMetadata",
+	VersionedAttributes:   "VersionedAttributes",
 }
 
 // serverComponentR is where relationships are stored.
 type serverComponentR struct {
-	ServerComponentType *ServerComponentType    `boil:"ServerComponentType" json:"ServerComponentType" toml:"ServerComponentType" yaml:"ServerComponentType"`
-	Server              *Server                 `boil:"Server" json:"Server" toml:"Server" yaml:"Server"`
-	Attributes          AttributeSlice          `boil:"Attributes" json:"Attributes" toml:"Attributes" yaml:"Attributes"`
-	InstalledFirmwares  InstalledFirmwareSlice  `boil:"InstalledFirmwares" json:"InstalledFirmwares" toml:"InstalledFirmwares" yaml:"InstalledFirmwares"`
-	VersionedAttributes VersionedAttributeSlice `boil:"VersionedAttributes" json:"VersionedAttributes" toml:"VersionedAttributes" yaml:"VersionedAttributes"`
+	ServerComponentType   *ServerComponentType     `boil:"ServerComponentType" json:"ServerComponentType" toml:"ServerComponentType" yaml:"ServerComponentType"`
+	Server                *Server                  `boil:"Server" json:"Server" toml:"Server" yaml:"Server"`
+	ComponentStatus       *ComponentStatus         `boil:"ComponentStatus" json:"ComponentStatus" toml:"ComponentStatus" yaml:"ComponentStatus"`
+	InstalledFirmware     *InstalledFirmware       `boil:"InstalledFirmware" json:"InstalledFirmware" toml:"InstalledFirmware" yaml:"InstalledFirmware"`
+	Attributes            AttributeSlice           `boil:"Attributes" json:"Attributes" toml:"Attributes" yaml:"Attributes"`
+	ComponentCapabilities ComponentCapabilitySlice `boil:"ComponentCapabilities" json:"ComponentCapabilities" toml:"ComponentCapabilities" yaml:"ComponentCapabilities"`
+	ComponentMetadata     ComponentMetadatumSlice  `boil:"ComponentMetadata" json:"ComponentMetadata" toml:"ComponentMetadata" yaml:"ComponentMetadata"`
+	VersionedAttributes   VersionedAttributeSlice  `boil:"VersionedAttributes" json:"VersionedAttributes" toml:"VersionedAttributes" yaml:"VersionedAttributes"`
 }
 
 // NewStruct creates a new relationship struct
@@ -149,6 +172,20 @@ func (r *serverComponentR) GetServer() *Server {
 	return r.Server
 }
 
+func (r *serverComponentR) GetComponentStatus() *ComponentStatus {
+	if r == nil {
+		return nil
+	}
+	return r.ComponentStatus
+}
+
+func (r *serverComponentR) GetInstalledFirmware() *InstalledFirmware {
+	if r == nil {
+		return nil
+	}
+	return r.InstalledFirmware
+}
+
 func (r *serverComponentR) GetAttributes() AttributeSlice {
 	if r == nil {
 		return nil
@@ -156,11 +193,18 @@ func (r *serverComponentR) GetAttributes() AttributeSlice {
 	return r.Attributes
 }
 
-func (r *serverComponentR) GetInstalledFirmwares() InstalledFirmwareSlice {
+func (r *serverComponentR) GetComponentCapabilities() ComponentCapabilitySlice {
 	if r == nil {
 		return nil
 	}
-	return r.InstalledFirmwares
+	return r.ComponentCapabilities
+}
+
+func (r *serverComponentR) GetComponentMetadata() ComponentMetadatumSlice {
+	if r == nil {
+		return nil
+	}
+	return r.ComponentMetadata
 }
 
 func (r *serverComponentR) GetVersionedAttributes() VersionedAttributeSlice {
@@ -174,9 +218,9 @@ func (r *serverComponentR) GetVersionedAttributes() VersionedAttributeSlice {
 type serverComponentL struct{}
 
 var (
-	serverComponentAllColumns            = []string{"id", "name", "vendor", "model", "serial", "server_component_type_id", "server_id", "created_at", "updated_at"}
-	serverComponentColumnsWithoutDefault = []string{"server_component_type_id", "server_id"}
-	serverComponentColumnsWithDefault    = []string{"id", "name", "vendor", "model", "serial", "created_at", "updated_at"}
+	serverComponentAllColumns            = []string{"id", "name", "vendor", "model", "serial", "server_component_type_id", "server_id", "created_at", "updated_at", "description", "oem"}
+	serverComponentColumnsWithoutDefault = []string{"serial", "server_component_type_id", "server_id"}
+	serverComponentColumnsWithDefault    = []string{"id", "name", "vendor", "model", "created_at", "updated_at", "description", "oem"}
 	serverComponentPrimaryKeyColumns     = []string{"id"}
 	serverComponentGeneratedColumns      = []string{}
 )
@@ -481,6 +525,28 @@ func (o *ServerComponent) Server(mods ...qm.QueryMod) serverQuery {
 	return Servers(queryMods...)
 }
 
+// ComponentStatus pointed to by the foreign key.
+func (o *ServerComponent) ComponentStatus(mods ...qm.QueryMod) componentStatusQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"server_component_id\" = ?", o.ID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return ComponentStatuses(queryMods...)
+}
+
+// InstalledFirmware pointed to by the foreign key.
+func (o *ServerComponent) InstalledFirmware(mods ...qm.QueryMod) installedFirmwareQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"server_component_id\" = ?", o.ID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return InstalledFirmwares(queryMods...)
+}
+
 // Attributes retrieves all the attribute's Attributes with an executor.
 func (o *ServerComponent) Attributes(mods ...qm.QueryMod) attributeQuery {
 	var queryMods []qm.QueryMod
@@ -495,18 +561,32 @@ func (o *ServerComponent) Attributes(mods ...qm.QueryMod) attributeQuery {
 	return Attributes(queryMods...)
 }
 
-// InstalledFirmwares retrieves all the installed_firmware's InstalledFirmwares with an executor.
-func (o *ServerComponent) InstalledFirmwares(mods ...qm.QueryMod) installedFirmwareQuery {
+// ComponentCapabilities retrieves all the component_capability's ComponentCapabilities with an executor.
+func (o *ServerComponent) ComponentCapabilities(mods ...qm.QueryMod) componentCapabilityQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"installed_firmware\".\"server_component_id\"=?", o.ID),
+		qm.Where("\"component_capabilities\".\"server_component_id\"=?", o.ID),
 	)
 
-	return InstalledFirmwares(queryMods...)
+	return ComponentCapabilities(queryMods...)
+}
+
+// ComponentMetadata retrieves all the component_metadatum's ComponentMetadata with an executor.
+func (o *ServerComponent) ComponentMetadata(mods ...qm.QueryMod) componentMetadatumQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"component_metadata\".\"server_component_id\"=?", o.ID),
+	)
+
+	return ComponentMetadata(queryMods...)
 }
 
 // VersionedAttributes retrieves all the versioned_attribute's VersionedAttributes with an executor.
@@ -764,6 +844,240 @@ func (serverComponentL) LoadServer(ctx context.Context, e boil.ContextExecutor, 
 	return nil
 }
 
+// LoadComponentStatus allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-1 relationship.
+func (serverComponentL) LoadComponentStatus(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerComponent interface{}, mods queries.Applicator) error {
+	var slice []*ServerComponent
+	var object *ServerComponent
+
+	if singular {
+		var ok bool
+		object, ok = maybeServerComponent.(*ServerComponent)
+		if !ok {
+			object = new(ServerComponent)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerComponent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerComponent))
+			}
+		}
+	} else {
+		s, ok := maybeServerComponent.(*[]*ServerComponent)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerComponent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerComponent))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverComponentR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverComponentR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`component_status`),
+		qm.WhereIn(`component_status.server_component_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load ComponentStatus")
+	}
+
+	var resultSlice []*ComponentStatus
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice ComponentStatus")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for component_status")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for component_status")
+	}
+
+	if len(componentStatusAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.ComponentStatus = foreign
+		if foreign.R == nil {
+			foreign.R = &componentStatusR{}
+		}
+		foreign.R.ServerComponent = object
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.ID == foreign.ServerComponentID {
+				local.R.ComponentStatus = foreign
+				if foreign.R == nil {
+					foreign.R = &componentStatusR{}
+				}
+				foreign.R.ServerComponent = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadInstalledFirmware allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-1 relationship.
+func (serverComponentL) LoadInstalledFirmware(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerComponent interface{}, mods queries.Applicator) error {
+	var slice []*ServerComponent
+	var object *ServerComponent
+
+	if singular {
+		var ok bool
+		object, ok = maybeServerComponent.(*ServerComponent)
+		if !ok {
+			object = new(ServerComponent)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerComponent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerComponent))
+			}
+		}
+	} else {
+		s, ok := maybeServerComponent.(*[]*ServerComponent)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerComponent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerComponent))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverComponentR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverComponentR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`installed_firmware`),
+		qm.WhereIn(`installed_firmware.server_component_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load InstalledFirmware")
+	}
+
+	var resultSlice []*InstalledFirmware
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice InstalledFirmware")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for installed_firmware")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for installed_firmware")
+	}
+
+	if len(installedFirmwareAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.InstalledFirmware = foreign
+		if foreign.R == nil {
+			foreign.R = &installedFirmwareR{}
+		}
+		foreign.R.ServerComponent = object
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.ID == foreign.ServerComponentID {
+				local.R.InstalledFirmware = foreign
+				if foreign.R == nil {
+					foreign.R = &installedFirmwareR{}
+				}
+				foreign.R.ServerComponent = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // LoadAttributes allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (serverComponentL) LoadAttributes(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerComponent interface{}, mods queries.Applicator) error {
@@ -878,9 +1192,9 @@ func (serverComponentL) LoadAttributes(ctx context.Context, e boil.ContextExecut
 	return nil
 }
 
-// LoadInstalledFirmwares allows an eager lookup of values, cached into the
+// LoadComponentCapabilities allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (serverComponentL) LoadInstalledFirmwares(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerComponent interface{}, mods queries.Applicator) error {
+func (serverComponentL) LoadComponentCapabilities(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerComponent interface{}, mods queries.Applicator) error {
 	var slice []*ServerComponent
 	var object *ServerComponent
 
@@ -934,9 +1248,8 @@ func (serverComponentL) LoadInstalledFirmwares(ctx context.Context, e boil.Conte
 	}
 
 	query := NewQuery(
-		qm.From(`installed_firmware`),
-		qm.WhereIn(`installed_firmware.server_component_id in ?`, args...),
-		qmhelper.WhereIsNull(`installed_firmware.deleted_at`),
+		qm.From(`component_capabilities`),
+		qm.WhereIn(`component_capabilities.server_component_id in ?`, args...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -944,22 +1257,22 @@ func (serverComponentL) LoadInstalledFirmwares(ctx context.Context, e boil.Conte
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load installed_firmware")
+		return errors.Wrap(err, "failed to eager load component_capabilities")
 	}
 
-	var resultSlice []*InstalledFirmware
+	var resultSlice []*ComponentCapability
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice installed_firmware")
+		return errors.Wrap(err, "failed to bind eager loaded slice component_capabilities")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on installed_firmware")
+		return errors.Wrap(err, "failed to close results in eager load on component_capabilities")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for installed_firmware")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for component_capabilities")
 	}
 
-	if len(installedFirmwareAfterSelectHooks) != 0 {
+	if len(componentCapabilityAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -967,10 +1280,10 @@ func (serverComponentL) LoadInstalledFirmwares(ctx context.Context, e boil.Conte
 		}
 	}
 	if singular {
-		object.R.InstalledFirmwares = resultSlice
+		object.R.ComponentCapabilities = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &installedFirmwareR{}
+				foreign.R = &componentCapabilityR{}
 			}
 			foreign.R.ServerComponent = object
 		}
@@ -980,9 +1293,123 @@ func (serverComponentL) LoadInstalledFirmwares(ctx context.Context, e boil.Conte
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
 			if local.ID == foreign.ServerComponentID {
-				local.R.InstalledFirmwares = append(local.R.InstalledFirmwares, foreign)
+				local.R.ComponentCapabilities = append(local.R.ComponentCapabilities, foreign)
 				if foreign.R == nil {
-					foreign.R = &installedFirmwareR{}
+					foreign.R = &componentCapabilityR{}
+				}
+				foreign.R.ServerComponent = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadComponentMetadata allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (serverComponentL) LoadComponentMetadata(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerComponent interface{}, mods queries.Applicator) error {
+	var slice []*ServerComponent
+	var object *ServerComponent
+
+	if singular {
+		var ok bool
+		object, ok = maybeServerComponent.(*ServerComponent)
+		if !ok {
+			object = new(ServerComponent)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerComponent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerComponent))
+			}
+		}
+	} else {
+		s, ok := maybeServerComponent.(*[]*ServerComponent)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerComponent)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerComponent))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverComponentR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverComponentR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`component_metadata`),
+		qm.WhereIn(`component_metadata.server_component_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load component_metadata")
+	}
+
+	var resultSlice []*ComponentMetadatum
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice component_metadata")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on component_metadata")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for component_metadata")
+	}
+
+	if len(componentMetadatumAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ComponentMetadata = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &componentMetadatumR{}
+			}
+			foreign.R.ServerComponent = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ServerComponentID {
+				local.R.ComponentMetadata = append(local.R.ComponentMetadata, foreign)
+				if foreign.R == nil {
+					foreign.R = &componentMetadatumR{}
 				}
 				foreign.R.ServerComponent = local
 				break
@@ -1201,6 +1628,106 @@ func (o *ServerComponent) SetServer(ctx context.Context, exec boil.ContextExecut
 	return nil
 }
 
+// SetComponentStatus of the serverComponent to the related item.
+// Sets o.R.ComponentStatus to related.
+// Adds o to related.R.ServerComponent.
+func (o *ServerComponent) SetComponentStatus(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ComponentStatus) error {
+	var err error
+
+	if insert {
+		related.ServerComponentID = o.ID
+
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	} else {
+		updateQuery := fmt.Sprintf(
+			"UPDATE \"component_status\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, []string{"server_component_id"}),
+			strmangle.WhereClause("\"", "\"", 2, componentStatusPrimaryKeyColumns),
+		)
+		values := []interface{}{o.ID, related.ID}
+
+		if boil.IsDebug(ctx) {
+			writer := boil.DebugWriterFrom(ctx)
+			fmt.Fprintln(writer, updateQuery)
+			fmt.Fprintln(writer, values)
+		}
+		if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			return errors.Wrap(err, "failed to update foreign table")
+		}
+
+		related.ServerComponentID = o.ID
+	}
+
+	if o.R == nil {
+		o.R = &serverComponentR{
+			ComponentStatus: related,
+		}
+	} else {
+		o.R.ComponentStatus = related
+	}
+
+	if related.R == nil {
+		related.R = &componentStatusR{
+			ServerComponent: o,
+		}
+	} else {
+		related.R.ServerComponent = o
+	}
+	return nil
+}
+
+// SetInstalledFirmware of the serverComponent to the related item.
+// Sets o.R.InstalledFirmware to related.
+// Adds o to related.R.ServerComponent.
+func (o *ServerComponent) SetInstalledFirmware(ctx context.Context, exec boil.ContextExecutor, insert bool, related *InstalledFirmware) error {
+	var err error
+
+	if insert {
+		related.ServerComponentID = o.ID
+
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	} else {
+		updateQuery := fmt.Sprintf(
+			"UPDATE \"installed_firmware\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, []string{"server_component_id"}),
+			strmangle.WhereClause("\"", "\"", 2, installedFirmwarePrimaryKeyColumns),
+		)
+		values := []interface{}{o.ID, related.ID}
+
+		if boil.IsDebug(ctx) {
+			writer := boil.DebugWriterFrom(ctx)
+			fmt.Fprintln(writer, updateQuery)
+			fmt.Fprintln(writer, values)
+		}
+		if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			return errors.Wrap(err, "failed to update foreign table")
+		}
+
+		related.ServerComponentID = o.ID
+	}
+
+	if o.R == nil {
+		o.R = &serverComponentR{
+			InstalledFirmware: related,
+		}
+	} else {
+		o.R.InstalledFirmware = related
+	}
+
+	if related.R == nil {
+		related.R = &installedFirmwareR{
+			ServerComponent: o,
+		}
+	} else {
+		related.R.ServerComponent = o
+	}
+	return nil
+}
+
 // AddAttributes adds the given related objects to the existing relationships
 // of the server_component, optionally inserting them as new records.
 // Appends related to o.R.Attributes.
@@ -1328,11 +1855,11 @@ func (o *ServerComponent) RemoveAttributes(ctx context.Context, exec boil.Contex
 	return nil
 }
 
-// AddInstalledFirmwares adds the given related objects to the existing relationships
+// AddComponentCapabilities adds the given related objects to the existing relationships
 // of the server_component, optionally inserting them as new records.
-// Appends related to o.R.InstalledFirmwares.
+// Appends related to o.R.ComponentCapabilities.
 // Sets related.R.ServerComponent appropriately.
-func (o *ServerComponent) AddInstalledFirmwares(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*InstalledFirmware) error {
+func (o *ServerComponent) AddComponentCapabilities(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ComponentCapability) error {
 	var err error
 	for _, rel := range related {
 		if insert {
@@ -1342,9 +1869,9 @@ func (o *ServerComponent) AddInstalledFirmwares(ctx context.Context, exec boil.C
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"installed_firmware\" SET %s WHERE %s",
+				"UPDATE \"component_capabilities\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"server_component_id"}),
-				strmangle.WhereClause("\"", "\"", 2, installedFirmwarePrimaryKeyColumns),
+				strmangle.WhereClause("\"", "\"", 2, componentCapabilityPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -1363,15 +1890,68 @@ func (o *ServerComponent) AddInstalledFirmwares(ctx context.Context, exec boil.C
 
 	if o.R == nil {
 		o.R = &serverComponentR{
-			InstalledFirmwares: related,
+			ComponentCapabilities: related,
 		}
 	} else {
-		o.R.InstalledFirmwares = append(o.R.InstalledFirmwares, related...)
+		o.R.ComponentCapabilities = append(o.R.ComponentCapabilities, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &installedFirmwareR{
+			rel.R = &componentCapabilityR{
+				ServerComponent: o,
+			}
+		} else {
+			rel.R.ServerComponent = o
+		}
+	}
+	return nil
+}
+
+// AddComponentMetadata adds the given related objects to the existing relationships
+// of the server_component, optionally inserting them as new records.
+// Appends related to o.R.ComponentMetadata.
+// Sets related.R.ServerComponent appropriately.
+func (o *ServerComponent) AddComponentMetadata(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ComponentMetadatum) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ServerComponentID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"component_metadata\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"server_component_id"}),
+				strmangle.WhereClause("\"", "\"", 2, componentMetadatumPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ServerComponentID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &serverComponentR{
+			ComponentMetadata: related,
+		}
+	} else {
+		o.R.ComponentMetadata = append(o.R.ComponentMetadata, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &componentMetadatumR{
 				ServerComponent: o,
 			}
 		} else {

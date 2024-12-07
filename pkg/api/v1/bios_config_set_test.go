@@ -1,5 +1,6 @@
 package fleetdbapi_test
 
+// nolint:typecheck // test code is test code
 import (
 	"context"
 	"encoding/json"

@@ -83,7 +83,7 @@ func (r *Router) serverCredentialDelete(c *gin.Context) {
 }
 
 func (r *Router) serverCredentialUpsert(c *gin.Context) {
-	srvUUID, err := r.parseUUID(c)
+	srvUUID, err := r.parseUUID(c.Param("uuid"))
 	if err != nil {
 		return
 	}
@@ -108,8 +108,8 @@ func (r *Router) serverCredentialUpsert(c *gin.Context) {
 	}
 
 	var newValue serverCredentialValues
-	if err := c.ShouldBindJSON(&newValue); err != nil {
-		badRequestResponse(c, "invalid server secret value", err)
+	if errBind := c.ShouldBindJSON(&newValue); errBind != nil {
+		badRequestResponse(c, "invalid server secret value", errBind)
 		return
 	}
 

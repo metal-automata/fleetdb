@@ -18,7 +18,7 @@ func newGetRequest(ctx context.Context, uri, path string) (*http.Request, error)
 		return nil, err
 	}
 
-	return http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
+	return http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), http.NoBody)
 }
 
 func newPostRequest(ctx context.Context, uri, path string, body interface{}) (*http.Request, error) {
@@ -67,7 +67,7 @@ func newDeleteRequest(ctx context.Context, uri, path string) (*http.Request, err
 		return nil, err
 	}
 
-	return http.NewRequestWithContext(ctx, http.MethodDelete, requestURL.String(), nil)
+	return http.NewRequestWithContext(ctx, http.MethodDelete, requestURL.String(), http.NoBody)
 }
 
 func userAgentString() string {
@@ -89,12 +89,12 @@ func (c *Client) do(req *http.Request, result interface{}) error {
 	}
 
 	// dump response if c.dumper is set
-	if err := c.dumpResponse(resp); err != nil {
-		return err
+	if errDmp := c.dumpResponse(resp); errDmp != nil {
+		return errDmp
 	}
 
-	if err := ensureValidServerResponse(resp); err != nil {
-		return err
+	if errValid := ensureValidServerResponse(resp); errValid != nil {
+		return errValid
 	}
 
 	defer resp.Body.Close()

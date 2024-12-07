@@ -1,7 +1,6 @@
 package fleetdbapi
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -9,7 +8,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-automata/rivets/ginauth"
 	"github.com/pkg/errors"
-	"github.com/volatiletech/sqlboiler/v4/boil"
 	"go.uber.org/zap"
 	"gocloud.dev/secrets"
 
@@ -25,15 +23,16 @@ type Router struct {
 }
 
 // Routes will add the routes for this API version to a router group
+//
+// nolint:gocritic // TODO: split code handler into directories and move route blocks in there
 func (r *Router) Routes(rg *gin.RouterGroup) {
 	amw := r.AuthMW
 
 	// /servers
 	srvs := rg.Group("/servers")
 	{
-		srvs.GET("", amw.AuthRequired(readScopes("server")), r.serverList)
+		// srvs.GET("", amw.AuthRequired(readScopes("server")), r.serverList)
 		srvs.POST("", amw.AuthRequired(createScopes("server")), r.serverCreate)
-
 		srvs.GET("/components", amw.AuthRequired(readScopes("server:component")), r.serverComponentList)
 
 		// /servers/:uuid
@@ -43,23 +42,23 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 			srv.PUT("", amw.AuthRequired(updateScopes("server")), r.serverUpdate)
 			srv.DELETE("", amw.AuthRequired(deleteScopes("server")), r.serverDelete)
 
-			// /servers/:uuid/attributes
-			srvAttrs := srv.Group("/attributes")
-			{
-				srvAttrs.GET("", amw.AuthRequired(readScopes("server", "server:attributes")), r.serverAttributesList)
-				srvAttrs.POST("", amw.AuthRequired(createScopes("server", "server:attributes")), r.serverAttributesCreate)
-				srvAttrs.GET("/:namespace", amw.AuthRequired(readScopes("server", "server:attributes")), r.serverAttributesGet)
-				srvAttrs.PUT("/:namespace", amw.AuthRequired(updateScopes("server", "server:attributes")), r.serverAttributesUpdate)
-				srvAttrs.DELETE("/:namespace", amw.AuthRequired(deleteScopes("server", "server:attributes")), r.serverAttributesDelete)
-			}
-
 			// /servers/:uuid/components
 			srvComponents := srv.Group("/components")
 			{
-				srvComponents.POST("", amw.AuthRequired(createScopes("server", "server:component")), r.serverComponentsCreate)
+				// collection method is inband OR outofband
+				srvComponents.POST("/init/:collection-method", amw.AuthRequired(createScopes("server", "server:component")), r.serverComponentsInitCollection)
 				srvComponents.GET("", amw.AuthRequired(readScopes("server", "server:component")), r.serverComponentGet)
-				srvComponents.PUT("", amw.AuthRequired(updateScopes("server", "server:component")), r.serverComponentUpdate)
-				srvComponents.DELETE("", amw.AuthRequired(deleteScopes("server", "server:component")), r.serverComponentDelete)
+				// serverComponentUpdateCollection will update existing component record and its relations for existing server component records
+				srvComponents.PUT("/update/:collection-method", amw.AuthRequired(updateScopes("server", "server:component")), r.serverComponentUpdateCollection)
+				srvComponents.DELETE("", amw.AuthRequired(deleteScopes("server", "server:component")), r.serverComponentDeleteAll)
+			}
+
+			// /server/:uuid/component-changes
+			componentChanges := srv.Group("/component-changes")
+			{
+				componentChanges.POST("/report", amw.AuthRequired(createScopes("component-change")), r.componentChangeReport)
+				componentChanges.POST("/accept", amw.AuthRequired(updateScopes("component-change")), r.componentChangeAccept)
+				componentChanges.DELETE("/report", amw.AuthRequired(deleteScopes("component-change")), r.componentChangeReportDeleteAll)
 			}
 
 			// /servers/:uuid/credentials/:slug
@@ -68,14 +67,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 				svrCreds.GET("", amw.AuthRequired([]string{"read:server:credentials"}), r.serverCredentialGet)
 				svrCreds.PUT("", amw.AuthRequired([]string{"write:server:credentials"}), r.serverCredentialUpsert)
 				svrCreds.DELETE("", amw.AuthRequired([]string{"write:server:credentials"}), r.serverCredentialDelete)
-			}
-
-			// /servers/:uuid/versioned-attributes
-			srvVerAttrs := srv.Group("/versioned-attributes")
-			{
-				srvVerAttrs.GET("", amw.AuthRequired(readScopes("server", "server:versioned-attributes")), r.serverVersionedAttributesList)
-				srvVerAttrs.POST("", amw.AuthRequired(createScopes("server", "server:versioned-attributes")), r.serverVersionedAttributesCreate)
-				srvVerAttrs.GET("/:namespace", amw.AuthRequired(readScopes("server", "server:versioned-attributes")), r.serverVersionedAttributesGet)
 			}
 		}
 	}
@@ -150,14 +141,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		}
 	}
 
-	// inventory endpoints
-	srvInventory := rg.Group("/inventory")
-	{
-		// uuid is the server id
-		srvInventory.GET("/:uuid", amw.AuthRequired(readScopes("server")), r.getInventory)
-		srvInventory.PUT("/:uuid", amw.AuthRequired(updateScopes("server")), r.setInventory)
-	}
-
 	srvEvents := rg.Group("/events")
 	{
 		srvEvents.GET("/:evtID", amw.AuthRequired(readScopes("server")), r.getHistoryByConditionID)
@@ -206,6 +189,37 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		installedFirmware.GET("/:componentID", amw.AuthRequired(readScopes("installed-firmware")), r.installedFirmwareGet)
 		installedFirmware.DELETE("/:componentID", amw.AuthRequired(deleteScopes("installed-firmware")), r.installedFirmwareDelete)
 	}
+
+	componentStatus := rg.Group("/component-status")
+	{
+		componentStatus.POST("", amw.AuthRequired(createScopes("component-status")), r.componentStatusSet)
+		componentStatus.GET("", amw.AuthRequired(readScopes("component-status")), r.componentStatusList)
+		componentStatus.GET("/:componentID", amw.AuthRequired(readScopes("component-status")), r.componentStatusGet)
+		componentStatus.DELETE("/:componentID", amw.AuthRequired(deleteScopes("component-status")), r.componentStatusDelete)
+	}
+
+	serverStatus := rg.Group("/server-status")
+	{
+		serverStatus.POST("", amw.AuthRequired(createScopes("server-status")), r.serverStatusSet)
+		serverStatus.GET("", amw.AuthRequired(readScopes("server-status")), r.serverStatusList)
+		serverStatus.GET("/:serverID", amw.AuthRequired(readScopes("server-status")), r.serverStatusGet)
+		serverStatus.DELETE("/:serverID", amw.AuthRequired(deleteScopes("server-status")), r.serverStatusDelete)
+	}
+
+	componentCapability := rg.Group("/component-capability")
+	{
+		componentCapability.POST("", amw.AuthRequired(createScopes("component-capability")), r.componentCapabilitySet)
+		componentCapability.GET("/:componentID", amw.AuthRequired(readScopes("component-capability")), r.componentCapabilityGet)
+		componentCapability.DELETE("/:componentID", amw.AuthRequired(deleteScopes("component-capability")), r.componentCapabilityDelete)
+	}
+
+	componentMetadata := rg.Group("/component-metadata")
+	{
+		componentMetadata.POST("", amw.AuthRequired(createScopes("component-metadata")), r.componentMetadataSet)
+		componentMetadata.GET("/:componentID", amw.AuthRequired(readScopes("component-metadata")), r.componentMetadataList)
+		componentMetadata.GET("/:componentID/:namespace", amw.AuthRequired(readScopes("component-metadata")), r.componentMetadataGet)
+		componentMetadata.DELETE("/:componentID/:namespace", amw.AuthRequired(deleteScopes("component-metadata")), r.componentMetadataDelete)
+	}
 }
 
 func createScopes(items ...string) []string {
@@ -244,57 +258,18 @@ func deleteScopes(items ...string) []string {
 	return s
 }
 
-func (r *Router) parseUUID(c *gin.Context) (uuid.UUID, error) {
-	u, err := uuid.Parse(c.Param("uuid"))
+func (r *Router) parseUUID(id string) (uuid.UUID, error) {
+	u, err := uuid.Parse(id)
 	if err != nil {
-		badRequestResponse(c, "failed to parse uuid", err)
+		return uuid.Nil, errors.Wrap(ErrUUIDParse, err.Error())
 	}
 
-	return u, err
+	return u, nil
 }
 
-func (r *Router) loadServerFromParams(c *gin.Context) (*models.Server, error) {
-	u, err := r.parseUUID(c)
-	if err != nil {
-		return nil, errors.Wrap(ErrUUIDParse, err.Error())
-	}
-
-	srv, err := models.FindServer(c.Request.Context(), r.DB, u.String())
-	if err != nil {
-		return nil, err
-	}
-
-	return srv, nil
-}
-
-func (r *Router) loadOrCreateServerFromParams(c *gin.Context) (*models.Server, error) {
-	u, err := r.parseUUID(c)
-	if err != nil {
-		return nil, err
-	}
-
-	srv, err := models.FindServer(c.Request.Context(), r.DB, u.String())
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			srv = &models.Server{ID: u.String()}
-			if err := srv.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
-				dbErrorResponse(c, err)
-				return nil, err
-			}
-
-			return srv, nil
-		}
-
-		dbErrorResponse(c, err)
-
-		return nil, err
-	}
-
-	return srv, nil
-}
-
+// TODO: purge method, most likely broken
 func (r *Router) loadComponentFirmwareVersionFromParams(c *gin.Context) (*models.ComponentFirmwareVersion, error) {
-	u, err := r.parseUUID(c)
+	u, err := r.parseUUID(c.Param("uuid"))
 	if err != nil {
 		return nil, err
 	}

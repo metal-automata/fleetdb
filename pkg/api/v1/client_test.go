@@ -166,6 +166,7 @@ func scopedRealClientTests(t *testing.T, scopes []string, f func(ctx context.Con
 		t.Run(fmt.Sprintf("real client - %s", tt.testName), func(t *testing.T) {
 			err := f(tt.ctx, tt.authToken, tt.responseCode, tt.expectError)
 			if tt.expectError {
+				assert.NotNil(t, err)
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errorMsg)
 			} else {

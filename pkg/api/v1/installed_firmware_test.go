@@ -44,15 +44,6 @@ func TestIntegrationInstalledFirmware_Set(t *testing.T) {
 		expectStatusCode string
 	}{
 		{
-			name: "Unique firmware version required",
-			payload: &fleetdbapi.InstalledFirmware{
-				ServerComponentID: uuid.MustParse(dbtools.FixtureNemoLeftFin.ID),
-				Version:           "1.0", // attempt to set the fixture version to the same
-			},
-			expectError:      "duplicate key",
-			expectStatusCode: "500",
-		},
-		{
 			name: "Update record",
 			payload: &fleetdbapi.InstalledFirmware{
 				ServerComponentID: uuid.MustParse(dbtools.FixtureNemoLeftFin.ID),

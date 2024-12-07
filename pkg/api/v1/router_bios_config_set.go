@@ -202,17 +202,19 @@ func (r *Router) updateBiosConfigSet(ctx context.Context, set *BiosConfigSet, ol
 	for _, oldComponent := range oldComponents {
 		componentFound := false
 		for c, component := range components {
-			if oldComponent.Name == component.Name {
-				component.ID = oldComponent.ID
-				component.FKBiosConfigSetID = dbSet.ID
-				componentFound = true
-
-				componentsToUpdate[c] = true
-
-				toUpdate, toDelete := updateBiosConfigSetFindSettingsToDeleteUpdate(oldComponent, component)
-				settingsToUpdate[c] = toUpdate
-				settingsToDelete = append(settingsToDelete, toDelete...)
+			if oldComponent.Name != component.Name {
+				continue
 			}
+
+			component.ID = oldComponent.ID
+			component.FKBiosConfigSetID = dbSet.ID
+			componentFound = true
+
+			componentsToUpdate[c] = true
+
+			toUpdate, toDelete := updateBiosConfigSetFindSettingsToDeleteUpdate(oldComponent, component)
+			settingsToUpdate[c] = toUpdate
+			settingsToDelete = append(settingsToDelete, toDelete...)
 		}
 
 		if !componentFound {
@@ -275,7 +277,7 @@ func updateBiosConfigSetInsertUpdateHelper(ctx context.Context, tx *sql.Tx, comp
 	return nil
 }
 
-func updateBiosConfigSetFindSettingsToDeleteUpdate(oldComponent *models.BiosConfigComponent, newComponent *models.BiosConfigComponent) ([]bool, []*models.BiosConfigSetting) {
+func updateBiosConfigSetFindSettingsToDeleteUpdate(oldComponent, newComponent *models.BiosConfigComponent) ([]bool, []*models.BiosConfigSetting) {
 	var oldSettings []*models.BiosConfigSetting
 	var settingsToDelete []*models.BiosConfigSetting
 	var settingsToUpdate []bool
@@ -329,15 +331,15 @@ func (r *Router) insertBiosConfigSet(ctx context.Context, set *BiosConfigSet) (s
 		return "", err
 	}
 
-	for _, component := range set.Components {
-		dbComponent := component.toDBModelBiosConfigComponent()
+	for idx := range set.Components {
+		dbComponent := set.Components[idx].toDBModelBiosConfigComponent()
 
 		err = dbSet.AddFKBiosConfigSetBiosConfigComponents(ctx, tx, true, dbComponent)
 		if err != nil {
 			return "", err
 		}
 
-		for _, setting := range component.Settings {
+		for _, setting := range set.Components[idx].Settings {
 			dbSetting := setting.toDBModelBiosConfigSetting()
 			err = dbComponent.AddFKBiosConfigComponentBiosConfigSettings(ctx, tx, true, dbSetting)
 			if err != nil {

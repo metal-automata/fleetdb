@@ -29,7 +29,7 @@ var (
 // serveCmd represents the serve command
 var serveCmd = &cobra.Command{
 	Use:   "serve",
-	Short: "starts the hollow server",
+	Short: "starts the fleetdbapi server",
 	Run: func(cmd *cobra.Command, _ []string) {
 		serve(cmd.Context())
 	},
@@ -62,9 +62,9 @@ func serve(ctx context.Context) {
 
 	dbtools.RegisterHooks()
 
-	if err := dbtools.SetupComponentTypes(ctx, db); err != nil {
+	if errSetup := dbtools.SetupComponentTypes(ctx, db); errSetup != nil {
 		logger.With(
-			zap.Error(err),
+			zap.Error(errSetup),
 		).Fatal("set up component types")
 	}
 

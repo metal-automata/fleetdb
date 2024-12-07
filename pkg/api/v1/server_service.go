@@ -2,7 +2,6 @@ package fleetdbapi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"path"
 	"time"
@@ -18,7 +17,7 @@ const (
 	serverVersionedAttributesEndpoint   = "versioned-attributes"
 	serverComponentFirmwaresEndpoint    = "server-component-firmwares"
 	serverCredentialsEndpoint           = "credentials"
-	serverCredentialTypeEndpoint        = "server-credential-types"
+	serverCredentialTypeEndpoint        = "server-credential-types" // nolint:gosec //false positive
 	serverComponentFirmwareSetsEndpoint = "server-component-firmware-sets"
 	serverBiosConfigSetEndpoint         = "server-bios-config-sets"
 	bomInfoEndpoint                     = "bill-of-materials"
@@ -30,6 +29,11 @@ const (
 	hardwareModelsEndpoint              = "hardware-models"
 	serverBMCsEndpoint                  = "server-bmcs"
 	installedFirmwareEndpoint           = "installed-firmware"
+	componentStatusEndpoint             = "component-status"
+	serverStatusEndpoint                = "server-status"
+	componentCapabilityEndpoint         = "component-capability"
+	componentMetadataEndpoint           = "component-metadata"
+	componentChangesEndpoint            = "component-changes"
 )
 
 // ClientInterface provides an interface for the expected calls to interact with a fleetdb api
@@ -37,24 +41,14 @@ type ClientInterface interface {
 	Create(context.Context, Server) (*uuid.UUID, *ServerResponse, error)
 	Delete(context.Context, Server) (*ServerResponse, error)
 	Get(context.Context, uuid.UUID) (*Server, *ServerResponse, error)
-	List(context.Context, *ServerListParams) ([]Server, *ServerResponse, error)
+	// List(context.Context, *ServerListParams) ([]Server, *ServerResponse, error)
 	Update(context.Context, uuid.UUID, Server) (*ServerResponse, error)
-
-	CreateAttributes(context.Context, uuid.UUID, Attributes) (*ServerResponse, error)
-	DeleteAttributes(ctx context.Context, u uuid.UUID, ns string) (*ServerResponse, error)
-	GetAttributes(context.Context, uuid.UUID, string) (*Attributes, *ServerResponse, error)
-	ListAttributes(context.Context, uuid.UUID, *PaginationParams) ([]Attributes, *ServerResponse, error)
-	UpdateAttributes(ctx context.Context, u uuid.UUID, ns string, data json.RawMessage) (*ServerResponse, error)
 
 	GetComponents(context.Context, uuid.UUID, *PaginationParams) ([]ServerComponent, *ServerResponse, error)
 	ListComponents(context.Context, *ServerComponentListParams) ([]ServerComponent, *ServerResponse, error)
 	CreateComponents(context.Context, uuid.UUID, ServerComponentSlice) (*ServerResponse, error)
 	UpdateComponents(context.Context, uuid.UUID, ServerComponentSlice) (*ServerResponse, error)
 	DeleteServerComponents(context.Context, uuid.UUID) (*ServerResponse, error)
-
-	CreateVersionedAttributes(context.Context, uuid.UUID, VersionedAttributes) (*ServerResponse, error)
-	GetVersionedAttributes(context.Context, uuid.UUID, string) ([]VersionedAttributes, *ServerResponse, error)
-	ListVersionedAttributes(context.Context, uuid.UUID) ([]VersionedAttributes, *ServerResponse, error)
 
 	CreateServerComponentFirmware(context.Context, ComponentFirmwareVersion) (*uuid.UUID, *ServerResponse, error)
 	DeleteServerComponentFirmware(context.Context, ComponentFirmwareVersion) (*ServerResponse, error)
@@ -112,7 +106,7 @@ func (c *Client) Create(ctx context.Context, srv Server) (*uuid.UUID, *ServerRes
 
 	u, err := uuid.Parse(resp.Slug)
 	if err != nil {
-		return nil, resp, nil
+		return nil, resp, err
 	}
 
 	return &u, resp, nil
@@ -123,88 +117,45 @@ func (c *Client) Delete(ctx context.Context, srv Server) (*ServerResponse, error
 	return c.delete(ctx, fmt.Sprintf("%s/%s", serversEndpoint, srv.UUID))
 }
 
-// Get will return a server by it's UUID
-func (c *Client) Get(ctx context.Context, srvUUID uuid.UUID) (*Server, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
+// GetServer will return a server by it's UUID
+func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *ServerGetParams) (*Server, *ServerResponse, error) {
+	endpoint := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
 	srv := &Server{}
 	r := ServerResponse{Record: srv}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.getWithParams(ctx, endpoint, params, &r); err != nil {
 		return nil, nil, err
 	}
 
 	return srv, &r, nil
 }
 
+// TODO: for when list is implemented
 // List will return all servers with optional params to filter the results
-func (c *Client) List(ctx context.Context, params *ServerListParams) ([]Server, *ServerResponse, error) {
-	servers := &[]Server{}
-	r := ServerResponse{Records: servers}
-
-	if err := c.list(ctx, serversEndpoint, params, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return *servers, &r, nil
-}
+// func (c *Client) List(ctx context.Context, params *ServerListParams) ([]Server, *ServerResponse, error) {
+//	servers := &[]Server{}
+//	r := ServerResponse{Records: servers}
+//
+//	if err := c.list(ctx, serversEndpoint, params, &r); err != nil {
+//		return nil, nil, err
+//	}
+//
+//	return *servers, &r, nil
+//}
 
 // Update will to update a server with the new values passed in
 func (c *Client) Update(ctx context.Context, srvUUID uuid.UUID, srv Server) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
-	return c.put(ctx, path, srv)
-}
-
-// CreateAttributes will to create the given attributes for a given server
-func (c *Client) CreateAttributes(ctx context.Context, srvUUID uuid.UUID, attr Attributes) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint)
-	return c.post(ctx, path, attr)
-}
-
-// GetAttributes will get all the attributes in a namespace for a given server
-func (c *Client) GetAttributes(ctx context.Context, srvUUID uuid.UUID, ns string) (*Attributes, *ServerResponse, error) {
-	attrs := &Attributes{}
-	r := ServerResponse{Record: attrs}
-
-	path := fmt.Sprintf("%s/%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint, ns)
-	if err := c.get(ctx, path, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return attrs, &r, nil
-}
-
-// DeleteAttributes will attempt to delete attributes by server uuid and namespace return an error on failure
-func (c *Client) DeleteAttributes(ctx context.Context, srvUUID uuid.UUID, ns string) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint, ns)
-	return c.delete(ctx, path)
-}
-
-// ListAttributes will get all the attributes for a given server
-func (c *Client) ListAttributes(ctx context.Context, srvUUID uuid.UUID, params *PaginationParams) ([]Attributes, *ServerResponse, error) {
-	attrs := &[]Attributes{}
-	r := ServerResponse{Records: attrs}
-
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint)
-	if err := c.list(ctx, path, params, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return *attrs, &r, nil
-}
-
-// UpdateAttributes will to update the data stored in a given namespace for a given server
-func (c *Client) UpdateAttributes(ctx context.Context, srvUUID uuid.UUID, ns string, data json.RawMessage) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s/%s", serversEndpoint, srvUUID, serverAttributesEndpoint, ns)
-	return c.put(ctx, path, Attributes{Data: data})
+	endpoint := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
+	return c.put(ctx, endpoint, srv)
 }
 
 // GetComponents will get all the components for a given server
-func (c *Client) GetComponents(ctx context.Context, srvUUID uuid.UUID, params *PaginationParams) (ServerComponentSlice, *ServerResponse, error) {
+func (c *Client) GetComponents(ctx context.Context, srvUUID uuid.UUID, params *ServerComponentGetParams) (ServerComponentSlice, *ServerResponse, error) {
 	sc := &ServerComponentSlice{}
 	r := ServerResponse{Records: sc}
 
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverComponentsEndpoint)
-	if err := c.list(ctx, path, params, &r); err != nil {
+	endpoint := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverComponentsEndpoint)
+	if err := c.list(ctx, endpoint, params, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -216,62 +167,58 @@ func (c *Client) ListComponents(ctx context.Context, params *ServerComponentList
 	sc := &ServerComponentSlice{}
 	r := ServerResponse{Records: sc}
 
-	path := fmt.Sprintf("%s/%s", serversEndpoint, serverComponentsEndpoint)
-	if err := c.list(ctx, path, params, &r); err != nil {
+	endpoint := fmt.Sprintf("%s/%s", serversEndpoint, serverComponentsEndpoint)
+	if err := c.list(ctx, endpoint, params, &r); err != nil {
 		return nil, nil, err
 	}
 
 	return *sc, &r, nil
 }
 
-// CreateComponents will create given components for a given server
-func (c *Client) CreateComponents(ctx context.Context, srvUUID uuid.UUID, components ServerComponentSlice) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverComponentsEndpoint)
-	return c.post(ctx, path, components)
+// InitComponentCollection is to be called to initialize component and relational records for a server
+// This will only create component records only if none already exist
+// collectionMethod is one of inband/outofband
+//
+// note: The {Report,Accept}ComponentChanges methods are used to add/delete components
+func (c *Client) InitComponentCollection(ctx context.Context, srvUUID uuid.UUID, components ServerComponentSlice, collectionMethod CollectionMethod) (*ServerResponse, error) {
+	endpoint := path.Join(serversEndpoint, srvUUID.String(), serverComponentsEndpoint, "init", string(collectionMethod))
+	return c.post(ctx, endpoint, components)
 }
 
-// UpdateComponents will update given components for a given server
-func (c *Client) UpdateComponents(ctx context.Context, srvUUID uuid.UUID, components ServerComponentSlice) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverComponentsEndpoint)
-	return c.put(ctx, path, components)
+// UpdateComponentCollection will update existing component and related records for a server - this will not delete any or add any components.
+//
+// note: The {Report,Accept}ComponentChanges methods are used to add/delete components
+func (c *Client) UpdateComponentCollection(ctx context.Context, srvUUID uuid.UUID, components ServerComponentSlice, collectionMethod CollectionMethod) (*ServerResponse, error) {
+	endpoint := path.Join(serversEndpoint, srvUUID.String(), serverComponentsEndpoint, "update", string(collectionMethod))
+	return c.put(ctx, endpoint, components)
 }
 
-// DeleteServerComponents will delete components for the given server identifier.
+// DeleteServerComponents will delete all components for the given server identifier.
 func (c *Client) DeleteServerComponents(ctx context.Context, srvUUID uuid.UUID) (*ServerResponse, error) {
 	return c.delete(ctx, fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverComponentsEndpoint))
 }
 
-// CreateVersionedAttributes will create a new versioned attribute for a given server
-func (c *Client) CreateVersionedAttributes(ctx context.Context, srvUUID uuid.UUID, va VersionedAttributes) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverVersionedAttributesEndpoint)
+// ReportComponentChanges creates records for server component additions/deletes - these have to be accepted first
+func (c *Client) ReportComponentChanges(ctx context.Context, serverID string, change *ComponentChangeReport) (*ComponentChangeReportResponse, *ServerResponse, error) {
+	cr := &ComponentChangeReportResponse{}
+	res := &ServerResponse{Data: &cr}
+	endpoint := path.Join(serversEndpoint, serverID, componentChangesEndpoint, "report")
 
-	return c.post(ctx, path, va)
-}
-
-// GetVersionedAttributes will return all the versioned attributes for a given server
-func (c *Client) GetVersionedAttributes(ctx context.Context, srvUUID uuid.UUID, ns string) ([]VersionedAttributes, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s/%s", serversEndpoint, srvUUID, serverVersionedAttributesEndpoint, ns)
-	val := &[]VersionedAttributes{}
-	r := ServerResponse{Records: val}
-
-	if err := c.list(ctx, path, nil, &r); err != nil {
+	if err := c.postWithReciever(ctx, endpoint, change, res); err != nil {
 		return nil, nil, err
 	}
 
-	return *val, &r, nil
+	return cr, res, nil
 }
 
-// ListVersionedAttributes will return all the versioned attributes for a given server
-func (c *Client) ListVersionedAttributes(ctx context.Context, srvUUID uuid.UUID) ([]VersionedAttributes, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverVersionedAttributesEndpoint)
-	val := &[]VersionedAttributes{}
-	r := ServerResponse{Records: val}
-
-	if err := c.list(ctx, path, nil, &r); err != nil {
-		return nil, nil, err
+// AcceptComponentChanges accepts and merges the specified changeIDs which reference component addition/deletion component change reports
+func (c *Client) AcceptComponentChanges(ctx context.Context, serverID string, changeIDs []string) (*ServerResponse, error) {
+	endpoint := path.Join(serversEndpoint, serverID, componentChangesEndpoint, "accept")
+	report := &ComponentChangeAccept{
+		ChangeIDs: changeIDs,
 	}
 
-	return *val, &r, nil
+	return c.post(ctx, endpoint, report)
 }
 
 // CreateServerComponentFirmware will attempt to create a firmware in Hollow and return the firmware UUID
@@ -283,7 +230,7 @@ func (c *Client) CreateServerComponentFirmware(ctx context.Context, firmware Com
 
 	u, err := uuid.Parse(resp.Slug)
 	if err != nil {
-		return nil, resp, nil
+		return nil, resp, err
 	}
 
 	return &u, resp, nil
@@ -296,11 +243,11 @@ func (c *Client) DeleteServerComponentFirmware(ctx context.Context, firmware Com
 
 // GetServerComponentFirmware will return a firmware by its UUID
 func (c *Client) GetServerComponentFirmware(ctx context.Context, fwUUID uuid.UUID) (*ComponentFirmwareVersion, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverComponentFirmwaresEndpoint, fwUUID)
+	endpoint := fmt.Sprintf("%s/%s", serverComponentFirmwaresEndpoint, fwUUID)
 	fw := &ComponentFirmwareVersion{}
 	r := ServerResponse{Record: fw}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.get(ctx, endpoint, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -321,8 +268,8 @@ func (c *Client) ListServerComponentFirmware(ctx context.Context, params *Compon
 
 // UpdateServerComponentFirmware will to update a firmware with the new values passed in
 func (c *Client) UpdateServerComponentFirmware(ctx context.Context, fwUUID uuid.UUID, firmware ComponentFirmwareVersion) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverComponentFirmwaresEndpoint, fwUUID)
-	return c.put(ctx, path, firmware)
+	endpoint := fmt.Sprintf("%s/%s", serverComponentFirmwaresEndpoint, fwUUID)
+	return c.put(ctx, endpoint, firmware)
 }
 
 // CreateServerComponentFirmwareSet will attempt to create a firmware set in Hollow and return the firmware UUID
@@ -334,7 +281,7 @@ func (c *Client) CreateServerComponentFirmwareSet(ctx context.Context, set Compo
 
 	u, err := uuid.Parse(resp.Slug)
 	if err != nil {
-		return nil, resp, nil
+		return nil, resp, err
 	}
 
 	return &u, resp, nil
@@ -347,11 +294,11 @@ func (c *Client) DeleteServerComponentFirmwareSet(ctx context.Context, firmwareS
 
 // GetServerComponentFirmwareSet will return a firmware by its UUID
 func (c *Client) GetServerComponentFirmwareSet(ctx context.Context, fwSetUUID uuid.UUID) (*ComponentFirmwareSet, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverComponentFirmwareSetsEndpoint, fwSetUUID)
+	endpoint := fmt.Sprintf("%s/%s", serverComponentFirmwareSetsEndpoint, fwSetUUID)
 	fws := &ComponentFirmwareSet{}
 	r := ServerResponse{Record: fws}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.get(ctx, endpoint, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -378,27 +325,27 @@ func (c *Client) ListServerComponentFirmwareSet(ctx context.Context, params *Com
 
 // UpdateComponentFirmwareSetRequest will add a firmware set with the new firmware id(s) passed in the firmwareSet parameter
 func (c *Client) UpdateComponentFirmwareSetRequest(ctx context.Context, fwSetUUID uuid.UUID, firmwareSet ComponentFirmwareSetRequest) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverComponentFirmwareSetsEndpoint, fwSetUUID)
-	return c.put(ctx, path, firmwareSet)
+	endpoint := fmt.Sprintf("%s/%s", serverComponentFirmwareSetsEndpoint, fwSetUUID)
+	return c.put(ctx, endpoint, firmwareSet)
 }
 
 // RemoveServerComponentFirmwareSetFirmware will update a firmware set by removing the mapping for the firmware id(s) passed in the firmwareSet parameter
 func (c *Client) RemoveServerComponentFirmwareSetFirmware(ctx context.Context, fwSetUUID uuid.UUID, firmwareSet ComponentFirmwareSetRequest) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/remove-firmware", serverComponentFirmwareSetsEndpoint, fwSetUUID)
-	return c.post(ctx, path, firmwareSet)
+	endpoint := fmt.Sprintf("%s/%s/remove-firmware", serverComponentFirmwareSetsEndpoint, fwSetUUID)
+	return c.post(ctx, endpoint, firmwareSet)
 }
 
 // ValidateFirmwareSet inserts or updates a record containing facts about the validation of this
 // particular firmware set. On a successful execution the API returns 204 (http.StatusNoContent), so
 // there is nothing useful to put into a ServerResponse.
 func (c *Client) ValidateFirmwareSet(ctx context.Context, srvID, fwSetID uuid.UUID, on time.Time) error {
-	path := fmt.Sprintf("%s/validate-firmware-set", serverComponentFirmwareSetsEndpoint)
+	endpoint := fmt.Sprintf("%s/validate-firmware-set", serverComponentFirmwareSetsEndpoint)
 	facts := FirmwareSetValidation{
 		TargetServer: srvID,
 		FirmwareSet:  fwSetID,
 		PerformedOn:  on,
 	}
-	_, err := c.post(ctx, path, facts)
+	_, err := c.post(ctx, endpoint, facts)
 	return err
 }
 
@@ -452,9 +399,9 @@ func (c *Client) CreateServerCredentialType(ctx context.Context, sType *ServerCr
 
 // BillOfMaterialsBatchUpload will attempt to write multiple boms to database.
 func (c *Client) BillOfMaterialsBatchUpload(ctx context.Context, boms []Bom) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", bomInfoEndpoint, uploadFileEndpoint)
+	endpoint := fmt.Sprintf("%s/%s", bomInfoEndpoint, uploadFileEndpoint)
 
-	resp, err := c.post(ctx, path, boms)
+	resp, err := c.post(ctx, endpoint, boms)
 	if err != nil {
 		return nil, err
 	}
@@ -464,11 +411,11 @@ func (c *Client) BillOfMaterialsBatchUpload(ctx context.Context, boms []Bom) (*S
 
 // GetBomInfoByAOCMacAddr will return the bom info object by the aoc mac address.
 func (c *Client) GetBomInfoByAOCMacAddr(ctx context.Context, aocMacAddr string) (*Bom, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacAOCAddressEndpoint, aocMacAddr)
+	endpoint := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacAOCAddressEndpoint, aocMacAddr)
 	bom := &Bom{}
 	r := ServerResponse{Record: bom}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.get(ctx, endpoint, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -477,11 +424,11 @@ func (c *Client) GetBomInfoByAOCMacAddr(ctx context.Context, aocMacAddr string) 
 
 // GetBomInfoByBMCMacAddr will return the bom info object by the bmc mac address.
 func (c *Client) GetBomInfoByBMCMacAddr(ctx context.Context, bmcMacAddr string) (*Bom, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacBMCAddressEndpoint, bmcMacAddr)
+	endpoint := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacBMCAddressEndpoint, bmcMacAddr)
 	bom := &Bom{}
 	r := ServerResponse{Record: bom}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.get(ctx, endpoint, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -495,11 +442,11 @@ func (c *Client) GetServerInventory(ctx context.Context, srvID uuid.UUID, inband
 		mode = "inband"
 	}
 
-	path := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
+	endpoint := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
 	srv := &rivets.Server{}
 	r := &ServerResponse{Record: srv}
 
-	if err := c.get(ctx, path, r); err != nil {
+	if err := c.get(ctx, endpoint, r); err != nil {
 		return nil, nil, err
 	}
 
@@ -514,17 +461,17 @@ func (c *Client) SetServerInventory(ctx context.Context, srvID uuid.UUID,
 		mode = "inband"
 	}
 
-	path := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
-	return c.put(ctx, path, srv)
+	endpoint := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
+	return c.put(ctx, endpoint, srv)
 }
 
 // GetHistoryByID returns the details of the event with the given ID
 func (c *Client) GetHistoryByID(ctx context.Context, evtID uuid.UUID) ([]*Event, *ServerResponse, error) {
 	evts := &[]*Event{}
 	r := &ServerResponse{Records: evts}
-	path := fmt.Sprintf("events/%s", evtID.String())
+	endpoint := fmt.Sprintf("events/%s", evtID.String())
 
-	if err := c.get(ctx, path, r); err != nil {
+	if err := c.get(ctx, endpoint, r); err != nil {
 		return nil, nil, err
 	}
 
@@ -536,9 +483,9 @@ func (c *Client) GetServerEvents(ctx context.Context, srvID uuid.UUID,
 	params *PaginationParams) ([]*Event, *ServerResponse, error) {
 	evts := &[]*Event{}
 	r := &ServerResponse{Records: evts}
-	path := fmt.Sprintf("events/by-server/%s", srvID.String())
+	endpoint := fmt.Sprintf("events/by-server/%s", srvID.String())
 
-	if err := c.list(ctx, path, params, r); err != nil {
+	if err := c.list(ctx, endpoint, params, r); err != nil {
 		return nil, nil, err
 	}
 
@@ -547,8 +494,8 @@ func (c *Client) GetServerEvents(ctx context.Context, srvID uuid.UUID,
 
 // UpdateEvent adds a new event to the event history
 func (c *Client) UpdateEvent(ctx context.Context, evt *Event) (*ServerResponse, error) {
-	path := fmt.Sprintf("events/%s", evt.EventID.String())
-	return c.put(ctx, path, evt)
+	endpoint := fmt.Sprintf("events/%s", evt.EventID.String())
+	return c.put(ctx, endpoint, evt)
 }
 
 // CreateServerBiosConfigSet will store the BiosConfigSet, and return the generated UUID of the BiosConfigSet
@@ -563,11 +510,11 @@ func (c *Client) CreateServerBiosConfigSet(ctx context.Context, set BiosConfigSe
 
 // GetServerBiosConfigSet will retrieve the BiosConfigSet referred to by the given ID if found
 func (c *Client) GetServerBiosConfigSet(ctx context.Context, id uuid.UUID) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
+	endpoint := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
 	cfg := &BiosConfigSet{}
 	resp := ServerResponse{Record: cfg}
 
-	if err := c.get(ctx, path, &resp); err != nil {
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, err
 	}
 
@@ -576,9 +523,8 @@ func (c *Client) GetServerBiosConfigSet(ctx context.Context, id uuid.UUID) (*Ser
 
 // DeleteServerBiosConfigSet will delete the BiosConfigSet referred to by the given ID if found
 func (c *Client) DeleteServerBiosConfigSet(ctx context.Context, id uuid.UUID) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
-
-	resp, err := c.delete(ctx, path)
+	endpoint := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
+	resp, err := c.delete(ctx, endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -601,8 +547,8 @@ func (c *Client) ListServerBiosConfigSet(ctx context.Context, params *BiosConfig
 
 // UpdateServerBiosConfigSet will update a config set.
 func (c *Client) UpdateServerBiosConfigSet(ctx context.Context, id uuid.UUID, set BiosConfigSet) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
-	resp, err := c.put(ctx, path, set)
+	endpoint := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
+	resp, err := c.put(ctx, endpoint, set)
 	if err != nil {
 		return nil, err
 	}
@@ -632,8 +578,8 @@ func (c *Client) GetHardwareVendor(ctx context.Context, name string) (*HardwareV
 	hardwareVendor := &HardwareVendor{}
 	resp := ServerResponse{Record: hardwareVendor}
 
-	path := path.Join(hardwareVendorsEndpoint, name)
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(hardwareVendorsEndpoint, name)
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 
@@ -668,8 +614,8 @@ func (c *Client) GetHardwareModel(ctx context.Context, name string) (*HardwareMo
 	hardwareModel := &HardwareModel{}
 	resp := ServerResponse{Record: hardwareModel}
 
-	path := path.Join(hardwareModelsEndpoint, name)
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(hardwareModelsEndpoint, name)
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 
@@ -704,8 +650,8 @@ func (c *Client) GetServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerB
 	serverBMC := &ServerBMC{}
 	resp := ServerResponse{Record: serverBMC}
 
-	path := path.Join(serverBMCsEndpoint, serverID.String())
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(serverBMCsEndpoint, serverID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 
@@ -740,8 +686,8 @@ func (c *Client) GetInstalledFirmware(ctx context.Context, componentID uuid.UUID
 	installedFirmware := &InstalledFirmware{}
 	resp := ServerResponse{Record: installedFirmware}
 
-	path := path.Join(installedFirmwareEndpoint, componentID.String())
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(installedFirmwareEndpoint, componentID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 
@@ -751,5 +697,125 @@ func (c *Client) GetInstalledFirmware(ctx context.Context, componentID uuid.UUID
 // DeleteInstalledFirmware purges a installed firmware record (soft delete)
 func (c *Client) DeleteInstalledFirmware(ctx context.Context, componentID uuid.UUID) (*ServerResponse, error) {
 	endpoint := path.Join(installedFirmwareEndpoint, componentID.String())
+	return c.delete(ctx, endpoint)
+}
+
+// SetComponentStatus creates or updates a component status record
+func (c *Client) SetComponentStatus(ctx context.Context, componentStatus *ComponentStatus) (*ServerResponse, error) {
+	return c.post(ctx, componentStatusEndpoint, componentStatus)
+}
+
+// ListComponentStatus lists all component status records
+func (c *Client) ListComponentStatus(ctx context.Context) ([]*ComponentStatus, *ServerResponse, error) {
+	componentStatus := []*ComponentStatus{}
+	resp := ServerResponse{Records: &componentStatus}
+	if err := c.list(ctx, componentStatusEndpoint, nil, &resp); err != nil {
+		return nil, nil, err
+	}
+	return componentStatus, &resp, nil
+}
+
+// GetComponentStatus retrieves a component status by component ID
+func (c *Client) GetComponentStatus(ctx context.Context, componentID uuid.UUID) (*ComponentStatus, *ServerResponse, error) {
+	componentStatus := &ComponentStatus{}
+	resp := ServerResponse{Record: componentStatus}
+	endpoint := path.Join(componentStatusEndpoint, componentID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
+		return nil, nil, err
+	}
+	return componentStatus, &resp, nil
+}
+
+// DeleteComponentStatus deletes a component status record
+func (c *Client) DeleteComponentStatus(ctx context.Context, componentID uuid.UUID) (*ServerResponse, error) {
+	endpoint := path.Join(componentStatusEndpoint, componentID.String())
+	return c.delete(ctx, endpoint)
+}
+
+// SetServerStatus creates or updates a server status record
+func (c *Client) SetServerStatus(ctx context.Context, serverStatus *ServerStatus) (*ServerResponse, error) {
+	return c.post(ctx, serverStatusEndpoint, serverStatus)
+}
+
+// ListServerStatus lists all server status records
+func (c *Client) ListServerStatus(ctx context.Context) ([]*ServerStatus, *ServerResponse, error) {
+	serverStatus := []*ServerStatus{}
+	resp := ServerResponse{Records: &serverStatus}
+	if err := c.list(ctx, serverStatusEndpoint, nil, &resp); err != nil {
+		return nil, nil, err
+	}
+	return serverStatus, &resp, nil
+}
+
+// GetServerStatus retrieves a server status by server ID
+func (c *Client) GetServerStatus(ctx context.Context, serverID uuid.UUID) (*ServerStatus, *ServerResponse, error) {
+	serverStatus := &ServerStatus{}
+	resp := ServerResponse{Record: serverStatus}
+	endpoint := path.Join(serverStatusEndpoint, serverID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
+		return nil, nil, err
+	}
+	return serverStatus, &resp, nil
+}
+
+// DeleteServerStatus deletes a server status record
+func (c *Client) DeleteServerStatus(ctx context.Context, serverID uuid.UUID) (*ServerResponse, error) {
+	endpoint := path.Join(serverStatusEndpoint, serverID.String())
+	return c.delete(ctx, endpoint)
+}
+
+// SetComponentCapability creates or updates a component capability record
+func (c *Client) SetComponentCapability(ctx context.Context, capability []*ComponentCapability) (*ServerResponse, error) {
+	return c.post(ctx, componentCapabilityEndpoint, capability)
+}
+
+// GetComponentCapability retrieves a component capability by component ID and capability name
+func (c *Client) GetComponentCapability(ctx context.Context, componentID uuid.UUID) (*ComponentCapability, *ServerResponse, error) {
+	capability := &ComponentCapability{}
+	resp := ServerResponse{Record: capability}
+	endpoint := path.Join(componentCapabilityEndpoint, componentID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
+		return nil, nil, err
+	}
+	return capability, &resp, nil
+}
+
+// DeleteComponentCapability deletes a component capability record
+func (c *Client) DeleteComponentCapability(ctx context.Context, componentID uuid.UUID) (*ServerResponse, error) {
+	endpoint := path.Join(componentCapabilityEndpoint, componentID.String())
+	return c.delete(ctx, endpoint)
+}
+
+// SetComponentMetadata creates or updates a component metadata record
+func (c *Client) SetComponentMetadata(ctx context.Context, metadata []*ComponentMetadata) (*ServerResponse, error) {
+	return c.post(ctx, componentMetadataEndpoint, metadata)
+}
+
+// ListComponentMetadata lists all component metadata records
+// componentID and namespace are optional filters
+func (c *Client) ListComponentMetadata(ctx context.Context, componentID uuid.UUID, namespace string) ([]*ComponentMetadata, *ServerResponse, error) {
+	endpoint := path.Join(componentMetadataEndpoint, componentID.String(), namespace)
+	metadata := []*ComponentMetadata{}
+	resp := ServerResponse{Records: &metadata}
+	if err := c.list(ctx, endpoint, nil, &resp); err != nil {
+		return nil, nil, err
+	}
+	return metadata, &resp, nil
+}
+
+// GetComponentMetadata retrieves a component metadata by component ID and namespace
+func (c *Client) GetComponentMetadata(ctx context.Context, componentID uuid.UUID, namespace string) (*ComponentMetadata, *ServerResponse, error) {
+	metadata := &ComponentMetadata{}
+	resp := ServerResponse{Record: metadata}
+	endpoint := path.Join(componentMetadataEndpoint, componentID.String(), namespace)
+	if err := c.get(ctx, endpoint, &resp); err != nil {
+		return nil, nil, err
+	}
+	return metadata, &resp, nil
+}
+
+// DeleteComponentMetadata deletes a component metadata record
+func (c *Client) DeleteComponentMetadata(ctx context.Context, componentID uuid.UUID, namespace string) (*ServerResponse, error) {
+	endpoint := path.Join(componentMetadataEndpoint, componentID.String(), namespace)
 	return c.delete(ctx, endpoint)
 }

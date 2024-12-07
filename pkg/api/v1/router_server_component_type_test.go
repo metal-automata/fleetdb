@@ -43,7 +43,7 @@ func TestIntegrationListServerComponentTypes(t *testing.T) {
 		if !expectError {
 			require.NoError(t, err)
 			assert.GreaterOrEqual(t, len(r), 1)
-			assert.NotNil(t, r.ByName(dbtools.FixtureFinType.Name))
+			assert.NotNil(t, r.ByName(dbtools.FixtureComponentTypeSlugMap["fins"].Name))
 			assert.NotNil(t, resp)
 			assert.NotNil(t, resp.Links.Self)
 		}

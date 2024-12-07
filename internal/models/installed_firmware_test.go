@@ -31,107 +31,6 @@ func testInstalledFirmwares(t *testing.T) {
 	}
 }
 
-func testInstalledFirmwaresSoftDelete(t *testing.T) {
-	t.Parallel()
-
-	seed := randomize.NewSeed()
-	var err error
-	o := &InstalledFirmware{}
-	if err = randomize.Struct(seed, o, installedFirmwareDBTypes, true, installedFirmwareColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize InstalledFirmware struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Error(err)
-	}
-
-	if rowsAff, err := o.Delete(ctx, tx, false); err != nil {
-		t.Error(err)
-	} else if rowsAff != 1 {
-		t.Error("should only have deleted one row, but affected:", rowsAff)
-	}
-
-	count, err := InstalledFirmwares().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if count != 0 {
-		t.Error("want zero records, got:", count)
-	}
-}
-
-func testInstalledFirmwaresQuerySoftDeleteAll(t *testing.T) {
-	t.Parallel()
-
-	seed := randomize.NewSeed()
-	var err error
-	o := &InstalledFirmware{}
-	if err = randomize.Struct(seed, o, installedFirmwareDBTypes, true, installedFirmwareColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize InstalledFirmware struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Error(err)
-	}
-
-	if rowsAff, err := InstalledFirmwares().DeleteAll(ctx, tx, false); err != nil {
-		t.Error(err)
-	} else if rowsAff != 1 {
-		t.Error("should only have deleted one row, but affected:", rowsAff)
-	}
-
-	count, err := InstalledFirmwares().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if count != 0 {
-		t.Error("want zero records, got:", count)
-	}
-}
-
-func testInstalledFirmwaresSliceSoftDeleteAll(t *testing.T) {
-	t.Parallel()
-
-	seed := randomize.NewSeed()
-	var err error
-	o := &InstalledFirmware{}
-	if err = randomize.Struct(seed, o, installedFirmwareDBTypes, true, installedFirmwareColumnsWithDefault...); err != nil {
-		t.Errorf("Unable to randomize InstalledFirmware struct: %s", err)
-	}
-
-	ctx := context.Background()
-	tx := MustTx(boil.BeginTx(ctx, nil))
-	defer func() { _ = tx.Rollback() }()
-	if err = o.Insert(ctx, tx, boil.Infer()); err != nil {
-		t.Error(err)
-	}
-
-	slice := InstalledFirmwareSlice{o}
-
-	if rowsAff, err := slice.DeleteAll(ctx, tx, false); err != nil {
-		t.Error(err)
-	} else if rowsAff != 1 {
-		t.Error("should only have deleted one row, but affected:", rowsAff)
-	}
-
-	count, err := InstalledFirmwares().Count(ctx, tx)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if count != 0 {
-		t.Error("want zero records, got:", count)
-	}
-}
-
 func testInstalledFirmwaresDelete(t *testing.T) {
 	t.Parallel()
 
@@ -149,7 +48,7 @@ func testInstalledFirmwaresDelete(t *testing.T) {
 		t.Error(err)
 	}
 
-	if rowsAff, err := o.Delete(ctx, tx, true); err != nil {
+	if rowsAff, err := o.Delete(ctx, tx); err != nil {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("should only have deleted one row, but affected:", rowsAff)
@@ -182,7 +81,7 @@ func testInstalledFirmwaresQueryDeleteAll(t *testing.T) {
 		t.Error(err)
 	}
 
-	if rowsAff, err := InstalledFirmwares().DeleteAll(ctx, tx, true); err != nil {
+	if rowsAff, err := InstalledFirmwares().DeleteAll(ctx, tx); err != nil {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("should only have deleted one row, but affected:", rowsAff)
@@ -217,7 +116,7 @@ func testInstalledFirmwaresSliceDeleteAll(t *testing.T) {
 
 	slice := InstalledFirmwareSlice{o}
 
-	if rowsAff, err := slice.DeleteAll(ctx, tx, true); err != nil {
+	if rowsAff, err := slice.DeleteAll(ctx, tx); err != nil {
 		t.Error(err)
 	} else if rowsAff != 1 {
 		t.Error("should only have deleted one row, but affected:", rowsAff)
@@ -694,7 +593,7 @@ func testInstalledFirmwareToOneSetOpServerComponentUsingServerComponent(t *testi
 			t.Error("relationship struct not set to correct value")
 		}
 
-		if x.R.InstalledFirmwares[0] != &a {
+		if x.R.InstalledFirmware != &a {
 			t.Error("failed to append to foreign relationship struct")
 		}
 		if a.ServerComponentID != x.ID {
@@ -788,7 +687,7 @@ func testInstalledFirmwaresSelect(t *testing.T) {
 }
 
 var (
-	installedFirmwareDBTypes = map[string]string{`ID`: `uuid`, `ServerComponentID`: `uuid`, `Version`: `text`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`, `DeletedAt`: `timestamp with time zone`}
+	installedFirmwareDBTypes = map[string]string{`ID`: `uuid`, `ServerComponentID`: `uuid`, `Version`: `text`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`}
 	_                        = bytes.MinRead
 )
 

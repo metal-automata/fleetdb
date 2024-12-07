@@ -80,19 +80,29 @@ var ServerComponentTypeWhere = struct {
 
 // ServerComponentTypeRels is where relationship names are stored.
 var ServerComponentTypeRels = struct {
-	ServerComponents string
+	ComponentChangeReports string
+	ServerComponents       string
 }{
-	ServerComponents: "ServerComponents",
+	ComponentChangeReports: "ComponentChangeReports",
+	ServerComponents:       "ServerComponents",
 }
 
 // serverComponentTypeR is where relationships are stored.
 type serverComponentTypeR struct {
-	ServerComponents ServerComponentSlice `boil:"ServerComponents" json:"ServerComponents" toml:"ServerComponents" yaml:"ServerComponents"`
+	ComponentChangeReports ComponentChangeReportSlice `boil:"ComponentChangeReports" json:"ComponentChangeReports" toml:"ComponentChangeReports" yaml:"ComponentChangeReports"`
+	ServerComponents       ServerComponentSlice       `boil:"ServerComponents" json:"ServerComponents" toml:"ServerComponents" yaml:"ServerComponents"`
 }
 
 // NewStruct creates a new relationship struct
 func (*serverComponentTypeR) NewStruct() *serverComponentTypeR {
 	return &serverComponentTypeR{}
+}
+
+func (r *serverComponentTypeR) GetComponentChangeReports() ComponentChangeReportSlice {
+	if r == nil {
+		return nil
+	}
+	return r.ComponentChangeReports
 }
 
 func (r *serverComponentTypeR) GetServerComponents() ServerComponentSlice {
@@ -391,6 +401,20 @@ func (q serverComponentTypeQuery) Exists(ctx context.Context, exec boil.ContextE
 	return count > 0, nil
 }
 
+// ComponentChangeReports retrieves all the component_change_report's ComponentChangeReports with an executor.
+func (o *ServerComponentType) ComponentChangeReports(mods ...qm.QueryMod) componentChangeReportQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"component_change_reports\".\"server_component_type_id\"=?", o.ID),
+	)
+
+	return ComponentChangeReports(queryMods...)
+}
+
 // ServerComponents retrieves all the server_component's ServerComponents with an executor.
 func (o *ServerComponentType) ServerComponents(mods ...qm.QueryMod) serverComponentQuery {
 	var queryMods []qm.QueryMod
@@ -403,6 +427,120 @@ func (o *ServerComponentType) ServerComponents(mods ...qm.QueryMod) serverCompon
 	)
 
 	return ServerComponents(queryMods...)
+}
+
+// LoadComponentChangeReports allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (serverComponentTypeL) LoadComponentChangeReports(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServerComponentType interface{}, mods queries.Applicator) error {
+	var slice []*ServerComponentType
+	var object *ServerComponentType
+
+	if singular {
+		var ok bool
+		object, ok = maybeServerComponentType.(*ServerComponentType)
+		if !ok {
+			object = new(ServerComponentType)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServerComponentType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServerComponentType))
+			}
+		}
+	} else {
+		s, ok := maybeServerComponentType.(*[]*ServerComponentType)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServerComponentType)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServerComponentType))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverComponentTypeR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverComponentTypeR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`component_change_reports`),
+		qm.WhereIn(`component_change_reports.server_component_type_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load component_change_reports")
+	}
+
+	var resultSlice []*ComponentChangeReport
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice component_change_reports")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on component_change_reports")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for component_change_reports")
+	}
+
+	if len(componentChangeReportAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ComponentChangeReports = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &componentChangeReportR{}
+			}
+			foreign.R.ServerComponentType = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ServerComponentTypeID {
+				local.R.ComponentChangeReports = append(local.R.ComponentChangeReports, foreign)
+				if foreign.R == nil {
+					foreign.R = &componentChangeReportR{}
+				}
+				foreign.R.ServerComponentType = local
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadServerComponents allows an eager lookup of values, cached into the
@@ -516,6 +654,59 @@ func (serverComponentTypeL) LoadServerComponents(ctx context.Context, e boil.Con
 		}
 	}
 
+	return nil
+}
+
+// AddComponentChangeReports adds the given related objects to the existing relationships
+// of the server_component_type, optionally inserting them as new records.
+// Appends related to o.R.ComponentChangeReports.
+// Sets related.R.ServerComponentType appropriately.
+func (o *ServerComponentType) AddComponentChangeReports(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ComponentChangeReport) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ServerComponentTypeID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"component_change_reports\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"server_component_type_id"}),
+				strmangle.WhereClause("\"", "\"", 2, componentChangeReportPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ServerComponentTypeID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &serverComponentTypeR{
+			ComponentChangeReports: related,
+		}
+	} else {
+		o.R.ComponentChangeReports = append(o.R.ComponentChangeReports, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &componentChangeReportR{
+				ServerComponentType: o,
+			}
+		} else {
+			rel.R.ServerComponentType = o
+		}
+	}
 	return nil
 }
 

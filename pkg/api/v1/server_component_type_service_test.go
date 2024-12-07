@@ -1,5 +1,7 @@
 package fleetdbapi_test
 
+// nolint:typecheck // composite literal types are obvious
+
 import (
 	"context"
 	"encoding/json"

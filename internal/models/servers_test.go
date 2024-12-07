@@ -656,6 +656,67 @@ func testServerOneToOneServerBMCUsingServerBMC(t *testing.T) {
 	}
 }
 
+func testServerOneToOneServerStatusUsingServerStatus(t *testing.T) {
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var foreign ServerStatus
+	var local Server
+
+	seed := randomize.NewSeed()
+	if err := randomize.Struct(seed, &foreign, serverStatusDBTypes, true, serverStatusColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize ServerStatus struct: %s", err)
+	}
+	if err := randomize.Struct(seed, &local, serverDBTypes, true, serverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Server struct: %s", err)
+	}
+
+	if err := local.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreign.ServerID = local.ID
+	if err := foreign.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := local.ServerStatus().One(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if check.ServerID != foreign.ServerID {
+		t.Errorf("want: %v, got %v", foreign.ServerID, check.ServerID)
+	}
+
+	ranAfterSelectHook := false
+	AddServerStatusHook(boil.AfterSelectHook, func(ctx context.Context, e boil.ContextExecutor, o *ServerStatus) error {
+		ranAfterSelectHook = true
+		return nil
+	})
+
+	slice := ServerSlice{&local}
+	if err = local.L.LoadServerStatus(ctx, tx, false, (*[]*Server)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.ServerStatus == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	local.R.ServerStatus = nil
+	if err = local.L.LoadServerStatus(ctx, tx, true, &local, nil); err != nil {
+		t.Fatal(err)
+	}
+	if local.R.ServerStatus == nil {
+		t.Error("struct should have been eager loaded")
+	}
+
+	if !ranAfterSelectHook {
+		t.Error("failed to run AfterSelect hook for relationship")
+	}
+}
+
 func testServerOneToOneSetOpServerBMCUsingServerBMC(t *testing.T) {
 	var err error
 
@@ -691,6 +752,67 @@ func testServerOneToOneSetOpServerBMCUsingServerBMC(t *testing.T) {
 		}
 
 		if a.R.ServerBMC != x {
+			t.Error("relationship struct not set to correct value")
+		}
+		if x.R.Server != &a {
+			t.Error("failed to append to foreign relationship struct")
+		}
+
+		if a.ID != x.ServerID {
+			t.Error("foreign key was wrong value", a.ID)
+		}
+
+		zero := reflect.Zero(reflect.TypeOf(x.ServerID))
+		reflect.Indirect(reflect.ValueOf(&x.ServerID)).Set(zero)
+
+		if err = x.Reload(ctx, tx); err != nil {
+			t.Fatal("failed to reload", err)
+		}
+
+		if a.ID != x.ServerID {
+			t.Error("foreign key was wrong value", a.ID, x.ServerID)
+		}
+
+		if _, err = x.Delete(ctx, tx); err != nil {
+			t.Fatal("failed to delete x", err)
+		}
+	}
+}
+func testServerOneToOneSetOpServerStatusUsingServerStatus(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b, c ServerStatus
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &b, serverStatusDBTypes, false, strmangle.SetComplement(serverStatusPrimaryKeyColumns, serverStatusColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, serverStatusDBTypes, false, strmangle.SetComplement(serverStatusPrimaryKeyColumns, serverStatusColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	for i, x := range []*ServerStatus{&b, &c} {
+		err = a.SetServerStatus(ctx, tx, i != 0, x)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if a.R.ServerStatus != x {
 			t.Error("relationship struct not set to correct value")
 		}
 		if x.R.Server != &a {
@@ -787,6 +909,84 @@ func testServerToManyAttributes(t *testing.T) {
 		t.Fatal(err)
 	}
 	if got := len(a.R.Attributes); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	if t.Failed() {
+		t.Logf("%#v", check)
+	}
+}
+
+func testServerToManyComponentChangeReports(t *testing.T) {
+	var err error
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b, c ComponentChangeReport
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, true, serverColumnsWithDefault...); err != nil {
+		t.Errorf("Unable to randomize Server struct: %s", err)
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	if err = randomize.Struct(seed, &b, componentChangeReportDBTypes, false, componentChangeReportColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+	if err = randomize.Struct(seed, &c, componentChangeReportDBTypes, false, componentChangeReportColumnsWithDefault...); err != nil {
+		t.Fatal(err)
+	}
+
+	b.ServerID = a.ID
+	c.ServerID = a.ID
+
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	check, err := a.ComponentChangeReports().All(ctx, tx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	bFound, cFound := false, false
+	for _, v := range check {
+		if v.ServerID == b.ServerID {
+			bFound = true
+		}
+		if v.ServerID == c.ServerID {
+			cFound = true
+		}
+	}
+
+	if !bFound {
+		t.Error("expected to find b")
+	}
+	if !cFound {
+		t.Error("expected to find c")
+	}
+
+	slice := ServerSlice{&a}
+	if err = a.L.LoadComponentChangeReports(ctx, tx, false, (*[]*Server)(&slice), nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.ComponentChangeReports); got != 2 {
+		t.Error("number of eager loaded records wrong, got:", got)
+	}
+
+	a.R.ComponentChangeReports = nil
+	if err = a.L.LoadComponentChangeReports(ctx, tx, true, &a, nil); err != nil {
+		t.Fatal(err)
+	}
+	if got := len(a.R.ComponentChangeReports); got != 2 {
 		t.Error("number of eager loaded records wrong, got:", got)
 	}
 
@@ -1357,6 +1557,81 @@ func testServerToManyRemoveOpAttributes(t *testing.T) {
 	}
 }
 
+func testServerToManyAddOpComponentChangeReports(t *testing.T) {
+	var err error
+
+	ctx := context.Background()
+	tx := MustTx(boil.BeginTx(ctx, nil))
+	defer func() { _ = tx.Rollback() }()
+
+	var a Server
+	var b, c, d, e ComponentChangeReport
+
+	seed := randomize.NewSeed()
+	if err = randomize.Struct(seed, &a, serverDBTypes, false, strmangle.SetComplement(serverPrimaryKeyColumns, serverColumnsWithoutDefault)...); err != nil {
+		t.Fatal(err)
+	}
+	foreigners := []*ComponentChangeReport{&b, &c, &d, &e}
+	for _, x := range foreigners {
+		if err = randomize.Struct(seed, x, componentChangeReportDBTypes, false, strmangle.SetComplement(componentChangeReportPrimaryKeyColumns, componentChangeReportColumnsWithoutDefault)...); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if err := a.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = b.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+	if err = c.Insert(ctx, tx, boil.Infer()); err != nil {
+		t.Fatal(err)
+	}
+
+	foreignersSplitByInsertion := [][]*ComponentChangeReport{
+		{&b, &c},
+		{&d, &e},
+	}
+
+	for i, x := range foreignersSplitByInsertion {
+		err = a.AddComponentChangeReports(ctx, tx, i != 0, x...)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		first := x[0]
+		second := x[1]
+
+		if a.ID != first.ServerID {
+			t.Error("foreign key was wrong value", a.ID, first.ServerID)
+		}
+		if a.ID != second.ServerID {
+			t.Error("foreign key was wrong value", a.ID, second.ServerID)
+		}
+
+		if first.R.Server != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+		if second.R.Server != &a {
+			t.Error("relationship was not added properly to the foreign slice")
+		}
+
+		if a.R.ComponentChangeReports[i*2] != first {
+			t.Error("relationship struct slice not set to correct value")
+		}
+		if a.R.ComponentChangeReports[i*2+1] != second {
+			t.Error("relationship struct slice not set to correct value")
+		}
+
+		count, err := a.ComponentChangeReports().Count(ctx, tx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if want := int64((i + 1) * 2); count != want {
+			t.Error("want", want, "got", count)
+		}
+	}
+}
 func testServerToManyAddOpTargetServerEventHistories(t *testing.T) {
 	var err error
 
@@ -2247,7 +2522,7 @@ func testServersSelect(t *testing.T) {
 }
 
 var (
-	serverDBTypes = map[string]string{`ID`: `uuid`, `Name`: `text`, `FacilityCode`: `text`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`, `DeletedAt`: `timestamp with time zone`, `VendorID`: `uuid`, `SerialNumber`: `text`, `ModelID`: `uuid`}
+	serverDBTypes = map[string]string{`ID`: `uuid`, `Name`: `text`, `FacilityCode`: `text`, `CreatedAt`: `timestamp with time zone`, `UpdatedAt`: `timestamp with time zone`, `DeletedAt`: `timestamp with time zone`, `VendorID`: `uuid`, `SerialNumber`: `text`, `ModelID`: `uuid`, `InventoryRefreshedAt`: `timestamp with time zone`}
 	_             = bytes.MinRead
 )
 

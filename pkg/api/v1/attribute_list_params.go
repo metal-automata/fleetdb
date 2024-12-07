@@ -160,9 +160,7 @@ func (p *AttributeListParams) queryMods(tblName string) qm.QueryMod {
 	return qm.Expr(queryMods...)
 }
 
-func (p *AttributeListParams) setJSONBWhereClause(tblName, jsonPath string, values []interface{}) (string, []interface{}) {
-	where := ""
-
+func (p *AttributeListParams) setJSONBWhereClause(tblName, jsonPath string, values []interface{}) (where string, items []interface{}) {
 	switch p.Operator {
 	case OperatorComparitorLessThan:
 		values = append(values, p.Value)

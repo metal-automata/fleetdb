@@ -32,8 +32,9 @@ require (
 )
 
 require (
-	github.com/bmc-toolbox/common v0.0.0-20240723142833-87832458b53b
+	github.com/bmc-toolbox/common v0.0.0-20241031162543-6b96e5981a0d
 	github.com/hetiansu5/urlquery v1.2.7
+	github.com/jinzhu/copier v0.4.0
 	github.com/kat-co/vala v0.0.0-20170210184112-42e1d8b61f12
 	github.com/metal-automata/rivets v1.4.0
 	github.com/volatiletech/sqlboiler v3.7.1+incompatible

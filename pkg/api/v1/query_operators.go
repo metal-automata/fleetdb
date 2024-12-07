@@ -50,8 +50,6 @@ func appendOperatorQueryMod(mods []qm.QueryMod, comparitor OperatorComparitorTyp
 		case OperatorComparitorNotEqual:
 			mod := qm.Where(fmt.Sprintf("%s != ?", name), value)
 			mods = append(mods, mod)
-		case OperatorComparitorEqual:
-			fallthrough
 		default:
 			mod := qm.Where(fmt.Sprintf("%s = ?", name), value)
 			mods = append(mods, mod)
@@ -87,6 +85,7 @@ func OperatorURLQueryDecoder(s string) (reflect.Value, error) {
 		s = strings.Replace(s, "olt_", "", 1)
 	}
 
+	// nolint:gocritic // fallthrough sections kept around by choice
 	switch s {
 	case string(OperatorComparitorEqual):
 		fallthrough

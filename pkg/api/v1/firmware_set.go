@@ -12,9 +12,10 @@ import (
 
 // ComponentFirmwareSet represents a group of firmwares
 type ComponentFirmwareSet struct {
-	CreatedAt         time.Time                  `json:"created_at"`
-	UpdatedAt         time.Time                  `json:"updated_at"`
-	Name              string                     `json:"name"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+	Name      string    `json:"name"`
+	// TODO: remove the dependency on attributes and purge attributes storage
 	Attributes        []Attributes               `json:"attributes"`
 	ComponentFirmware []ComponentFirmwareVersion `json:"component_firmware"`
 	UUID              uuid.UUID                  `json:"uuid"`
@@ -59,9 +60,9 @@ func (s *ComponentFirmwareSet) fromDBModel(dbFS *models.ComponentFirmwareSet, fi
 	for _, firmware := range firmwares {
 		f := ComponentFirmwareVersion{}
 
-		err := f.fromDBModel(firmware)
-		if err != nil {
-			return err
+		errConv := f.fromDBModel(firmware)
+		if errConv != nil {
+			return errConv
 		}
 
 		s.ComponentFirmware = append(s.ComponentFirmware, f)

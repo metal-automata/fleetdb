@@ -1,6 +1,7 @@
 package fleetdbapi
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gin-gonic/gin"
@@ -10,6 +11,10 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
 	"github.com/metal-automata/fleetdb/internal/models"
+)
+
+var (
+	ErrHardwareModelNotFound = errors.New("hardware model not found")
 )
 
 type HardwareModel struct {
@@ -70,6 +75,11 @@ func (r *Router) hardwareModelCreate(c *gin.Context) {
 	}
 
 	createdResponse(c, t.Name)
+}
+
+func (r *Router) hardwareModelBySlug(ctx context.Context, slug string) (*models.HardwareModel, error) {
+	mod := qm.Where("name=?", slug)
+	return models.HardwareModels(mod).One(ctx, r.DB)
 }
 
 func (r *Router) hardwareModelList(c *gin.Context) {
