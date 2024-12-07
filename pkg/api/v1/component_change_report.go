@@ -269,6 +269,8 @@ type ComponentChangeAccept struct {
 }
 
 // componentChangeAccept merges the changes referenced by the changeID into the server_components table and its relations
+//
+// nolint:gocyclo // TODO: split method
 func (r *Router) componentChangeAccept(c *gin.Context) {
 	// load server based on the UUID parameter
 	server, err := r.loadServerFromParams(c.Request.Context(), c.Param("uuid"))

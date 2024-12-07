@@ -15,8 +15,7 @@ import (
 	"github.com/metal-automata/fleetdb/internal/models"
 )
 
-// TODO
-// - reference server credentials for Username, Password attributes and drop those columns from server_bmcs table
+// TODO: reference server credentials for Username, Password attributes and drop those columns from server_bmcs table
 
 type ServerBMC struct {
 	ID                 uuid.UUID `json:"id"`

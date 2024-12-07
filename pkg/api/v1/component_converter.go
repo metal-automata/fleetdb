@@ -27,8 +27,8 @@ type Converter struct {
 	slugs            componentSlugMap
 }
 
-func NewComponentConverter(CollectionMethod CollectionMethod, slugs componentSlugMap) *Converter {
-	return &Converter{CollectionMethod: CollectionMethod, slugs: slugs}
+func NewComponentConverter(method CollectionMethod, slugs componentSlugMap) *Converter {
+	return &Converter{CollectionMethod: method, slugs: slugs}
 }
 
 var (

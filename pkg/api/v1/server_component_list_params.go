@@ -56,54 +56,62 @@ func (p *ServerComponentListParams) queryMods(tblName string) qm.QueryMod {
 	if p.ServerComponentType != "" {
 		joinTblName := fmt.Sprintf("%s_sct", tblName)
 		whereStmt := fmt.Sprintf("server_component_types as %s on %s.server_component_type_id = %s.id", joinTblName, tblName, joinTblName)
-		mods = append(mods, qm.LeftOuterJoin(whereStmt))
-		mods = append(mods, qm.Where(fmt.Sprintf("%s.slug = ?", joinTblName), p.ServerComponentType))
+		mods = append(
+			mods,
+			qm.LeftOuterJoin(whereStmt),
+			qm.Where(fmt.Sprintf("%s.slug = ?", joinTblName), p.ServerComponentType),
+		)
 	}
 
 	for i, lp := range p.AttributeListParams {
 		tableName := fmt.Sprintf("%s_attr_%d", tblName, i)
 		whereStmt := fmt.Sprintf("attributes as %s on %s.server_component_id = %s.id", tableName, tableName, tblName)
-		mods = append(mods, qm.LeftOuterJoin(whereStmt))
-
-		mods = append(mods, lp.queryMods(tableName))
+		mods = append(
+			mods,
+			qm.LeftOuterJoin(whereStmt),
+			lp.queryMods(tableName),
+		)
 	}
 
 	for i, lp := range p.VersionedAttributeListParams {
 		tableName := fmt.Sprintf("%s_ver_attr_%d", tblName, i)
 		whereStmt := fmt.Sprintf("versioned_attributes as %s on %s.server_component_id = %s.id AND %s.created_at=(select max(created_at) from versioned_attributes where server_component_id = %s.id AND namespace = ?)", tableName, tableName, tblName, tableName, tblName)
-		mods = append(mods, qm.LeftOuterJoin(whereStmt, lp.Namespace))
-		mods = append(mods, lp.queryMods(tableName))
+		mods = append(
+			mods,
+			qm.LeftOuterJoin(whereStmt, lp.Namespace),
+			lp.queryMods(tableName),
+		)
 	}
 
 	return qm.Expr(mods...)
 }
 
 func encodeServerComponentListParams(sclp []ServerComponentListParams, q url.Values) {
-	for i, sp := range sclp {
-		keyPrefix := fmt.Sprintf("sc_%d", i)
+	for idx := range sclp {
+		keyPrefix := fmt.Sprintf("sc_%d", idx)
 
-		if sp.Name != "" {
-			q.Set(keyPrefix+"[name]", sp.Name)
+		if sclp[idx].Name != "" {
+			q.Set(keyPrefix+"[name]", sclp[idx].Name)
 		}
 
-		if sp.Vendor != "" {
-			q.Set(keyPrefix+"[vendor]", sp.Vendor)
+		if sclp[idx].Vendor != "" {
+			q.Set(keyPrefix+"[vendor]", sclp[idx].Vendor)
 		}
 
-		if sp.Model != "" {
-			q.Set(keyPrefix+"[model]", sp.Model)
+		if sclp[idx].Model != "" {
+			q.Set(keyPrefix+"[model]", sclp[idx].Model)
 		}
 
-		if sp.Serial != "" {
-			q.Set(keyPrefix+"[serial]", sp.Serial)
+		if sclp[idx].Serial != "" {
+			q.Set(keyPrefix+"[serial]", sclp[idx].Serial)
 		}
 
-		if sp.ServerComponentType != "" {
-			q.Set(keyPrefix+"[type]", sp.ServerComponentType)
+		if sclp[idx].ServerComponentType != "" {
+			q.Set(keyPrefix+"[type]", sclp[idx].ServerComponentType)
 		}
 
-		encodeAttributesListParams(sp.AttributeListParams, keyPrefix+"_attr", q)
-		encodeAttributesListParams(sp.VersionedAttributeListParams, keyPrefix+"_ver_attr", q)
+		encodeAttributesListParams(sclp[idx].AttributeListParams, keyPrefix+"_attr", q)
+		encodeAttributesListParams(sclp[idx].VersionedAttributeListParams, keyPrefix+"_ver_attr", q)
 	}
 }
 

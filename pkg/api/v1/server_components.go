@@ -99,6 +99,8 @@ func (s *ServerComponentSlice) fromDBModel(dbTS models.ServerComponentSlice) {
 }
 
 // Equals compares ServerComponents, excluding certain fields and timestamps
+//
+// nolint:gocyclo // this is fine
 func (c *ServerComponent) Equals(b *ServerComponent) (string, bool) {
 	if c == nil || b == nil {
 		return "nil component", false
@@ -233,8 +235,8 @@ func (r *Router) getServerComponents(c *gin.Context, params []ServerComponentLis
 	mods := []qm.QueryMod{}
 
 	// for each parameter, setup the query modifiers
-	for _, param := range params {
-		mods = append(mods, param.queryMods(models.TableNames.ServerComponents))
+	for idx := range params {
+		mods = append(mods, params[idx].queryMods(models.TableNames.ServerComponents))
 	}
 
 	count, err := models.ServerComponents(mods...).Count(c.Request.Context(), r.DB)

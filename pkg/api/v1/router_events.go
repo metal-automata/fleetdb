@@ -148,7 +148,7 @@ func (r *Router) getServerEvents(c *gin.Context) {
 		return
 	}
 
-	var evts []*Event
+	evts := make([]*Event, 0, len(ehs))
 	for _, eh := range ehs {
 		evt := &Event{
 			EventID:    uuid.MustParse(eh.EventID),

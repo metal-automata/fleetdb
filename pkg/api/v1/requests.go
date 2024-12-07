@@ -18,7 +18,7 @@ func newGetRequest(ctx context.Context, uri, path string) (*http.Request, error)
 		return nil, err
 	}
 
-	return http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), nil)
+	return http.NewRequestWithContext(ctx, http.MethodGet, requestURL.String(), http.NoBody)
 }
 
 func newPostRequest(ctx context.Context, uri, path string, body interface{}) (*http.Request, error) {
@@ -67,7 +67,7 @@ func newDeleteRequest(ctx context.Context, uri, path string) (*http.Request, err
 		return nil, err
 	}
 
-	return http.NewRequestWithContext(ctx, http.MethodDelete, requestURL.String(), nil)
+	return http.NewRequestWithContext(ctx, http.MethodDelete, requestURL.String(), http.NoBody)
 }
 
 func userAgentString() string {

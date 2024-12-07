@@ -23,6 +23,8 @@ type Router struct {
 }
 
 // Routes will add the routes for this API version to a router group
+//
+// nolint:gocritic // TODO: split code handler into directories and move route blocks in there
 func (r *Router) Routes(rg *gin.RouterGroup) {
 	amw := r.AuthMW
 

@@ -17,7 +17,7 @@ const (
 	serverVersionedAttributesEndpoint   = "versioned-attributes"
 	serverComponentFirmwaresEndpoint    = "server-component-firmwares"
 	serverCredentialsEndpoint           = "credentials"
-	serverCredentialTypeEndpoint        = "server-credential-types"
+	serverCredentialTypeEndpoint        = "server-credential-types" // nolint:gosec //false positive
 	serverComponentFirmwareSetsEndpoint = "server-component-firmware-sets"
 	serverBiosConfigSetEndpoint         = "server-bios-config-sets"
 	bomInfoEndpoint                     = "bill-of-materials"
@@ -119,11 +119,11 @@ func (c *Client) Delete(ctx context.Context, srv Server) (*ServerResponse, error
 
 // GetServer will return a server by it's UUID
 func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *ServerGetParams) (*Server, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
+	endpoint := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
 	srv := &Server{}
 	r := ServerResponse{Record: srv}
 
-	if err := c.getWithParams(ctx, path, params, &r); err != nil {
+	if err := c.getWithParams(ctx, endpoint, params, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -145,8 +145,8 @@ func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *Serve
 
 // Update will to update a server with the new values passed in
 func (c *Client) Update(ctx context.Context, srvUUID uuid.UUID, srv Server) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
-	return c.put(ctx, path, srv)
+	endpoint := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
+	return c.put(ctx, endpoint, srv)
 }
 
 // GetComponents will get all the components for a given server
@@ -154,8 +154,8 @@ func (c *Client) GetComponents(ctx context.Context, srvUUID uuid.UUID, params *S
 	sc := &ServerComponentSlice{}
 	r := ServerResponse{Records: sc}
 
-	path := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverComponentsEndpoint)
-	if err := c.list(ctx, path, params, &r); err != nil {
+	endpoint := fmt.Sprintf("%s/%s/%s", serversEndpoint, srvUUID, serverComponentsEndpoint)
+	if err := c.list(ctx, endpoint, params, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -167,8 +167,8 @@ func (c *Client) ListComponents(ctx context.Context, params *ServerComponentList
 	sc := &ServerComponentSlice{}
 	r := ServerResponse{Records: sc}
 
-	path := fmt.Sprintf("%s/%s", serversEndpoint, serverComponentsEndpoint)
-	if err := c.list(ctx, path, params, &r); err != nil {
+	endpoint := fmt.Sprintf("%s/%s", serversEndpoint, serverComponentsEndpoint)
+	if err := c.list(ctx, endpoint, params, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -243,11 +243,11 @@ func (c *Client) DeleteServerComponentFirmware(ctx context.Context, firmware Com
 
 // GetServerComponentFirmware will return a firmware by its UUID
 func (c *Client) GetServerComponentFirmware(ctx context.Context, fwUUID uuid.UUID) (*ComponentFirmwareVersion, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverComponentFirmwaresEndpoint, fwUUID)
+	endpoint := fmt.Sprintf("%s/%s", serverComponentFirmwaresEndpoint, fwUUID)
 	fw := &ComponentFirmwareVersion{}
 	r := ServerResponse{Record: fw}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.get(ctx, endpoint, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -268,8 +268,8 @@ func (c *Client) ListServerComponentFirmware(ctx context.Context, params *Compon
 
 // UpdateServerComponentFirmware will to update a firmware with the new values passed in
 func (c *Client) UpdateServerComponentFirmware(ctx context.Context, fwUUID uuid.UUID, firmware ComponentFirmwareVersion) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverComponentFirmwaresEndpoint, fwUUID)
-	return c.put(ctx, path, firmware)
+	endpoint := fmt.Sprintf("%s/%s", serverComponentFirmwaresEndpoint, fwUUID)
+	return c.put(ctx, endpoint, firmware)
 }
 
 // CreateServerComponentFirmwareSet will attempt to create a firmware set in Hollow and return the firmware UUID
@@ -294,11 +294,11 @@ func (c *Client) DeleteServerComponentFirmwareSet(ctx context.Context, firmwareS
 
 // GetServerComponentFirmwareSet will return a firmware by its UUID
 func (c *Client) GetServerComponentFirmwareSet(ctx context.Context, fwSetUUID uuid.UUID) (*ComponentFirmwareSet, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverComponentFirmwareSetsEndpoint, fwSetUUID)
+	endpoint := fmt.Sprintf("%s/%s", serverComponentFirmwareSetsEndpoint, fwSetUUID)
 	fws := &ComponentFirmwareSet{}
 	r := ServerResponse{Record: fws}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.get(ctx, endpoint, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -325,27 +325,27 @@ func (c *Client) ListServerComponentFirmwareSet(ctx context.Context, params *Com
 
 // UpdateComponentFirmwareSetRequest will add a firmware set with the new firmware id(s) passed in the firmwareSet parameter
 func (c *Client) UpdateComponentFirmwareSetRequest(ctx context.Context, fwSetUUID uuid.UUID, firmwareSet ComponentFirmwareSetRequest) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverComponentFirmwareSetsEndpoint, fwSetUUID)
-	return c.put(ctx, path, firmwareSet)
+	endpoint := fmt.Sprintf("%s/%s", serverComponentFirmwareSetsEndpoint, fwSetUUID)
+	return c.put(ctx, endpoint, firmwareSet)
 }
 
 // RemoveServerComponentFirmwareSetFirmware will update a firmware set by removing the mapping for the firmware id(s) passed in the firmwareSet parameter
 func (c *Client) RemoveServerComponentFirmwareSetFirmware(ctx context.Context, fwSetUUID uuid.UUID, firmwareSet ComponentFirmwareSetRequest) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/remove-firmware", serverComponentFirmwareSetsEndpoint, fwSetUUID)
-	return c.post(ctx, path, firmwareSet)
+	endpoint := fmt.Sprintf("%s/%s/remove-firmware", serverComponentFirmwareSetsEndpoint, fwSetUUID)
+	return c.post(ctx, endpoint, firmwareSet)
 }
 
 // ValidateFirmwareSet inserts or updates a record containing facts about the validation of this
 // particular firmware set. On a successful execution the API returns 204 (http.StatusNoContent), so
 // there is nothing useful to put into a ServerResponse.
 func (c *Client) ValidateFirmwareSet(ctx context.Context, srvID, fwSetID uuid.UUID, on time.Time) error {
-	path := fmt.Sprintf("%s/validate-firmware-set", serverComponentFirmwareSetsEndpoint)
+	endpoint := fmt.Sprintf("%s/validate-firmware-set", serverComponentFirmwareSetsEndpoint)
 	facts := FirmwareSetValidation{
 		TargetServer: srvID,
 		FirmwareSet:  fwSetID,
 		PerformedOn:  on,
 	}
-	_, err := c.post(ctx, path, facts)
+	_, err := c.post(ctx, endpoint, facts)
 	return err
 }
 
@@ -399,9 +399,9 @@ func (c *Client) CreateServerCredentialType(ctx context.Context, sType *ServerCr
 
 // BillOfMaterialsBatchUpload will attempt to write multiple boms to database.
 func (c *Client) BillOfMaterialsBatchUpload(ctx context.Context, boms []Bom) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", bomInfoEndpoint, uploadFileEndpoint)
+	endpoint := fmt.Sprintf("%s/%s", bomInfoEndpoint, uploadFileEndpoint)
 
-	resp, err := c.post(ctx, path, boms)
+	resp, err := c.post(ctx, endpoint, boms)
 	if err != nil {
 		return nil, err
 	}
@@ -411,11 +411,11 @@ func (c *Client) BillOfMaterialsBatchUpload(ctx context.Context, boms []Bom) (*S
 
 // GetBomInfoByAOCMacAddr will return the bom info object by the aoc mac address.
 func (c *Client) GetBomInfoByAOCMacAddr(ctx context.Context, aocMacAddr string) (*Bom, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacAOCAddressEndpoint, aocMacAddr)
+	endpoint := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacAOCAddressEndpoint, aocMacAddr)
 	bom := &Bom{}
 	r := ServerResponse{Record: bom}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.get(ctx, endpoint, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -424,11 +424,11 @@ func (c *Client) GetBomInfoByAOCMacAddr(ctx context.Context, aocMacAddr string) 
 
 // GetBomInfoByBMCMacAddr will return the bom info object by the bmc mac address.
 func (c *Client) GetBomInfoByBMCMacAddr(ctx context.Context, bmcMacAddr string) (*Bom, *ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacBMCAddressEndpoint, bmcMacAddr)
+	endpoint := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacBMCAddressEndpoint, bmcMacAddr)
 	bom := &Bom{}
 	r := ServerResponse{Record: bom}
 
-	if err := c.get(ctx, path, &r); err != nil {
+	if err := c.get(ctx, endpoint, &r); err != nil {
 		return nil, nil, err
 	}
 
@@ -442,11 +442,11 @@ func (c *Client) GetServerInventory(ctx context.Context, srvID uuid.UUID, inband
 		mode = "inband"
 	}
 
-	path := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
+	endpoint := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
 	srv := &rivets.Server{}
 	r := &ServerResponse{Record: srv}
 
-	if err := c.get(ctx, path, r); err != nil {
+	if err := c.get(ctx, endpoint, r); err != nil {
 		return nil, nil, err
 	}
 
@@ -461,17 +461,17 @@ func (c *Client) SetServerInventory(ctx context.Context, srvID uuid.UUID,
 		mode = "inband"
 	}
 
-	path := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
-	return c.put(ctx, path, srv)
+	endpoint := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
+	return c.put(ctx, endpoint, srv)
 }
 
 // GetHistoryByID returns the details of the event with the given ID
 func (c *Client) GetHistoryByID(ctx context.Context, evtID uuid.UUID) ([]*Event, *ServerResponse, error) {
 	evts := &[]*Event{}
 	r := &ServerResponse{Records: evts}
-	path := fmt.Sprintf("events/%s", evtID.String())
+	endpoint := fmt.Sprintf("events/%s", evtID.String())
 
-	if err := c.get(ctx, path, r); err != nil {
+	if err := c.get(ctx, endpoint, r); err != nil {
 		return nil, nil, err
 	}
 
@@ -483,9 +483,9 @@ func (c *Client) GetServerEvents(ctx context.Context, srvID uuid.UUID,
 	params *PaginationParams) ([]*Event, *ServerResponse, error) {
 	evts := &[]*Event{}
 	r := &ServerResponse{Records: evts}
-	path := fmt.Sprintf("events/by-server/%s", srvID.String())
+	endpoint := fmt.Sprintf("events/by-server/%s", srvID.String())
 
-	if err := c.list(ctx, path, params, r); err != nil {
+	if err := c.list(ctx, endpoint, params, r); err != nil {
 		return nil, nil, err
 	}
 
@@ -494,8 +494,8 @@ func (c *Client) GetServerEvents(ctx context.Context, srvID uuid.UUID,
 
 // UpdateEvent adds a new event to the event history
 func (c *Client) UpdateEvent(ctx context.Context, evt *Event) (*ServerResponse, error) {
-	path := fmt.Sprintf("events/%s", evt.EventID.String())
-	return c.put(ctx, path, evt)
+	endpoint := fmt.Sprintf("events/%s", evt.EventID.String())
+	return c.put(ctx, endpoint, evt)
 }
 
 // CreateServerBiosConfigSet will store the BiosConfigSet, and return the generated UUID of the BiosConfigSet
@@ -510,11 +510,11 @@ func (c *Client) CreateServerBiosConfigSet(ctx context.Context, set BiosConfigSe
 
 // GetServerBiosConfigSet will retrieve the BiosConfigSet referred to by the given ID if found
 func (c *Client) GetServerBiosConfigSet(ctx context.Context, id uuid.UUID) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
+	endpoint := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
 	cfg := &BiosConfigSet{}
 	resp := ServerResponse{Record: cfg}
 
-	if err := c.get(ctx, path, &resp); err != nil {
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, err
 	}
 
@@ -523,9 +523,8 @@ func (c *Client) GetServerBiosConfigSet(ctx context.Context, id uuid.UUID) (*Ser
 
 // DeleteServerBiosConfigSet will delete the BiosConfigSet referred to by the given ID if found
 func (c *Client) DeleteServerBiosConfigSet(ctx context.Context, id uuid.UUID) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
-
-	resp, err := c.delete(ctx, path)
+	endpoint := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
+	resp, err := c.delete(ctx, endpoint)
 	if err != nil {
 		return nil, err
 	}
@@ -548,8 +547,8 @@ func (c *Client) ListServerBiosConfigSet(ctx context.Context, params *BiosConfig
 
 // UpdateServerBiosConfigSet will update a config set.
 func (c *Client) UpdateServerBiosConfigSet(ctx context.Context, id uuid.UUID, set BiosConfigSet) (*ServerResponse, error) {
-	path := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
-	resp, err := c.put(ctx, path, set)
+	endpoint := fmt.Sprintf("%s/%s", serverBiosConfigSetEndpoint, id)
+	resp, err := c.put(ctx, endpoint, set)
 	if err != nil {
 		return nil, err
 	}
@@ -579,8 +578,8 @@ func (c *Client) GetHardwareVendor(ctx context.Context, name string) (*HardwareV
 	hardwareVendor := &HardwareVendor{}
 	resp := ServerResponse{Record: hardwareVendor}
 
-	path := path.Join(hardwareVendorsEndpoint, name)
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(hardwareVendorsEndpoint, name)
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 
@@ -615,8 +614,8 @@ func (c *Client) GetHardwareModel(ctx context.Context, name string) (*HardwareMo
 	hardwareModel := &HardwareModel{}
 	resp := ServerResponse{Record: hardwareModel}
 
-	path := path.Join(hardwareModelsEndpoint, name)
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(hardwareModelsEndpoint, name)
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 
@@ -651,8 +650,8 @@ func (c *Client) GetServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerB
 	serverBMC := &ServerBMC{}
 	resp := ServerResponse{Record: serverBMC}
 
-	path := path.Join(serverBMCsEndpoint, serverID.String())
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(serverBMCsEndpoint, serverID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 
@@ -687,8 +686,8 @@ func (c *Client) GetInstalledFirmware(ctx context.Context, componentID uuid.UUID
 	installedFirmware := &InstalledFirmware{}
 	resp := ServerResponse{Record: installedFirmware}
 
-	path := path.Join(installedFirmwareEndpoint, componentID.String())
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(installedFirmwareEndpoint, componentID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 
@@ -720,8 +719,8 @@ func (c *Client) ListComponentStatus(ctx context.Context) ([]*ComponentStatus, *
 func (c *Client) GetComponentStatus(ctx context.Context, componentID uuid.UUID) (*ComponentStatus, *ServerResponse, error) {
 	componentStatus := &ComponentStatus{}
 	resp := ServerResponse{Record: componentStatus}
-	path := path.Join(componentStatusEndpoint, componentID.String())
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(componentStatusEndpoint, componentID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 	return componentStatus, &resp, nil
@@ -752,8 +751,8 @@ func (c *Client) ListServerStatus(ctx context.Context) ([]*ServerStatus, *Server
 func (c *Client) GetServerStatus(ctx context.Context, serverID uuid.UUID) (*ServerStatus, *ServerResponse, error) {
 	serverStatus := &ServerStatus{}
 	resp := ServerResponse{Record: serverStatus}
-	path := path.Join(serverStatusEndpoint, serverID.String())
-	if err := c.get(ctx, path, &resp); err != nil {
+	endpoint := path.Join(serverStatusEndpoint, serverID.String())
+	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
 	return serverStatus, &resp, nil

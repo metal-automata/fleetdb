@@ -2,6 +2,7 @@ package fixtures
 
 import "github.com/bmc-toolbox/common"
 
+// nolint:dupl,misspell,revive,stylecheck // fixtures
 var (
 	SMCX11DPH = &common.Device{
 		Common: common.Common{

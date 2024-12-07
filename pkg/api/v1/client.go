@@ -29,12 +29,12 @@ type Doer interface {
 }
 
 // NewClientWithToken will initialize a new hollow client with the given auth token and URL
-func NewClientWithToken(authToken, url string, doerClient Doer) (*Client, error) {
+func NewClientWithToken(authToken, endpoint string, doerClient Doer) (*Client, error) {
 	if authToken == "" {
 		return nil, newClientError("failed to initialize: no auth token provided")
 	}
 
-	c, err := NewClient(url, doerClient)
+	c, err := NewClient(endpoint, doerClient)
 	if err != nil {
 		return nil, err
 	}
@@ -61,15 +61,15 @@ func NewClientWithToken(authToken, url string, doerClient Doer) (*Client, error)
 //	}
 //
 //	c, _ := fleetdbapi.NewClient("HOLLOW_URI", oauthConfig.Client(ctx))
-func NewClient(url string, doerClient Doer) (*Client, error) {
-	if url == "" {
+func NewClient(endpoint string, doerClient Doer) (*Client, error) {
+	if endpoint == "" {
 		return nil, newClientError("failed to initialize: no hollow api url provided")
 	}
 
-	url = strings.TrimSuffix(url, "/")
+	endpoint = strings.TrimSuffix(endpoint, "/")
 
 	c := &Client{
-		url: url,
+		url: endpoint,
 	}
 
 	c.httpClient = doerClient
@@ -103,7 +103,7 @@ func (c *Client) NextPage(ctx context.Context, resp ServerResponse, recs interfa
 		uri = c.url + uri
 	}
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, uri, http.NoBody)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +135,7 @@ func (c *Client) post(ctx context.Context, path string, body interface{}) (*Serv
 }
 
 // postWithReciever provides a reusable method for a standard POST to a fleetdbapi server
-func (c *Client) postWithReciever(ctx context.Context, path string, body interface{}, resp interface{}) error {
+func (c *Client) postWithReciever(ctx context.Context, path string, body, resp interface{}) error {
 	request, err := newPostRequest(ctx, c.url, path, body)
 	if err != nil {
 		return err

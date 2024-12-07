@@ -126,9 +126,7 @@ func (s *Server) setup() *gin.Engine {
 	r.GET("/metrics", getGinPrometheusAdapter(promhttp.Handler()))
 
 	v1 := r.Group("/api/v1")
-	{
-		v1Rtr.Routes(v1)
-	}
+	v1Rtr.Routes(v1)
 
 	r.NoRoute(func(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"message": "invalid request - route not found"})

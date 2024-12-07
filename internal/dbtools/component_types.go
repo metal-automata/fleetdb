@@ -54,17 +54,17 @@ func SetupComponentTypes(ctx context.Context, db *sqlx.DB) error {
 			models.ServerComponentTypeWhere.Name.EQ(typ),
 		).One(ctx, txn)
 
-		switch err {
-		case nil:
+		switch {
+		case err == nil:
 			componentTypeIDCache[typ] = existing.ID
-		case sql.ErrNoRows:
+		case errors.Is(err, sql.ErrNoRows):
 			sct := &models.ServerComponentType{
 				Name: typ,
 				Slug: slug.Make(typ),
 			}
-			if err := sct.Insert(ctx, txn, boil.Infer()); err != nil {
+			if errInsert := sct.Insert(ctx, txn, boil.Infer()); errInsert != nil {
 				_ = txn.Rollback()
-				return errors.Wrap(errAddTypes, err.Error())
+				return errors.Wrap(errAddTypes, errInsert.Error())
 			}
 			componentTypeIDCache[typ] = sct.ID
 		default:

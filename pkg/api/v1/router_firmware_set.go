@@ -322,8 +322,8 @@ func (r *Router) firmwareSetCreateTx(ctx context.Context, dbFirmwareSet *models.
 	defer loggedRollback(r, tx)
 
 	// insert set
-	if err = dbFirmwareSet.Insert(ctx, tx, boil.Infer()); err != nil {
-		return err
+	if errInsert := dbFirmwareSet.Insert(ctx, tx, boil.Infer()); errInsert != nil {
+		return errInsert
 	}
 
 	// insert attributes

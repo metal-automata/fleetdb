@@ -1,3 +1,4 @@
+// nolint
 package fixtures
 
 import (
@@ -19,7 +20,6 @@ func CopyDevice(src *common.Device) *common.Device {
 	return dst
 }
 
-// nolint:dupl,misspell,revive,stylecheck
 // r6515 inventory taken from ironlib
 
 var (

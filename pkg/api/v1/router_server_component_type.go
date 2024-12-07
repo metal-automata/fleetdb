@@ -37,10 +37,6 @@ func (r *Router) serverComponentTypeList(c *gin.Context) {
 		return
 	}
 
-	// dbFilter := &gormdb.ServerComponentTypeFilter{
-	// 	Name: c.Query("name"),
-	// }
-
 	dbTypes, err := models.ServerComponentTypes().All(c.Request.Context(), r.DB)
 	if err != nil {
 		dbErrorResponse(c, err)

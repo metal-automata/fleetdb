@@ -55,7 +55,6 @@ func (p *ServerComponentGetParams) setQuery(q url.Values) {
 		q.Set(k, v[0])
 	}
 
-	// url.ParseQuery()
 	if p.Pagination != nil {
 		p.Pagination.setQuery(q)
 	}

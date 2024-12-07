@@ -46,7 +46,7 @@ func (s *Server) fromDBModel(dbS *models.Server) error {
 
 	s.Name = dbS.Name.String
 	s.FacilityCode = dbS.FacilityCode.String
-	// s.Vendor = dbS.Vend
+	s.Vendor = dbS.VendorID.String
 	s.CreatedAt = dbS.CreatedAt.Time
 	s.UpdatedAt = dbS.UpdatedAt.Time
 

@@ -325,6 +325,7 @@ func TestIntegrationServerComponentsInit(t *testing.T) {
 		return err
 	})
 
+	// nolint:typecheck // composite literal types are obvious
 	testCases := []struct {
 		name       string
 		serverID   string
