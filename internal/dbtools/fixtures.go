@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/gosimple/slug"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"github.com/volatiletech/null/v8"
@@ -28,8 +29,8 @@ var (
 	FixtureNamespaceVersioned   = "hollow.versioned"
 	FixtureNamespaceVersionedV2 = "hollow.versioned.v2"
 
-	// Server Component Types
-	FixtureFinType *models.ServerComponentType
+	// Map of component slug to its DB object
+	FixtureComponentTypeSlugMap map[string]*models.ServerComponentType
 
 	NemoID                       uuid.UUID
 	FixtureNemo                  *models.Server
@@ -37,6 +38,7 @@ var (
 	FixtureNemoOtherdata         *models.Attribute
 	FixtureNemoLeftFin           *models.ServerComponent
 	FixtureNemoRightFin          *models.ServerComponent
+	FixtureNemoComponents        []*models.ServerComponent
 	FixtureNemoLeftFinVersioned  *models.VersionedAttribute
 	FixtureNemoVersionedNew      *models.VersionedAttribute
 	FixtureNemoVersionedOld      *models.VersionedAttribute
@@ -62,6 +64,11 @@ var (
 	FixtureChucklesMetadata  *models.Attribute
 	FixtureChucklesOtherdata *models.Attribute
 	FixtureChucklesLeftFin   *models.ServerComponent
+
+	// FixturePufferfish is a server fixture without any components (for testing component init)
+	FixturePufferfish *models.Server
+	// FixturePufferfishComponents contains the component fixtures for Pufferfish server
+	FixturePufferfishComponents []*models.ServerComponent
 
 	FixtureServers        models.ServerSlice
 	FixtureDeletedServers models.ServerSlice
@@ -129,17 +136,21 @@ var (
 
 	FixtureInstalledFirmwares []*models.InstalledFirmware
 	FixtureInstalledFirmware  *models.InstalledFirmware
+
+	FixtureComponentStatuses     []*models.ComponentStatus
+	FixtureServerStatuses        []*models.ServerStatus
+	FixtureComponentCapabilities []*models.ComponentCapability
+	FixtureComponentMetadata     []*models.ComponentMetadatum
+	FixtureComponentMetadataNS   string
+
+	FixtureNemoComponentChangeReportAdd    *models.ComponentChangeReport
+	FixtureNemoComponentChangeReportRemove *models.ComponentChangeReport
 )
 
 func addFixtures(t *testing.T) error {
 	ctx := context.TODO()
 
-	FixtureFinType = &models.ServerComponentType{
-		Name: "Fins",
-		Slug: "fins",
-	}
-
-	if err := FixtureFinType.Insert(ctx, testDB, boil.Infer()); err != nil {
+	if err := setupComponentTypeFixtures(ctx, testDB); err != nil {
 		return err
 	}
 
@@ -156,6 +167,10 @@ func addFixtures(t *testing.T) error {
 	}
 
 	if err := setupChuckles(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupPufferfish(ctx, testDB); err != nil {
 		return err
 	}
 
@@ -231,6 +246,26 @@ func addFixtures(t *testing.T) error {
 		return err
 	}
 
+	if err := setupComponentStatusFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupServerStatusFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupComponentCapabilityFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupComponentMetadataFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupComponentChangeReport(ctx, testDB); err != nil {
+		return err
+	}
+
 	// excluding Chuckles here since that server is deleted
 	FixtureServers = models.ServerSlice{FixtureNemo, FixtureDory, FixtureMarlin}
 	FixtureDeletedServers = models.ServerSlice{FixtureChuckles}
@@ -289,23 +324,25 @@ func setupNemo(ctx context.Context, db *sqlx.DB, t *testing.T) error {
 	}
 
 	FixtureNemoLeftFin = &models.ServerComponent{
-		ServerComponentTypeID: FixtureFinType.ID,
-		Name:                  null.StringFrom("Normal Fin"),
+		ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
+		Name:                  null.StringFrom("fins"),
 		Model:                 null.StringFrom("Normal Fin"),
-		Serial:                null.StringFrom("Left"),
+		Serial:                "Left",
 	}
 
 	FixtureNemoRightFin = &models.ServerComponent{
-		ServerComponentTypeID: FixtureFinType.ID,
-		Name:                  null.StringFrom("My Lucky Fin"),
+		ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
+		Name:                  null.StringFrom("fins"),
 		Vendor:                null.StringFrom("Barracuda"),
 		Model:                 null.StringFrom("A Lucky Fin"),
-		Serial:                null.StringFrom("Right"),
+		Serial:                "Right",
 	}
 
 	if err := FixtureNemo.AddServerComponents(ctx, db, true, FixtureNemoLeftFin, FixtureNemoRightFin); err != nil {
 		return err
 	}
+
+	FixtureNemoComponents = []*models.ServerComponent{FixtureNemoLeftFin, FixtureNemoRightFin}
 
 	FixtureNemoRightFinOtherData = &models.Attribute{
 		Namespace: FixtureNamespaceOtherdata,
@@ -381,16 +418,16 @@ func setupDory(ctx context.Context, db *sqlx.DB) error {
 	}
 
 	FixtureDoryLeftFin = &models.ServerComponent{
-		ServerComponentTypeID: FixtureFinType.ID,
-		Name:                  null.StringFrom("Normal Fin"),
+		ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
+		Name:                  null.StringFrom(slug.Make("Normal Fin")),
 		Model:                 null.StringFrom("Normal Fin"),
-		Serial:                null.StringFrom("Left"),
+		Serial:                "Left",
 	}
 
 	FixtureDoryRightFin = &models.ServerComponent{
-		ServerComponentTypeID: FixtureFinType.ID,
-		Name:                  null.StringFrom("Normal Fin"),
-		Serial:                null.StringFrom("Right"),
+		ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
+		Name:                  null.StringFrom(slug.Make("Normal Fin")),
+		Serial:                "Right",
 	}
 
 	return FixtureDory.AddServerComponents(ctx, db, true, FixtureDoryLeftFin, FixtureDoryRightFin)
@@ -421,16 +458,16 @@ func setupMarlin(ctx context.Context, db *sqlx.DB) error {
 	}
 
 	FixtureMarlinLeftFin = &models.ServerComponent{
-		ServerComponentTypeID: FixtureFinType.ID,
-		Name:                  null.StringFrom("Normal Fin"),
+		ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
+		Name:                  null.StringFrom(slug.Make("Normal Fin")),
 		Model:                 null.StringFrom("Normal Fin"),
-		Serial:                null.StringFrom("Left"),
+		Serial:                "Left",
 	}
 
 	FixtureMarlinRightFin = &models.ServerComponent{
-		ServerComponentTypeID: FixtureFinType.ID,
-		Name:                  null.StringFrom("Normal Fin"),
-		Serial:                null.StringFrom("Right"),
+		ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
+		Name:                  null.StringFrom(slug.Make("Normal Fin")),
+		Serial:                "Right",
 	}
 
 	return FixtureMarlin.AddServerComponents(ctx, db, true, FixtureMarlinLeftFin, FixtureMarlinRightFin)
@@ -462,12 +499,38 @@ func setupChuckles(ctx context.Context, db *sqlx.DB) error {
 	}
 
 	FixtureChucklesLeftFin = &models.ServerComponent{
-		ServerComponentTypeID: FixtureFinType.ID,
+		ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
 		Model:                 null.StringFrom("Belly"),
-		Serial:                null.StringFrom("Up"),
+		Serial:                "Up",
 	}
 
 	return FixtureChuckles.AddServerComponents(ctx, db, true, FixtureChucklesLeftFin)
+}
+
+func setupPufferfish(ctx context.Context, db *sqlx.DB) error {
+	FixturePufferfish = &models.Server{
+		Name:         null.StringFrom("Pufferfish"),
+		FacilityCode: null.StringFrom("EastAustralianCurrent"),
+		// Not deleted - we want this active for component initialization
+	}
+	if err := FixturePufferfish.Insert(ctx, db, boil.Infer()); err != nil {
+		return err
+	}
+	// Define some components but don't insert them - we'll use these
+	// to verify against what gets created during initialization
+	FixturePufferfishComponents = []*models.ServerComponent{
+		{
+			ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
+			Model:                 null.StringFrom("puffer"),
+			Serial:                "1",
+		},
+		{
+			ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
+			Model:                 null.StringFrom("puffer"),
+			Serial:                "2",
+		},
+	}
+	return nil
 }
 
 func setupFirmwareDellR640(ctx context.Context, db *sqlx.DB) error {
@@ -1052,6 +1115,270 @@ func setupInstalledFirmwareFixtures(ctx context.Context, db *sqlx.DB) error {
 		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
 			return errors.Wrap(err, "InstalledFirmware insert fixture")
 		}
+	}
+
+	return nil
+}
+
+func setupComponentStatusFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureComponentStatuses = []*models.ComponentStatus{
+		{
+			ServerComponentID: FixtureNemoLeftFin.ID,
+			Health:            "healthy",
+			State:             "running",
+			Info:              null.StringFrom("normal operation"),
+		},
+		{
+			ServerComponentID: FixtureNemoRightFin.ID,
+			Health:            "degraded",
+			State:             "running",
+			Info:              null.StringFrom("performance reduced"),
+		},
+	}
+
+	for _, fixture := range FixtureComponentStatuses {
+		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "ComponentStatus insert fixture")
+		}
+	}
+	return nil
+}
+
+func setupServerStatusFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureServerStatuses = []*models.ServerStatus{
+		{
+			ServerID: FixtureNemo.ID,
+			Health:   "healthy",
+			State:    "running",
+			Info:     null.StringFrom("normal operation"),
+		},
+		{
+			ServerID: FixtureMarlin.ID,
+			Health:   "degraded",
+			State:    "running",
+			Info:     null.StringFrom("maintenance required"),
+		},
+	}
+
+	for _, fixture := range FixtureServerStatuses {
+		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "ServerStatus insert fixture")
+		}
+	}
+	return nil
+}
+
+func setupComponentCapabilityFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureComponentCapabilities = []*models.ComponentCapability{
+		{
+			ServerComponentID: FixtureNemoLeftFin.ID,
+			Name:              "power_control",
+			Description:       null.StringFrom("Allows power control operations"),
+			Enabled:           null.BoolFrom(true),
+		},
+		{
+			ServerComponentID: FixtureNemoRightFin.ID,
+			Name:              "firmware_update",
+			Description:       null.StringFrom("Allows firmware updates"),
+			Enabled:           null.BoolFrom(true),
+		},
+	}
+
+	for _, fixture := range FixtureComponentCapabilities {
+		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "Component Capabilities insert fixture")
+		}
+	}
+	return nil
+}
+
+func setupComponentMetadataFixtures(ctx context.Context, db *sqlx.DB) error {
+	nicData1, _ := json.Marshal(map[string]string{
+		"driver":   "bcrm",
+		"duplex":   "full",
+		"firmware": "999",
+		"link":     "no",
+	})
+
+	nicData2, _ := json.Marshal(map[string]string{
+		"driver":   "i40e",
+		"duplex":   "full",
+		"firmware": "8.15 0x800096ca 20.0.17",
+		"link":     "yes",
+	})
+
+	FixtureComponentMetadataNS = "metadata.generic"
+	FixtureComponentMetadata = []*models.ComponentMetadatum{
+		{
+			ServerComponentID: FixtureNemoLeftFin.ID,
+			Namespace:         FixtureComponentMetadataNS,
+			Data:              types.JSON(nicData1),
+		},
+		{
+			ServerComponentID: FixtureNemoRightFin.ID,
+			Namespace:         FixtureComponentMetadataNS,
+			Data:              types.JSON(nicData2),
+		},
+	}
+
+	for _, fixture := range FixtureComponentMetadata {
+		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "ComponentMetadata insert fixture")
+		}
+	}
+	return nil
+}
+
+func setupComponentChangeReport(ctx context.Context, db *sqlx.DB) error {
+	// change report to add component to Nemo server components
+	// fleetdbapi.ServerComponent as JSON
+	serverComponent1 := map[string]string{
+		"name":        "disk",
+		"uuid":        uuid.NewString(),
+		"model":       "foo",
+		"serial":      "1234",
+		"server_uuid": FixtureNemo.ID,
+	}
+
+	data1, _ := json.Marshal(serverComponent1)
+	FixtureNemoComponentChangeReportAdd = &models.ComponentChangeReport{
+		ServerID:              FixtureNemo.ID,
+		ReportID:              uuid.NewString(),
+		Serial:                "1234",
+		ServerComponentName:   "disk",
+		ServerComponentTypeID: FixtureNemoLeftFin.ServerComponentTypeID, // set just for conformance
+		CollectionMethod:      "inband",
+		Data:                  data1,
+	}
+
+	if err := FixtureNemoComponentChangeReportAdd.Insert(ctx, db, boil.Infer()); err != nil {
+		return errors.Wrap(err, "ComponentChangeReportAdd insert fixture")
+	}
+
+	// change report to remove component from Nemo server components
+	serverComponent2 := map[string]string{
+		"uuid":        FixtureNemoLeftFin.ID,
+		"name":        FixtureNemoLeftFin.Name.String,
+		"model":       FixtureNemoLeftFin.Model.String,
+		"serial":      FixtureNemoLeftFin.Serial,
+		"server_uuid": FixtureNemo.ID,
+	}
+
+	data2, _ := json.Marshal(serverComponent2)
+
+	FixtureNemoComponentChangeReportRemove = &models.ComponentChangeReport{
+		ServerID:              FixtureNemo.ID,
+		ReportID:              uuid.NewString(),
+		Serial:                FixtureNemoLeftFin.Serial,
+		RemoveComponent:       null.BoolFrom(true),
+		ServerComponentName:   FixtureNemoLeftFin.Name.String,
+		ServerComponentTypeID: FixtureNemoLeftFin.ServerComponentTypeID,
+		CollectionMethod:      "inband",
+		Data:                  data2,
+	}
+
+	if err := FixtureNemoComponentChangeReportRemove.Insert(ctx, db, boil.Infer()); err != nil {
+		return errors.Wrap(err, "ComponentChangeReportRemove insert fixture")
+	}
+
+	return nil
+}
+
+func setupComponentTypeFixtures(ctx context.Context, db *sqlx.DB) error {
+	serverComponentTypes := models.ServerComponentTypeSlice{
+		&models.ServerComponentType{
+			Name: "Fins", // for them fish
+			Slug: "fins",
+		},
+		&models.ServerComponentType{
+			Name: "Backplane-Expander",
+			Slug: "backplane-expander",
+		},
+		&models.ServerComponentType{
+			Name: "Mainboard",
+			Slug: "mainboard",
+		},
+		&models.ServerComponentType{
+			Name: "BIOS",
+			Slug: "bios",
+		},
+		&models.ServerComponentType{
+			Name: "NVMe-PCIe-SSD",
+			Slug: "nvme-pcie-ssd",
+		},
+		&models.ServerComponentType{
+			Name: "Sata-SSD",
+			Slug: "sata-ssd",
+		},
+		&models.ServerComponentType{
+			Name: "Drive",
+			Slug: "drive",
+		},
+		&models.ServerComponentType{
+			Name: "Chassis",
+			Slug: "chassis",
+		},
+		&models.ServerComponentType{
+			Name: "GPU",
+			Slug: "gpu",
+		},
+		&models.ServerComponentType{
+			Name: "NIC",
+			Slug: "nic",
+		},
+		&models.ServerComponentType{
+			Name: "PhysicalMemory",
+			Slug: "physicalmemory",
+		},
+		&models.ServerComponentType{
+			Name: "CPU",
+			Slug: "cpu",
+		},
+		&models.ServerComponentType{
+			Name: "TPM",
+			Slug: "tpm",
+		},
+		&models.ServerComponentType{
+			Name: "Enclosure",
+			Slug: "enclosure",
+		},
+		&models.ServerComponentType{
+			Name: "Sata-HDD",
+			Slug: "sata-hdd",
+		},
+		&models.ServerComponentType{
+			Name: "CPLD",
+			Slug: "cpld",
+		},
+		&models.ServerComponentType{
+			Name: "Power-Supply",
+			Slug: "power-supply",
+		},
+		&models.ServerComponentType{
+			Name: "BMC",
+			Slug: "bmc",
+		},
+		&models.ServerComponentType{
+			Name: "unknown",
+			Slug: "unknown",
+		},
+		&models.ServerComponentType{
+			Name: "StorageController",
+			Slug: "storagecontroller",
+		},
+		&models.ServerComponentType{
+			Name: "NICPort",
+			Slug: "nicport",
+		},
+	}
+
+	FixtureComponentTypeSlugMap = make(map[string]*models.ServerComponentType, len(serverComponentTypes))
+	for _, sct := range serverComponentTypes {
+		if err := sct.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "ServerComponentType insert fixture")
+		}
+
+		FixtureComponentTypeSlugMap[sct.Slug] = sct
 	}
 
 	return nil

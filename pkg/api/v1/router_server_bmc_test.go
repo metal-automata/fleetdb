@@ -25,6 +25,7 @@ func TestIntegrationServerBMCCreate(t *testing.T) {
 			HardwareModelName:  dbtools.FixtureHardwareModelBar456Name,
 			Username:           "user",
 			IPAddress:          "127.0.0.1",
+			Password:           "hunter2",
 			MacAddress:         "de:ad:be:ef:ca:fe",
 		}
 

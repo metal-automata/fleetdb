@@ -26,8 +26,8 @@ func (r *Router) bomsUpload(c *gin.Context) {
 				return err
 			}
 
-			if err := dbBomInfo.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
-				return err
+			if errInsert := dbBomInfo.Insert(c.Request.Context(), r.DB, boil.Infer()); errInsert != nil {
+				return errInsert
 			}
 
 			dbAocMacAddrsBoms, err := (bom).toAocMacAddressDBModels()
@@ -36,8 +36,8 @@ func (r *Router) bomsUpload(c *gin.Context) {
 			}
 
 			for _, dbAocMacAddrsBom := range dbAocMacAddrsBoms {
-				if err := dbAocMacAddrsBom.Insert(c.Request.Context(), r.DB, boil.Infer()); err != nil {
-					return err
+				if errInsert := dbAocMacAddrsBom.Insert(c.Request.Context(), r.DB, boil.Infer()); errInsert != nil {
+					return errInsert
 				}
 			}
 

@@ -15,12 +15,21 @@ import (
 )
 
 type InstalledFirmware struct {
-	ID                  uuid.UUID `json:"id"`
-	ServerComponentID   uuid.UUID `json:"server_component_id" binding:"required"`
-	ServerComponentName string    `json:"server_component_name"`
+	ID                  uuid.UUID `json:"id,omitempty"`
+	ServerComponentID   uuid.UUID `json:"server_component_id,omitempty"`
+	ServerComponentName string    `json:"server_component_name,omitempty"`
 	Version             string    `json:"version" binding:"required"`
+	Current             bool      `json:"current"`
 	CreatedAt           time.Time `json:"created_at"`
 	UpdatedAt           time.Time `json:"updated_at"`
+}
+
+func (t *InstalledFirmware) Equals(b *InstalledFirmware) bool {
+	if t == nil {
+		return false
+	}
+
+	return t.Version == b.Version
 }
 
 func (t *InstalledFirmware) fromDBModel(dbT *models.InstalledFirmware) {
@@ -35,16 +44,45 @@ func (t *InstalledFirmware) fromDBModel(dbT *models.InstalledFirmware) {
 	}
 }
 
-func (t *InstalledFirmware) toDBModel() *models.InstalledFirmware {
+func (t *InstalledFirmware) toDBModel(componentID string) (*models.InstalledFirmware, error) {
 	if t.ID == uuid.Nil {
 		t.ID = uuid.New()
 	}
 
+	if _, err := uuid.Parse(componentID); err != nil {
+		return nil, errors.Wrap(ErrValidatePayload, "invalid componentID"+err.Error())
+	}
+
 	return &models.InstalledFirmware{
 		ID:                t.ID.String(),
-		ServerComponentID: t.ServerComponentID.String(),
+		ServerComponentID: componentID,
 		Version:           t.Version,
+	}, nil
+}
+
+func (r *Router) upsertInstalledFirmware(ctx context.Context, tx boil.ContextExecutor, componentID string, t InstalledFirmware) (string, error) {
+	dbInstalledFirmware, err := t.toDBModel(componentID)
+	if err != nil {
+		return "", err
 	}
+
+	if err := dbInstalledFirmware.Upsert(
+		ctx,
+		tx,
+		true, // update on conflict
+		// conflict columns
+		[]string{models.InstalledFirmwareColumns.ServerComponentID},
+		// Columns to update when its an UPDATE
+		boil.Whitelist(
+			models.InstalledFirmwareColumns.Version,
+		),
+		// Columns to insert when its an INSERT
+		boil.Infer(),
+	); err != nil {
+		return "", errors.Wrap(ErrDBQuery, err.Error())
+	}
+
+	return dbInstalledFirmware.ID, nil
 }
 
 // installedFirmwareSet will create a new record for the server component firmware,
@@ -57,45 +95,18 @@ func (r *Router) installedFirmwareSet(c *gin.Context) {
 		return
 	}
 
-	// validate the component exists
-	mod := qm.Where(models.InstalledFirmwareColumns.ServerComponentID+"=?", t.ServerComponentID)
-	exists, err := models.InstalledFirmwares(mod).Exists(c.Request.Context(), r.DB)
+	id, err := r.upsertInstalledFirmware(c.Request.Context(), r.DB, t.ServerComponentID.String(), t)
 	if err != nil {
-		dbErrorResponse2(c, "Installed Firmware lookup error", err)
-		return
-	}
-
-	tx, err := r.DB.BeginTx(c.Request.Context(), nil)
-	if err != nil {
-		dbErrorResponse2(c, "Installed Firmware set error", err)
-		return
-	}
-
-	defer loggedRollback(r, tx)
-
-	if exists {
-		// soft delete existing record
-		errDelete := r.softDeleteInstalledFirwmare(c.Request.Context(), tx, t.ServerComponentID)
-		if errDelete != nil {
-			dbErrorResponse2(c, "Installed Firmware soft delete error", errDelete)
+		if errors.Is(err, ErrDBQuery) {
+			dbErrorResponse2(c, "installed firmware upsert error", err)
 			return
 		}
-	}
 
-	// insert new record
-	dbInstalledFirmware := t.toDBModel()
-	errInsert := dbInstalledFirmware.Insert(c.Request.Context(), tx, boil.Infer())
-	if errInsert != nil {
-		dbErrorResponse2(c, "Installed Firmware delete error", errInsert)
+		badRequestResponse(c, "invalid InstalledFirmware payload", err)
 		return
 	}
 
-	if err := tx.Commit(); err != nil {
-		dbErrorResponse2(c, "Installed Firmware set error", err)
-		return
-	}
-
-	createdResponse(c, dbInstalledFirmware.ID)
+	createdResponse(c, id)
 }
 
 // TODO:
@@ -188,23 +199,18 @@ func (r *Router) installedFirmwareGet(c *gin.Context) {
 
 func (r *Router) installedFirmwareDelete(c *gin.Context) {
 	componentID := c.Param("componentID")
-	componentUUID, err := uuid.Parse(componentID)
+
+	_, err := uuid.Parse(componentID)
 	if err != nil {
 		badRequestResponse(c, "", errors.Wrap(err, "valid component UUID expected"))
 		return
 	}
 
-	err = r.softDeleteInstalledFirwmare(c.Request.Context(), r.DB, componentUUID)
-	if err != nil {
+	mod := qm.Where(models.InstalledFirmwareColumns.ServerComponentID+"=?", componentID)
+	if _, err = models.InstalledFirmwares(mod).DeleteAll(c.Request.Context(), r.DB); err != nil {
 		dbErrorResponse2(c, "Installed Firmware soft delete error", err)
 		return
 	}
 
 	deletedResponse(c)
-}
-
-func (r *Router) softDeleteInstalledFirwmare(ctx context.Context, btx boil.ContextExecutor, componentID uuid.UUID) error {
-	mod := qm.Where(models.InstalledFirmwareColumns.ServerComponentID+"=?", componentID.String())
-	_, err := models.InstalledFirmwares(mod).DeleteAll(ctx, btx, false)
-	return err
 }

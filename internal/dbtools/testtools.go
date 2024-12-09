@@ -13,6 +13,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // Register the Postgres driver.
 	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -28,6 +29,14 @@ import (
 var TestDBURI = os.Getenv("FLEETDB_CRDB_URI")
 var testDB *sqlx.DB
 var testKeeper *secrets.Keeper
+
+func TestDatastore(t *testing.T) *sqlx.DB {
+	t.Helper()
+	assert.NotNil(t, testDB)
+	assert.NoError(t, testDB.Ping())
+
+	return testDB
+}
 
 func testDatastore(t *testing.T) error {
 	// don't setup the datastore if we already have one
@@ -103,8 +112,6 @@ func cleanDB(t *testing.T) {
 
 	ctx := context.TODO()
 	// Make sure the deletion goes in order so you don't break the databases foreign key constraints
-	testDB.Exec("SET sql_safe_updates = false;")
-
 	deleteFixture(ctx, t, models.Attributes())
 	deleteFixture(ctx, t, models.VersionedAttributes())
 	deleteFixture(ctx, t, models.ServerComponents())
@@ -131,11 +138,12 @@ func cleanDB(t *testing.T) {
 	deleteFixture(ctx, t, models.HardwareVendors())
 	deleteFixture(ctx, t, models.HardwareModels())
 	deleteFixture(ctx, t, models.ServerBMCS())
-	if _, err := models.InstalledFirmwares(qm.WithDeleted()).DeleteAll(ctx, boil.GetContextDB(), true); err != nil {
-		t.Error(errors.Wrap(err, "table: model.InstalledFirmwares"))
-	}
-
-	testDB.Exec("SET sql_safe_updates = true;")
+	deleteFixture(ctx, t, models.InstalledFirmwares())
+	deleteFixture(ctx, t, models.ComponentStatuses())
+	deleteFixture(ctx, t, models.ServerStatuses())
+	deleteFixture(ctx, t, models.ComponentCapabilities())
+	deleteFixture(ctx, t, models.ComponentMetadata())
+	deleteFixture(ctx, t, models.ComponentChangeReports())
 }
 
 func deleteFixture(ctx context.Context, t *testing.T, fixture deleteable) {

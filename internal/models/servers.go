@@ -24,86 +24,93 @@ import (
 
 // Server is an object representing the database table.
 type Server struct {
-	ID           string      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Name         null.String `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
-	FacilityCode null.String `boil:"facility_code" json:"facility_code,omitempty" toml:"facility_code" yaml:"facility_code,omitempty"`
-	CreatedAt    null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
-	UpdatedAt    null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
-	DeletedAt    null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
-	VendorID     null.String `boil:"vendor_id" json:"vendor_id,omitempty" toml:"vendor_id" yaml:"vendor_id,omitempty"`
-	SerialNumber null.String `boil:"serial_number" json:"serial_number,omitempty" toml:"serial_number" yaml:"serial_number,omitempty"`
-	ModelID      null.String `boil:"model_id" json:"model_id,omitempty" toml:"model_id" yaml:"model_id,omitempty"`
+	ID                   string      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Name                 null.String `boil:"name" json:"name,omitempty" toml:"name" yaml:"name,omitempty"`
+	FacilityCode         null.String `boil:"facility_code" json:"facility_code,omitempty" toml:"facility_code" yaml:"facility_code,omitempty"`
+	CreatedAt            null.Time   `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
+	UpdatedAt            null.Time   `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
+	DeletedAt            null.Time   `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
+	VendorID             null.String `boil:"vendor_id" json:"vendor_id,omitempty" toml:"vendor_id" yaml:"vendor_id,omitempty"`
+	SerialNumber         null.String `boil:"serial_number" json:"serial_number,omitempty" toml:"serial_number" yaml:"serial_number,omitempty"`
+	ModelID              null.String `boil:"model_id" json:"model_id,omitempty" toml:"model_id" yaml:"model_id,omitempty"`
+	InventoryRefreshedAt null.Time   `boil:"inventory_refreshed_at" json:"inventory_refreshed_at,omitempty" toml:"inventory_refreshed_at" yaml:"inventory_refreshed_at,omitempty"`
 
 	R *serverR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L serverL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var ServerColumns = struct {
-	ID           string
-	Name         string
-	FacilityCode string
-	CreatedAt    string
-	UpdatedAt    string
-	DeletedAt    string
-	VendorID     string
-	SerialNumber string
-	ModelID      string
+	ID                   string
+	Name                 string
+	FacilityCode         string
+	CreatedAt            string
+	UpdatedAt            string
+	DeletedAt            string
+	VendorID             string
+	SerialNumber         string
+	ModelID              string
+	InventoryRefreshedAt string
 }{
-	ID:           "id",
-	Name:         "name",
-	FacilityCode: "facility_code",
-	CreatedAt:    "created_at",
-	UpdatedAt:    "updated_at",
-	DeletedAt:    "deleted_at",
-	VendorID:     "vendor_id",
-	SerialNumber: "serial_number",
-	ModelID:      "model_id",
+	ID:                   "id",
+	Name:                 "name",
+	FacilityCode:         "facility_code",
+	CreatedAt:            "created_at",
+	UpdatedAt:            "updated_at",
+	DeletedAt:            "deleted_at",
+	VendorID:             "vendor_id",
+	SerialNumber:         "serial_number",
+	ModelID:              "model_id",
+	InventoryRefreshedAt: "inventory_refreshed_at",
 }
 
 var ServerTableColumns = struct {
-	ID           string
-	Name         string
-	FacilityCode string
-	CreatedAt    string
-	UpdatedAt    string
-	DeletedAt    string
-	VendorID     string
-	SerialNumber string
-	ModelID      string
+	ID                   string
+	Name                 string
+	FacilityCode         string
+	CreatedAt            string
+	UpdatedAt            string
+	DeletedAt            string
+	VendorID             string
+	SerialNumber         string
+	ModelID              string
+	InventoryRefreshedAt string
 }{
-	ID:           "servers.id",
-	Name:         "servers.name",
-	FacilityCode: "servers.facility_code",
-	CreatedAt:    "servers.created_at",
-	UpdatedAt:    "servers.updated_at",
-	DeletedAt:    "servers.deleted_at",
-	VendorID:     "servers.vendor_id",
-	SerialNumber: "servers.serial_number",
-	ModelID:      "servers.model_id",
+	ID:                   "servers.id",
+	Name:                 "servers.name",
+	FacilityCode:         "servers.facility_code",
+	CreatedAt:            "servers.created_at",
+	UpdatedAt:            "servers.updated_at",
+	DeletedAt:            "servers.deleted_at",
+	VendorID:             "servers.vendor_id",
+	SerialNumber:         "servers.serial_number",
+	ModelID:              "servers.model_id",
+	InventoryRefreshedAt: "servers.inventory_refreshed_at",
 }
 
 // Generated where
 
 var ServerWhere = struct {
-	ID           whereHelperstring
-	Name         whereHelpernull_String
-	FacilityCode whereHelpernull_String
-	CreatedAt    whereHelpernull_Time
-	UpdatedAt    whereHelpernull_Time
-	DeletedAt    whereHelpernull_Time
-	VendorID     whereHelpernull_String
-	SerialNumber whereHelpernull_String
-	ModelID      whereHelpernull_String
+	ID                   whereHelperstring
+	Name                 whereHelpernull_String
+	FacilityCode         whereHelpernull_String
+	CreatedAt            whereHelpernull_Time
+	UpdatedAt            whereHelpernull_Time
+	DeletedAt            whereHelpernull_Time
+	VendorID             whereHelpernull_String
+	SerialNumber         whereHelpernull_String
+	ModelID              whereHelpernull_String
+	InventoryRefreshedAt whereHelpernull_Time
 }{
-	ID:           whereHelperstring{field: "\"servers\".\"id\""},
-	Name:         whereHelpernull_String{field: "\"servers\".\"name\""},
-	FacilityCode: whereHelpernull_String{field: "\"servers\".\"facility_code\""},
-	CreatedAt:    whereHelpernull_Time{field: "\"servers\".\"created_at\""},
-	UpdatedAt:    whereHelpernull_Time{field: "\"servers\".\"updated_at\""},
-	DeletedAt:    whereHelpernull_Time{field: "\"servers\".\"deleted_at\""},
-	VendorID:     whereHelpernull_String{field: "\"servers\".\"vendor_id\""},
-	SerialNumber: whereHelpernull_String{field: "\"servers\".\"serial_number\""},
-	ModelID:      whereHelpernull_String{field: "\"servers\".\"model_id\""},
+	ID:                   whereHelperstring{field: "\"servers\".\"id\""},
+	Name:                 whereHelpernull_String{field: "\"servers\".\"name\""},
+	FacilityCode:         whereHelpernull_String{field: "\"servers\".\"facility_code\""},
+	CreatedAt:            whereHelpernull_Time{field: "\"servers\".\"created_at\""},
+	UpdatedAt:            whereHelpernull_Time{field: "\"servers\".\"updated_at\""},
+	DeletedAt:            whereHelpernull_Time{field: "\"servers\".\"deleted_at\""},
+	VendorID:             whereHelpernull_String{field: "\"servers\".\"vendor_id\""},
+	SerialNumber:         whereHelpernull_String{field: "\"servers\".\"serial_number\""},
+	ModelID:              whereHelpernull_String{field: "\"servers\".\"model_id\""},
+	InventoryRefreshedAt: whereHelpernull_Time{field: "\"servers\".\"inventory_refreshed_at\""},
 }
 
 // ServerRels is where relationship names are stored.
@@ -111,7 +118,9 @@ var ServerRels = struct {
 	Model                      string
 	Vendor                     string
 	ServerBMC                  string
+	ServerStatus               string
 	Attributes                 string
+	ComponentChangeReports     string
 	TargetServerEventHistories string
 	ServerComponents           string
 	ServerCredentials          string
@@ -120,7 +129,9 @@ var ServerRels = struct {
 	Model:                      "Model",
 	Vendor:                     "Vendor",
 	ServerBMC:                  "ServerBMC",
+	ServerStatus:               "ServerStatus",
 	Attributes:                 "Attributes",
+	ComponentChangeReports:     "ComponentChangeReports",
 	TargetServerEventHistories: "TargetServerEventHistories",
 	ServerComponents:           "ServerComponents",
 	ServerCredentials:          "ServerCredentials",
@@ -129,14 +140,16 @@ var ServerRels = struct {
 
 // serverR is where relationships are stored.
 type serverR struct {
-	Model                      *HardwareModel          `boil:"Model" json:"Model" toml:"Model" yaml:"Model"`
-	Vendor                     *HardwareVendor         `boil:"Vendor" json:"Vendor" toml:"Vendor" yaml:"Vendor"`
-	ServerBMC                  *ServerBMC              `boil:"ServerBMC" json:"ServerBMC" toml:"ServerBMC" yaml:"ServerBMC"`
-	Attributes                 AttributeSlice          `boil:"Attributes" json:"Attributes" toml:"Attributes" yaml:"Attributes"`
-	TargetServerEventHistories EventHistorySlice       `boil:"TargetServerEventHistories" json:"TargetServerEventHistories" toml:"TargetServerEventHistories" yaml:"TargetServerEventHistories"`
-	ServerComponents           ServerComponentSlice    `boil:"ServerComponents" json:"ServerComponents" toml:"ServerComponents" yaml:"ServerComponents"`
-	ServerCredentials          ServerCredentialSlice   `boil:"ServerCredentials" json:"ServerCredentials" toml:"ServerCredentials" yaml:"ServerCredentials"`
-	VersionedAttributes        VersionedAttributeSlice `boil:"VersionedAttributes" json:"VersionedAttributes" toml:"VersionedAttributes" yaml:"VersionedAttributes"`
+	Model                      *HardwareModel             `boil:"Model" json:"Model" toml:"Model" yaml:"Model"`
+	Vendor                     *HardwareVendor            `boil:"Vendor" json:"Vendor" toml:"Vendor" yaml:"Vendor"`
+	ServerBMC                  *ServerBMC                 `boil:"ServerBMC" json:"ServerBMC" toml:"ServerBMC" yaml:"ServerBMC"`
+	ServerStatus               *ServerStatus              `boil:"ServerStatus" json:"ServerStatus" toml:"ServerStatus" yaml:"ServerStatus"`
+	Attributes                 AttributeSlice             `boil:"Attributes" json:"Attributes" toml:"Attributes" yaml:"Attributes"`
+	ComponentChangeReports     ComponentChangeReportSlice `boil:"ComponentChangeReports" json:"ComponentChangeReports" toml:"ComponentChangeReports" yaml:"ComponentChangeReports"`
+	TargetServerEventHistories EventHistorySlice          `boil:"TargetServerEventHistories" json:"TargetServerEventHistories" toml:"TargetServerEventHistories" yaml:"TargetServerEventHistories"`
+	ServerComponents           ServerComponentSlice       `boil:"ServerComponents" json:"ServerComponents" toml:"ServerComponents" yaml:"ServerComponents"`
+	ServerCredentials          ServerCredentialSlice      `boil:"ServerCredentials" json:"ServerCredentials" toml:"ServerCredentials" yaml:"ServerCredentials"`
+	VersionedAttributes        VersionedAttributeSlice    `boil:"VersionedAttributes" json:"VersionedAttributes" toml:"VersionedAttributes" yaml:"VersionedAttributes"`
 }
 
 // NewStruct creates a new relationship struct
@@ -165,11 +178,25 @@ func (r *serverR) GetServerBMC() *ServerBMC {
 	return r.ServerBMC
 }
 
+func (r *serverR) GetServerStatus() *ServerStatus {
+	if r == nil {
+		return nil
+	}
+	return r.ServerStatus
+}
+
 func (r *serverR) GetAttributes() AttributeSlice {
 	if r == nil {
 		return nil
 	}
 	return r.Attributes
+}
+
+func (r *serverR) GetComponentChangeReports() ComponentChangeReportSlice {
+	if r == nil {
+		return nil
+	}
+	return r.ComponentChangeReports
 }
 
 func (r *serverR) GetTargetServerEventHistories() EventHistorySlice {
@@ -204,9 +231,9 @@ func (r *serverR) GetVersionedAttributes() VersionedAttributeSlice {
 type serverL struct{}
 
 var (
-	serverAllColumns            = []string{"id", "name", "facility_code", "created_at", "updated_at", "deleted_at", "vendor_id", "serial_number", "model_id"}
+	serverAllColumns            = []string{"id", "name", "facility_code", "created_at", "updated_at", "deleted_at", "vendor_id", "serial_number", "model_id", "inventory_refreshed_at"}
 	serverColumnsWithoutDefault = []string{}
-	serverColumnsWithDefault    = []string{"id", "name", "facility_code", "created_at", "updated_at", "deleted_at", "vendor_id", "serial_number", "model_id"}
+	serverColumnsWithDefault    = []string{"id", "name", "facility_code", "created_at", "updated_at", "deleted_at", "vendor_id", "serial_number", "model_id", "inventory_refreshed_at"}
 	serverPrimaryKeyColumns     = []string{"id"}
 	serverGeneratedColumns      = []string{}
 )
@@ -522,6 +549,17 @@ func (o *Server) ServerBMC(mods ...qm.QueryMod) serverBMCQuery {
 	return ServerBMCS(queryMods...)
 }
 
+// ServerStatus pointed to by the foreign key.
+func (o *Server) ServerStatus(mods ...qm.QueryMod) serverStatusQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"server_id\" = ?", o.ID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	return ServerStatuses(queryMods...)
+}
+
 // Attributes retrieves all the attribute's Attributes with an executor.
 func (o *Server) Attributes(mods ...qm.QueryMod) attributeQuery {
 	var queryMods []qm.QueryMod
@@ -534,6 +572,20 @@ func (o *Server) Attributes(mods ...qm.QueryMod) attributeQuery {
 	)
 
 	return Attributes(queryMods...)
+}
+
+// ComponentChangeReports retrieves all the component_change_report's ComponentChangeReports with an executor.
+func (o *Server) ComponentChangeReports(mods ...qm.QueryMod) componentChangeReportQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"component_change_reports\".\"server_id\"=?", o.ID),
+	)
+
+	return ComponentChangeReports(queryMods...)
 }
 
 // TargetServerEventHistories retrieves all the event_history's EventHistories with an executor via target_server column.
@@ -957,6 +1009,123 @@ func (serverL) LoadServerBMC(ctx context.Context, e boil.ContextExecutor, singul
 	return nil
 }
 
+// LoadServerStatus allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-1 relationship.
+func (serverL) LoadServerStatus(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServer interface{}, mods queries.Applicator) error {
+	var slice []*Server
+	var object *Server
+
+	if singular {
+		var ok bool
+		object, ok = maybeServer.(*Server)
+		if !ok {
+			object = new(Server)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServer))
+			}
+		}
+	} else {
+		s, ok := maybeServer.(*[]*Server)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServer))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`server_status`),
+		qm.WhereIn(`server_status.server_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load ServerStatus")
+	}
+
+	var resultSlice []*ServerStatus
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice ServerStatus")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for server_status")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for server_status")
+	}
+
+	if len(serverStatusAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.ServerStatus = foreign
+		if foreign.R == nil {
+			foreign.R = &serverStatusR{}
+		}
+		foreign.R.Server = object
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.ID == foreign.ServerID {
+				local.R.ServerStatus = foreign
+				if foreign.R == nil {
+					foreign.R = &serverStatusR{}
+				}
+				foreign.R.Server = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // LoadAttributes allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (serverL) LoadAttributes(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServer interface{}, mods queries.Applicator) error {
@@ -1061,6 +1230,120 @@ func (serverL) LoadAttributes(ctx context.Context, e boil.ContextExecutor, singu
 				local.R.Attributes = append(local.R.Attributes, foreign)
 				if foreign.R == nil {
 					foreign.R = &attributeR{}
+				}
+				foreign.R.Server = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadComponentChangeReports allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (serverL) LoadComponentChangeReports(ctx context.Context, e boil.ContextExecutor, singular bool, maybeServer interface{}, mods queries.Applicator) error {
+	var slice []*Server
+	var object *Server
+
+	if singular {
+		var ok bool
+		object, ok = maybeServer.(*Server)
+		if !ok {
+			object = new(Server)
+			ok = queries.SetFromEmbeddedStruct(&object, &maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeServer))
+			}
+		}
+	} else {
+		s, ok := maybeServer.(*[]*Server)
+		if ok {
+			slice = *s
+		} else {
+			ok = queries.SetFromEmbeddedStruct(&slice, maybeServer)
+			if !ok {
+				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeServer))
+			}
+		}
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &serverR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &serverR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`component_change_reports`),
+		qm.WhereIn(`component_change_reports.server_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load component_change_reports")
+	}
+
+	var resultSlice []*ComponentChangeReport
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice component_change_reports")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on component_change_reports")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for component_change_reports")
+	}
+
+	if len(componentChangeReportAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.ComponentChangeReports = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &componentChangeReportR{}
+			}
+			foreign.R.Server = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ServerID {
+				local.R.ComponentChangeReports = append(local.R.ComponentChangeReports, foreign)
+				if foreign.R == nil {
+					foreign.R = &componentChangeReportR{}
 				}
 				foreign.R.Server = local
 				break
@@ -1737,6 +2020,56 @@ func (o *Server) SetServerBMC(ctx context.Context, exec boil.ContextExecutor, in
 	return nil
 }
 
+// SetServerStatus of the server to the related item.
+// Sets o.R.ServerStatus to related.
+// Adds o to related.R.Server.
+func (o *Server) SetServerStatus(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ServerStatus) error {
+	var err error
+
+	if insert {
+		related.ServerID = o.ID
+
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	} else {
+		updateQuery := fmt.Sprintf(
+			"UPDATE \"server_status\" SET %s WHERE %s",
+			strmangle.SetParamNames("\"", "\"", 1, []string{"server_id"}),
+			strmangle.WhereClause("\"", "\"", 2, serverStatusPrimaryKeyColumns),
+		)
+		values := []interface{}{o.ID, related.ID}
+
+		if boil.IsDebug(ctx) {
+			writer := boil.DebugWriterFrom(ctx)
+			fmt.Fprintln(writer, updateQuery)
+			fmt.Fprintln(writer, values)
+		}
+		if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+			return errors.Wrap(err, "failed to update foreign table")
+		}
+
+		related.ServerID = o.ID
+	}
+
+	if o.R == nil {
+		o.R = &serverR{
+			ServerStatus: related,
+		}
+	} else {
+		o.R.ServerStatus = related
+	}
+
+	if related.R == nil {
+		related.R = &serverStatusR{
+			Server: o,
+		}
+	} else {
+		related.R.Server = o
+	}
+	return nil
+}
+
 // AddAttributes adds the given related objects to the existing relationships
 // of the server, optionally inserting them as new records.
 // Appends related to o.R.Attributes.
@@ -1861,6 +2194,59 @@ func (o *Server) RemoveAttributes(ctx context.Context, exec boil.ContextExecutor
 		}
 	}
 
+	return nil
+}
+
+// AddComponentChangeReports adds the given related objects to the existing relationships
+// of the server, optionally inserting them as new records.
+// Appends related to o.R.ComponentChangeReports.
+// Sets related.R.Server appropriately.
+func (o *Server) AddComponentChangeReports(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ComponentChangeReport) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ServerID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"component_change_reports\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"server_id"}),
+				strmangle.WhereClause("\"", "\"", 2, componentChangeReportPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ServerID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &serverR{
+			ComponentChangeReports: related,
+		}
+	} else {
+		o.R.ComponentChangeReports = append(o.R.ComponentChangeReports, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &componentChangeReportR{
+				Server: o,
+			}
+		} else {
+			rel.R.Server = o
+		}
+	}
 	return nil
 }
 

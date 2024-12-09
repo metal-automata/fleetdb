@@ -29,7 +29,6 @@ type InstalledFirmware struct {
 	Version           string    `boil:"version" json:"version" toml:"version" yaml:"version"`
 	CreatedAt         null.Time `boil:"created_at" json:"created_at,omitempty" toml:"created_at" yaml:"created_at,omitempty"`
 	UpdatedAt         null.Time `boil:"updated_at" json:"updated_at,omitempty" toml:"updated_at" yaml:"updated_at,omitempty"`
-	DeletedAt         null.Time `boil:"deleted_at" json:"deleted_at,omitempty" toml:"deleted_at" yaml:"deleted_at,omitempty"`
 
 	R *installedFirmwareR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L installedFirmwareL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -41,14 +40,12 @@ var InstalledFirmwareColumns = struct {
 	Version           string
 	CreatedAt         string
 	UpdatedAt         string
-	DeletedAt         string
 }{
 	ID:                "id",
 	ServerComponentID: "server_component_id",
 	Version:           "version",
 	CreatedAt:         "created_at",
 	UpdatedAt:         "updated_at",
-	DeletedAt:         "deleted_at",
 }
 
 var InstalledFirmwareTableColumns = struct {
@@ -57,14 +54,12 @@ var InstalledFirmwareTableColumns = struct {
 	Version           string
 	CreatedAt         string
 	UpdatedAt         string
-	DeletedAt         string
 }{
 	ID:                "installed_firmware.id",
 	ServerComponentID: "installed_firmware.server_component_id",
 	Version:           "installed_firmware.version",
 	CreatedAt:         "installed_firmware.created_at",
 	UpdatedAt:         "installed_firmware.updated_at",
-	DeletedAt:         "installed_firmware.deleted_at",
 }
 
 // Generated where
@@ -75,14 +70,12 @@ var InstalledFirmwareWhere = struct {
 	Version           whereHelperstring
 	CreatedAt         whereHelpernull_Time
 	UpdatedAt         whereHelpernull_Time
-	DeletedAt         whereHelpernull_Time
 }{
 	ID:                whereHelperstring{field: "\"installed_firmware\".\"id\""},
 	ServerComponentID: whereHelperstring{field: "\"installed_firmware\".\"server_component_id\""},
 	Version:           whereHelperstring{field: "\"installed_firmware\".\"version\""},
 	CreatedAt:         whereHelpernull_Time{field: "\"installed_firmware\".\"created_at\""},
 	UpdatedAt:         whereHelpernull_Time{field: "\"installed_firmware\".\"updated_at\""},
-	DeletedAt:         whereHelpernull_Time{field: "\"installed_firmware\".\"deleted_at\""},
 }
 
 // InstalledFirmwareRels is where relationship names are stored.
@@ -113,9 +106,9 @@ func (r *installedFirmwareR) GetServerComponent() *ServerComponent {
 type installedFirmwareL struct{}
 
 var (
-	installedFirmwareAllColumns            = []string{"id", "server_component_id", "version", "created_at", "updated_at", "deleted_at"}
+	installedFirmwareAllColumns            = []string{"id", "server_component_id", "version", "created_at", "updated_at"}
 	installedFirmwareColumnsWithoutDefault = []string{"server_component_id", "version"}
-	installedFirmwareColumnsWithDefault    = []string{"id", "created_at", "updated_at", "deleted_at"}
+	installedFirmwareColumnsWithDefault    = []string{"id", "created_at", "updated_at"}
 	installedFirmwarePrimaryKeyColumns     = []string{"id"}
 	installedFirmwareGeneratedColumns      = []string{}
 )
@@ -509,7 +502,7 @@ func (installedFirmwareL) LoadServerComponent(ctx context.Context, e boil.Contex
 		if foreign.R == nil {
 			foreign.R = &serverComponentR{}
 		}
-		foreign.R.InstalledFirmwares = append(foreign.R.InstalledFirmwares, object)
+		foreign.R.InstalledFirmware = object
 		return nil
 	}
 
@@ -520,7 +513,7 @@ func (installedFirmwareL) LoadServerComponent(ctx context.Context, e boil.Contex
 				if foreign.R == nil {
 					foreign.R = &serverComponentR{}
 				}
-				foreign.R.InstalledFirmwares = append(foreign.R.InstalledFirmwares, local)
+				foreign.R.InstalledFirmware = local
 				break
 			}
 		}
@@ -531,7 +524,7 @@ func (installedFirmwareL) LoadServerComponent(ctx context.Context, e boil.Contex
 
 // SetServerComponent of the installedFirmware to the related item.
 // Sets o.R.ServerComponent to related.
-// Adds o to related.R.InstalledFirmwares.
+// Adds o to related.R.InstalledFirmware.
 func (o *InstalledFirmware) SetServerComponent(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ServerComponent) error {
 	var err error
 	if insert {
@@ -567,10 +560,10 @@ func (o *InstalledFirmware) SetServerComponent(ctx context.Context, exec boil.Co
 
 	if related.R == nil {
 		related.R = &serverComponentR{
-			InstalledFirmwares: InstalledFirmwareSlice{o},
+			InstalledFirmware: o,
 		}
 	} else {
-		related.R.InstalledFirmwares = append(related.R.InstalledFirmwares, o)
+		related.R.InstalledFirmware = o
 	}
 
 	return nil
@@ -578,7 +571,7 @@ func (o *InstalledFirmware) SetServerComponent(ctx context.Context, exec boil.Co
 
 // InstalledFirmwares retrieves all the records using an executor.
 func InstalledFirmwares(mods ...qm.QueryMod) installedFirmwareQuery {
-	mods = append(mods, qm.From("\"installed_firmware\""), qmhelper.WhereIsNull("\"installed_firmware\".\"deleted_at\""))
+	mods = append(mods, qm.From("\"installed_firmware\""))
 	q := NewQuery(mods...)
 	if len(queries.GetSelect(q)) == 0 {
 		queries.SetSelect(q, []string{"\"installed_firmware\".*"})
@@ -597,7 +590,7 @@ func FindInstalledFirmware(ctx context.Context, exec boil.ContextExecutor, iD st
 		sel = strings.Join(strmangle.IdentQuoteSlice(dialect.LQ, dialect.RQ, selectCols), ",")
 	}
 	query := fmt.Sprintf(
-		"select %s from \"installed_firmware\" where \"id\"=$1 and \"deleted_at\" is null", sel,
+		"select %s from \"installed_firmware\" where \"id\"=$1", sel,
 	)
 
 	q := queries.Raw(query, iD)
@@ -966,7 +959,7 @@ func (o *InstalledFirmware) Upsert(ctx context.Context, exec boil.ContextExecuto
 
 // Delete deletes a single InstalledFirmware record with an executor.
 // Delete will match against the primary key column to find the record to delete.
-func (o *InstalledFirmware) Delete(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
+func (o *InstalledFirmware) Delete(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if o == nil {
 		return 0, errors.New("models: no InstalledFirmware provided for delete")
 	}
@@ -975,26 +968,8 @@ func (o *InstalledFirmware) Delete(ctx context.Context, exec boil.ContextExecuto
 		return 0, err
 	}
 
-	var (
-		sql  string
-		args []interface{}
-	)
-	if hardDelete {
-		args = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), installedFirmwarePrimaryKeyMapping)
-		sql = "DELETE FROM \"installed_firmware\" WHERE \"id\"=$1"
-	} else {
-		currTime := time.Now().In(boil.GetLocation())
-		o.DeletedAt = null.TimeFrom(currTime)
-		wl := []string{"deleted_at"}
-		sql = fmt.Sprintf("UPDATE \"installed_firmware\" SET %s WHERE \"id\"=$2",
-			strmangle.SetParamNames("\"", "\"", 1, wl),
-		)
-		valueMapping, err := queries.BindMapping(installedFirmwareType, installedFirmwareMapping, append(wl, installedFirmwarePrimaryKeyColumns...))
-		if err != nil {
-			return 0, err
-		}
-		args = queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), valueMapping)
-	}
+	args := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(o)), installedFirmwarePrimaryKeyMapping)
+	sql := "DELETE FROM \"installed_firmware\" WHERE \"id\"=$1"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1019,17 +994,12 @@ func (o *InstalledFirmware) Delete(ctx context.Context, exec boil.ContextExecuto
 }
 
 // DeleteAll deletes all matching rows.
-func (q installedFirmwareQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
+func (q installedFirmwareQuery) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if q.Query == nil {
 		return 0, errors.New("models: no installedFirmwareQuery provided for delete all")
 	}
 
-	if hardDelete {
-		queries.SetDelete(q.Query)
-	} else {
-		currTime := time.Now().In(boil.GetLocation())
-		queries.SetUpdate(q.Query, M{"deleted_at": currTime})
-	}
+	queries.SetDelete(q.Query)
 
 	result, err := q.Query.ExecContext(ctx, exec)
 	if err != nil {
@@ -1045,7 +1015,7 @@ func (q installedFirmwareQuery) DeleteAll(ctx context.Context, exec boil.Context
 }
 
 // DeleteAll deletes all rows in the slice, using an executor.
-func (o InstalledFirmwareSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor, hardDelete bool) (int64, error) {
+func (o InstalledFirmwareSlice) DeleteAll(ctx context.Context, exec boil.ContextExecutor) (int64, error) {
 	if len(o) == 0 {
 		return 0, nil
 	}
@@ -1058,31 +1028,14 @@ func (o InstalledFirmwareSlice) DeleteAll(ctx context.Context, exec boil.Context
 		}
 	}
 
-	var (
-		sql  string
-		args []interface{}
-	)
-	if hardDelete {
-		for _, obj := range o {
-			pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), installedFirmwarePrimaryKeyMapping)
-			args = append(args, pkeyArgs...)
-		}
-		sql = "DELETE FROM \"installed_firmware\" WHERE " +
-			strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, installedFirmwarePrimaryKeyColumns, len(o))
-	} else {
-		currTime := time.Now().In(boil.GetLocation())
-		for _, obj := range o {
-			pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), installedFirmwarePrimaryKeyMapping)
-			args = append(args, pkeyArgs...)
-			obj.DeletedAt = null.TimeFrom(currTime)
-		}
-		wl := []string{"deleted_at"}
-		sql = fmt.Sprintf("UPDATE \"installed_firmware\" SET %s WHERE "+
-			strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 2, installedFirmwarePrimaryKeyColumns, len(o)),
-			strmangle.SetParamNames("\"", "\"", 1, wl),
-		)
-		args = append([]interface{}{currTime}, args...)
+	var args []interface{}
+	for _, obj := range o {
+		pkeyArgs := queries.ValuesFromMapping(reflect.Indirect(reflect.ValueOf(obj)), installedFirmwarePrimaryKeyMapping)
+		args = append(args, pkeyArgs...)
 	}
+
+	sql := "DELETE FROM \"installed_firmware\" WHERE " +
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, installedFirmwarePrimaryKeyColumns, len(o))
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)
@@ -1137,8 +1090,7 @@ func (o *InstalledFirmwareSlice) ReloadAll(ctx context.Context, exec boil.Contex
 	}
 
 	sql := "SELECT \"installed_firmware\".* FROM \"installed_firmware\" WHERE " +
-		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, installedFirmwarePrimaryKeyColumns, len(*o)) +
-		"and \"deleted_at\" is null"
+		strmangle.WhereClauseRepeated(string(dialect.LQ), string(dialect.RQ), 1, installedFirmwarePrimaryKeyColumns, len(*o))
 
 	q := queries.Raw(sql, args...)
 
@@ -1155,7 +1107,7 @@ func (o *InstalledFirmwareSlice) ReloadAll(ctx context.Context, exec boil.Contex
 // InstalledFirmwareExists checks if the InstalledFirmware row exists.
 func InstalledFirmwareExists(ctx context.Context, exec boil.ContextExecutor, iD string) (bool, error) {
 	var exists bool
-	sql := "select exists(select 1 from \"installed_firmware\" where \"id\"=$1 and \"deleted_at\" is null limit 1)"
+	sql := "select exists(select 1 from \"installed_firmware\" where \"id\"=$1 limit 1)"
 
 	if boil.IsDebug(ctx) {
 		writer := boil.DebugWriterFrom(ctx)

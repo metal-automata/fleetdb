@@ -1,6 +1,8 @@
 package fleetdbapi
 
 import (
+	"context"
+
 	"github.com/gin-gonic/gin"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 
@@ -35,10 +37,6 @@ func (r *Router) serverComponentTypeList(c *gin.Context) {
 		return
 	}
 
-	// dbFilter := &gormdb.ServerComponentTypeFilter{
-	// 	Name: c.Query("name"),
-	// }
-
 	dbTypes, err := models.ServerComponentTypes().All(c.Request.Context(), r.DB)
 	if err != nil {
 		dbErrorResponse(c, err)
@@ -70,4 +68,19 @@ func (r *Router) serverComponentTypeList(c *gin.Context) {
 	}
 
 	listResponse(c, types, pd)
+}
+
+// returns a map of component slug/name to component type ID for lookups
+func (r *Router) serverComponentTypeSlugMap(ctx context.Context) (map[string]string, error) {
+	dbComponentTypes, err := models.ServerComponentTypes().All(ctx, r.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	slugMap := make(map[string]string, len(dbComponentTypes))
+	for _, dbCcomponentType := range dbComponentTypes {
+		slugMap[dbCcomponentType.Slug] = dbCcomponentType.ID
+	}
+
+	return slugMap, nil
 }

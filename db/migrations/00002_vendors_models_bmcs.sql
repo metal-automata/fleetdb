@@ -43,7 +43,7 @@ ALTER TABLE public.servers ADD COLUMN model_id UUID REFERENCES public.hardware_m
 -- +goose StatementBegin
 DROP TABLE public.bmcs;
 DROP TABLE public.hardware_models;
-DROP TABLE public.hardawre_vendors;
+DROP TABLE public.hardware_vendors;
 
 ALTER TABLE public.servers DROP COLUMN vendor_id;
 ALTER TABLE public.servers DROP COLUMN model_id;

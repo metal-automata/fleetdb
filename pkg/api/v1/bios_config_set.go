@@ -1,7 +1,6 @@
 package fleetdbapi
 
 import (
-	// "bytes"
 	"time"
 
 	"github.com/metal-automata/fleetdb/internal/models"
