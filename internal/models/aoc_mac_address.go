@@ -85,26 +85,15 @@ var AocMacAddressWhere = struct {
 
 // AocMacAddressRels is where relationship names are stored.
 var AocMacAddressRels = struct {
-	SerialNumBomInfo string
-}{
-	SerialNumBomInfo: "SerialNumBomInfo",
-}
+}{}
 
 // aocMacAddressR is where relationships are stored.
 type aocMacAddressR struct {
-	SerialNumBomInfo *BomInfo `boil:"SerialNumBomInfo" json:"SerialNumBomInfo" toml:"SerialNumBomInfo" yaml:"SerialNumBomInfo"`
 }
 
 // NewStruct creates a new relationship struct
 func (*aocMacAddressR) NewStruct() *aocMacAddressR {
 	return &aocMacAddressR{}
-}
-
-func (r *aocMacAddressR) GetSerialNumBomInfo() *BomInfo {
-	if r == nil {
-		return nil
-	}
-	return r.SerialNumBomInfo
 }
 
 // aocMacAddressL is where Load methods for each relationship are stored.
@@ -394,184 +383,6 @@ func (q aocMacAddressQuery) Exists(ctx context.Context, exec boil.ContextExecuto
 	}
 
 	return count > 0, nil
-}
-
-// SerialNumBomInfo pointed to by the foreign key.
-func (o *AocMacAddress) SerialNumBomInfo(mods ...qm.QueryMod) bomInfoQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"serial_num\" = ?", o.SerialNum),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	return BomInfos(queryMods...)
-}
-
-// LoadSerialNumBomInfo allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (aocMacAddressL) LoadSerialNumBomInfo(ctx context.Context, e boil.ContextExecutor, singular bool, maybeAocMacAddress interface{}, mods queries.Applicator) error {
-	var slice []*AocMacAddress
-	var object *AocMacAddress
-
-	if singular {
-		var ok bool
-		object, ok = maybeAocMacAddress.(*AocMacAddress)
-		if !ok {
-			object = new(AocMacAddress)
-			ok = queries.SetFromEmbeddedStruct(&object, &maybeAocMacAddress)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", object, maybeAocMacAddress))
-			}
-		}
-	} else {
-		s, ok := maybeAocMacAddress.(*[]*AocMacAddress)
-		if ok {
-			slice = *s
-		} else {
-			ok = queries.SetFromEmbeddedStruct(&slice, maybeAocMacAddress)
-			if !ok {
-				return errors.New(fmt.Sprintf("failed to set %T from embedded struct %T", slice, maybeAocMacAddress))
-			}
-		}
-	}
-
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &aocMacAddressR{}
-		}
-		args = append(args, object.SerialNum)
-
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &aocMacAddressR{}
-			}
-
-			for _, a := range args {
-				if a == obj.SerialNum {
-					continue Outer
-				}
-			}
-
-			args = append(args, obj.SerialNum)
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`bom_info`),
-		qm.WhereIn(`bom_info.serial_num in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load BomInfo")
-	}
-
-	var resultSlice []*BomInfo
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice BomInfo")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for bom_info")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for bom_info")
-	}
-
-	if len(bomInfoAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.SerialNumBomInfo = foreign
-		if foreign.R == nil {
-			foreign.R = &bomInfoR{}
-		}
-		foreign.R.SerialNumAocMacAddresses = append(foreign.R.SerialNumAocMacAddresses, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if local.SerialNum == foreign.SerialNum {
-				local.R.SerialNumBomInfo = foreign
-				if foreign.R == nil {
-					foreign.R = &bomInfoR{}
-				}
-				foreign.R.SerialNumAocMacAddresses = append(foreign.R.SerialNumAocMacAddresses, local)
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-// SetSerialNumBomInfo of the aocMacAddress to the related item.
-// Sets o.R.SerialNumBomInfo to related.
-// Adds o to related.R.SerialNumAocMacAddresses.
-func (o *AocMacAddress) SetSerialNumBomInfo(ctx context.Context, exec boil.ContextExecutor, insert bool, related *BomInfo) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"aoc_mac_address\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"serial_num"}),
-		strmangle.WhereClause("\"", "\"", 2, aocMacAddressPrimaryKeyColumns),
-	)
-	values := []interface{}{related.SerialNum, o.AocMacAddress}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	o.SerialNum = related.SerialNum
-	if o.R == nil {
-		o.R = &aocMacAddressR{
-			SerialNumBomInfo: related,
-		}
-	} else {
-		o.R.SerialNumBomInfo = related
-	}
-
-	if related.R == nil {
-		related.R = &bomInfoR{
-			SerialNumAocMacAddresses: AocMacAddressSlice{o},
-		}
-	} else {
-		related.R.SerialNumAocMacAddresses = append(related.R.SerialNumAocMacAddresses, o)
-	}
-
-	return nil
 }
 
 // AocMacAddresses retrieves all the records using an executor.

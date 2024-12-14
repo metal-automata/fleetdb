@@ -15,23 +15,23 @@ test: | unit-test integration-test
 ## run integration tests
 integration-test: test-database
 	@echo Running integration tests...
-	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go test -race -cover -tags testtools,integration \
+	@FLEETDB_PGDB_URI="${TEST_DB_URI}" go test -race -cover -tags testtools,integration \
 	                                           -coverprofile=coverage.txt -covermode=atomic -p 1 -timeout 2m ./... | \
 	grep -v "could not be registered in Prometheus\" error=\"duplicate metrics collector registration attempted\"" # TODO; Figure out why this message spams when tests fail
 
 ## run unit tests
 unit-test: | test-database
 	@echo Running unit tests...
-	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go test -cover -short -tags testtools ./...
+	@FLEETDB_PGDB_URI="${TEST_DB_URI}" go test -cover -short -tags testtools ./...
 
 ## run single integration test. Example: make single-test test=TestIntegrationServerListComponents
 single-test: test-database
-	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go test -timeout 30s -tags testtools -run ^${test}$$ github.com/metal-automata/fleetdb/pkg/api/v1 -v
+	@FLEETDB_PGDB_URI="${TEST_DB_URI}" go test -timeout 30s -tags testtools -run ^${test}$$ github.com/metal-automata/fleetdb/pkg/api/v1 -v
 
 ## check test coverage
 coverage: | test-database
 	@echo Generating coverage report...
-	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go test ./... -race -coverprofile=coverage.out -covermode=atomic -tags testtools,integration -p 1
+	@FLEETDB_PGDB_URI="${TEST_DB_URI}" go test ./... -race -coverprofile=coverage.out -covermode=atomic -tags testtools,integration -p 1
 	@go tool cover -func=coverage.out
 	@go tool cover -html=coverage.out
 
@@ -65,8 +65,7 @@ test-database:
 		-c "create role fleetdb_test login createdb;" \
 		-c "create database fleetdb_test owner fleetdb_test;" \
 		-c "grant all privileges on schema public to fleetdb_test;"
-	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go run main.go migrate up
-	# The attributes, versioned_attributes constraints are dropped to allow generated db model tests to succeed
+	@FLEETDB_PGDB_URI="${TEST_DB_URI}" go run main.go migrate up
 	@psql -d "host=localhost port=5432 user=fleetdb_test sslmode=disable dbname=fleetdb_test" \
 		-c "ALTER TABLE attributes DROP CONSTRAINT check_server_id_server_component_id; ALTER TABLE versioned_attributes DROP CONSTRAINT check_server_id_server_component_id;"
 
@@ -75,14 +74,14 @@ test-database-down:
 
 ## test database - run fleetdb migrate up.
 test-migrate-up: test-database
-	@FLEETDB_CRDB_URI="${TEST_DB_URI}" go run main.go migrate up
+	@FLEETDB_PGDB_URI="${TEST_DB_URI}" go run main.go migrate up
 
 ## test database - run fleetdb migrate up.
 dev-migrate-up: test-database
-	@FLEETDB_CRDB_URI="${DEV_DB_URI}" go run main.go migrate up
+	@FLEETDB_PGDB_URI="${DEV_DB_URI}" go run main.go migrate up
 
 ## setup fleetdb docker dev env
-dev-database: push-image-devel
+dev-env: push-image-devel
 	@PG_DSN="${DEV_DB_URI}" docker compose -f quickstart.yml up -d postgresql
 	@psql -d "host=localhost port=5432 user=postgres sslmode=disable dbname=postgres" \
 	    -c "drop database if exists fleetdb with(force);" \

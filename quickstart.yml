@@ -6,7 +6,7 @@ services:
       - fleetdb-migrate
     environment:
       - FLEETDB_OIDC_ENABLED=false
-      - FLEETDB_CRDB_URI=${PG_DSN:?"expected postgresql DB URI env var"}  #postgresql://postgres@postgresql:5432/fleetdb?sslmode=disable
+      - FLEETDB_PGDB_URI=${PG_DSN:?"expected postgresql DB URI env var"}  #postgresql://postgres@postgresql:5432/fleetdb?sslmode=disable
       - FLEETDB_DB_ENCRYPTION_DRIVER=base64key://smGbjm71Nxd1Ig5FS0wj9SlbzAIrnolCz9bQQ6uAhl4=
     ports:
       - "127.0.0.1:8000:8000"
@@ -21,7 +21,7 @@ services:
     depends_on:
       - postgresql
     environment:
-      - FLEETDB_CRDB_URI=${PG_DSN:?"expected postgresql DB URI env var"} #postgresql://postgres@postgresql:5432/postgres?sslmode=disable
+      - FLEETDB_PGDB_URI=${PG_DSN:?"expected postgresql DB URI env var"} #postgresql://postgres@postgresql:5432/postgres?sslmode=disable
     restart: on-failure
     networks:
       - automata

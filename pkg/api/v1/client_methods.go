@@ -68,10 +68,6 @@ type ClientInterface interface {
 	DeleteCredential(context.Context, uuid.UUID, string) (*ServerResponse, error)
 	ListServerCredentialTypes(context.Context) (*ServerResponse, error)
 
-	BillOfMaterialsBatchUpload(context.Context, []Bom) (*ServerResponse, error)
-	GetBomInfoByAOCMacAddr(context.Context, string) (*Bom, *ServerResponse, error)
-	GetBomInfoByBMCMacAddr(context.Context, string) (*Bom, *ServerResponse, error)
-
 	GetHistoryByID(context.Context, uuid.UUID) (*Event, *ServerResponse, error)
 	GetServerEvents(context.Context, uuid.UUID) ([]*Event, *ServerResponse, error)
 	UpdateEvent(context.Context, *Event) (*ServerResponse, error)
@@ -391,44 +387,6 @@ func (c *Client) ListServerCredentialTypes(ctx context.Context, params *Paginati
 // CreateServerCredentialType will create a new server secret type
 func (c *Client) CreateServerCredentialType(ctx context.Context, sType *ServerCredentialType) (*ServerResponse, error) {
 	return c.post(ctx, serverCredentialTypeEndpoint, sType)
-}
-
-// BillOfMaterialsBatchUpload will attempt to write multiple boms to database.
-func (c *Client) BillOfMaterialsBatchUpload(ctx context.Context, boms []Bom) (*ServerResponse, error) {
-	endpoint := fmt.Sprintf("%s/%s", bomInfoEndpoint, uploadFileEndpoint)
-
-	resp, err := c.post(ctx, endpoint, boms)
-	if err != nil {
-		return nil, err
-	}
-
-	return resp, nil
-}
-
-// GetBomInfoByAOCMacAddr will return the bom info object by the aoc mac address.
-func (c *Client) GetBomInfoByAOCMacAddr(ctx context.Context, aocMacAddr string) (*Bom, *ServerResponse, error) {
-	endpoint := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacAOCAddressEndpoint, aocMacAddr)
-	bom := &Bom{}
-	r := ServerResponse{Record: bom}
-
-	if err := c.get(ctx, endpoint, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return bom, &r, nil
-}
-
-// GetBomInfoByBMCMacAddr will return the bom info object by the bmc mac address.
-func (c *Client) GetBomInfoByBMCMacAddr(ctx context.Context, bmcMacAddr string) (*Bom, *ServerResponse, error) {
-	endpoint := fmt.Sprintf("%s/%s/%s", bomInfoEndpoint, bomByMacBMCAddressEndpoint, bmcMacAddr)
-	bom := &Bom{}
-	r := ServerResponse{Record: bom}
-
-	if err := c.get(ctx, endpoint, &r); err != nil {
-		return nil, nil, err
-	}
-
-	return bom, &r, nil
 }
 
 // GetHistoryByID returns the details of the event with the given ID

@@ -20,8 +20,6 @@ func TestUpsert(t *testing.T) {
 
 	t.Run("BMCMacAddresses", testBMCMacAddressesUpsert)
 
-	t.Run("BomInfos", testBomInfosUpsert)
-
 	t.Run("ComponentCapabilities", testComponentCapabilitiesUpsert)
 
 	t.Run("ComponentChangeReports", testComponentChangeReportsUpsert)
