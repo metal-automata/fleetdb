@@ -111,12 +111,12 @@ func (r *Router) serverCredentialPut(c *gin.Context) {
 
 	errUpsert := r.serverCredentialUpsert(c.Request.Context(), r.DB, secretSlug, srvUUID, newValue)
 	if errUpsert != nil {
-		if errors.Is(err, ErrCredentialEncrypt) {
+		if errors.Is(errUpsert, ErrCredentialEncrypt) {
 			c.JSON(
 				http.StatusInternalServerError,
 				&ServerResponse{
 					Message: "failed to encrypt the secret",
-					Error:   err.Error(),
+					Error:   errUpsert.Error(),
 				},
 			)
 			return

@@ -76,7 +76,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 				serverBmcs.GET("", amw.AuthRequired(readScopes("bmc")), r.serverBMCGet)
 				serverBmcs.DELETE("", amw.AuthRequired(deleteScopes("bmc")), r.serverBMCDelete)
 			}
-
 		}
 	}
 
