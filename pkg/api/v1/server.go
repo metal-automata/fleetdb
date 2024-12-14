@@ -207,11 +207,9 @@ func (r *Router) serverCreate(c *gin.Context) {
 	}
 
 	if srv.BMC != nil {
-		srv.BMC.ServerID = uuid.MustParse(dbSRV.ID)
-		dbBMC := srv.BMC.toDBModel()
-
-		if _, err := r.insertServerBMC(ctx, tx, srv.Vendor, srv.Model, dbBMC); err != nil {
-			dbErrorResponse2(c, "server insert error", err)
+		_, errInsert := r.insertServerBMCWithTx(ctx, tx, *srv.BMC)
+		if errInsert != nil {
+			dbErrorResponse2(c, "ServerBMC insert error", errInsert)
 			return
 		}
 	}

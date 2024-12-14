@@ -255,7 +255,7 @@ func TestFromCommonDevice(t *testing.T) {
 
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			conv := fleetdbapi.NewComponentConverter(fleetdbapi.Inband, componentSlugTypeMap())
+			conv := fleetdbapi.NewComponentConverter(fleetdbapi.Inband, componentSlugTypeMap(), false)
 			server, err := conv.FromCommonDevice(serverID, fixtures.CopyDevice(tc.dev))
 			assert.Nil(t, err)
 

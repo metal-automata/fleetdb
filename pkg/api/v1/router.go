@@ -65,8 +65,16 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 			svrCreds := srv.Group("credentials/:slug")
 			{
 				svrCreds.GET("", amw.AuthRequired([]string{"read:server:credentials"}), r.serverCredentialGet)
-				svrCreds.PUT("", amw.AuthRequired([]string{"write:server:credentials"}), r.serverCredentialUpsert)
+				svrCreds.PUT("", amw.AuthRequired([]string{"write:server:credentials"}), r.serverCredentialPut)
 				svrCreds.DELETE("", amw.AuthRequired([]string{"write:server:credentials"}), r.serverCredentialDelete)
+			}
+
+			// /servers/:uuid/bmc
+			serverBmcs := srv.Group("/bmc")
+			{
+				serverBmcs.POST("", amw.AuthRequired(createScopes("bmc")), r.serverBMCCreate)
+				serverBmcs.GET("", amw.AuthRequired(readScopes("bmc")), r.serverBMCGet)
+				serverBmcs.DELETE("", amw.AuthRequired(deleteScopes("bmc")), r.serverBMCDelete)
 			}
 		}
 	}
@@ -172,14 +180,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		hardwareModels.GET("", amw.AuthRequired(readScopes("hardware-models")), r.hardwareModelList)
 		hardwareModels.GET("/:slug", amw.AuthRequired(readScopes("hardware-models")), r.hardwareModelGet)
 		hardwareModels.DELETE("/:slug", amw.AuthRequired(deleteScopes("hardware-models")), r.hardwareModelDelete)
-	}
-
-	serverBmcs := rg.Group("/server-bmcs")
-	{
-		serverBmcs.POST("", amw.AuthRequired(createScopes("server-bmcs")), r.serverBMCCreate)
-		serverBmcs.GET("", amw.AuthRequired(readScopes("server-bmcs")), r.serverBMCList)
-		serverBmcs.GET("/:serverID", amw.AuthRequired(readScopes("server-bmcs")), r.serverBMCGet)
-		serverBmcs.DELETE("/:serverID", amw.AuthRequired(deleteScopes("server-bmcs")), r.serverBMCDelete)
 	}
 
 	installedFirmware := rg.Group("/installed-firmware")

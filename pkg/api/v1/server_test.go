@@ -159,8 +159,9 @@ func TestIntegrationServerCreate(t *testing.T) {
 					ServerID:           serverWithBMCID,
 					IPAddress:          "127.0.0.1",
 					Username:           "foo",
-					Password:           "baz", // this has no effect at the moment - credentials go through the creds endpoint
+					Password:           "baz",
 					HardwareVendorName: "foo",
+					HardwareModelName:  "123",
 					MacAddress:         "00:00:de:ad:be:ef",
 				},
 			},

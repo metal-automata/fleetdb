@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	rivets "github.com/metal-automata/rivets/types"
 )
 
 const (
@@ -27,7 +26,7 @@ const (
 	inventoryEndpoint                   = "inventory"
 	hardwareVendorsEndpoint             = "hardware-vendors"
 	hardwareModelsEndpoint              = "hardware-models"
-	serverBMCsEndpoint                  = "server-bmcs"
+	serverBMCsEndpoint                  = "bmc"
 	installedFirmwareEndpoint           = "installed-firmware"
 	componentStatusEndpoint             = "component-status"
 	serverStatusEndpoint                = "server-status"
@@ -72,9 +71,6 @@ type ClientInterface interface {
 	BillOfMaterialsBatchUpload(context.Context, []Bom) (*ServerResponse, error)
 	GetBomInfoByAOCMacAddr(context.Context, string) (*Bom, *ServerResponse, error)
 	GetBomInfoByBMCMacAddr(context.Context, string) (*Bom, *ServerResponse, error)
-
-	GetServerInventory(context.Context, uuid.UUID, bool) (*rivets.Server, *ServerResponse, error)
-	SetServerInventory(context.Context, uuid.UUID, *rivets.Server, bool) (*ServerResponse, error)
 
 	GetHistoryByID(context.Context, uuid.UUID) (*Event, *ServerResponse, error)
 	GetServerEvents(context.Context, uuid.UUID) ([]*Event, *ServerResponse, error)
@@ -435,36 +431,6 @@ func (c *Client) GetBomInfoByBMCMacAddr(ctx context.Context, bmcMacAddr string) 
 	return bom, &r, nil
 }
 
-// GetServerInventory returns the last reported server state of the kind specified by the inband parameter
-func (c *Client) GetServerInventory(ctx context.Context, srvID uuid.UUID, inband bool) (*rivets.Server, *ServerResponse, error) {
-	mode := "outofband"
-	if inband {
-		mode = "inband"
-	}
-
-	endpoint := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
-	srv := &rivets.Server{}
-	r := &ServerResponse{Record: srv}
-
-	if err := c.get(ctx, endpoint, r); err != nil {
-		return nil, nil, err
-	}
-
-	return srv, r, nil
-}
-
-// SetServerInventory writes the given server structure back to the database
-func (c *Client) SetServerInventory(ctx context.Context, srvID uuid.UUID,
-	srv *rivets.Server, inband bool) (*ServerResponse, error) {
-	mode := "outofband"
-	if inband {
-		mode = "inband"
-	}
-
-	endpoint := fmt.Sprintf("%s/%s?mode=%s", inventoryEndpoint, srvID.String(), mode)
-	return c.put(ctx, endpoint, srv)
-}
-
 // GetHistoryByID returns the details of the event with the given ID
 func (c *Client) GetHistoryByID(ctx context.Context, evtID uuid.UUID) ([]*Event, *ServerResponse, error) {
 	evts := &[]*Event{}
@@ -630,19 +596,8 @@ func (c *Client) DeleteHardwareModel(ctx context.Context, name string) (*ServerR
 
 // CreateServerBMC creates a server BMC record - requires the server relation
 func (c *Client) CreateServerBMC(ctx context.Context, serverBMC *ServerBMC) (*ServerResponse, error) {
-	return c.post(ctx, serverBMCsEndpoint, serverBMC)
-}
-
-// ListServerBMCs lists server BMC records
-func (c *Client) ListServerBMCs(ctx context.Context) ([]*ServerBMC, *ServerResponse, error) {
-	serverBMCs := []*ServerBMC{}
-	resp := ServerResponse{Records: &serverBMCs}
-
-	if err := c.list(ctx, serverBMCsEndpoint, nil, &resp); err != nil {
-		return nil, nil, err
-	}
-
-	return serverBMCs, &resp, nil
+	endpoint := path.Join(serversEndpoint, serverBMC.ServerID.String(), serverBMCsEndpoint)
+	return c.post(ctx, endpoint, serverBMC)
 }
 
 // GetServerBMC retrieves a server's BMC record
@@ -650,7 +605,7 @@ func (c *Client) GetServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerB
 	serverBMC := &ServerBMC{}
 	resp := ServerResponse{Record: serverBMC}
 
-	endpoint := path.Join(serverBMCsEndpoint, serverID.String())
+	endpoint := path.Join(serversEndpoint, serverID.String(), serverBMCsEndpoint)
 	if err := c.get(ctx, endpoint, &resp); err != nil {
 		return nil, nil, err
 	}
@@ -660,7 +615,7 @@ func (c *Client) GetServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerB
 
 // DeleteServerBMC purges a server's BMC record
 func (c *Client) DeleteServerBMC(ctx context.Context, serverID uuid.UUID) (*ServerResponse, error) {
-	endpoint := path.Join(serverBMCsEndpoint, serverID.String())
+	endpoint := path.Join(serversEndpoint, serverID.String(), serverBMCsEndpoint)
 	return c.delete(ctx, endpoint)
 }
 

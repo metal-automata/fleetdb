@@ -2,6 +2,7 @@ package fleetdbapi
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"time"
 
@@ -22,7 +23,7 @@ type ServerBMC struct {
 	ServerID           uuid.UUID `json:"server_id" binding:"required,uuid"` // Note: binding attributes should not have spaces
 	HardwareVendorName string    `json:"hardware_vendor_name" binding:"required"`
 	HardwareVendorID   string    `json:"-"`
-	HardwareModelName  string    `json:"hardware_model_name,omitempty"`
+	HardwareModelName  string    `json:"hardware_model_name" binding:"required"`
 	HardwareModelID    string    `json:"-"`
 	Username           string    `json:"username" binding:"required"`
 	Password           string    `json:"password" binding:"required"`
@@ -71,19 +72,51 @@ func (r *Router) serverBMCCreate(c *gin.Context) {
 		badRequestResponse(c, "invalid ServerBMC payload", err)
 		return
 	}
-	dbBmc := t.toDBModel()
-	ctx := c.Request.Context()
 
-	id, err := r.insertServerBMC(ctx, r.DB, t.HardwareVendorName, t.HardwareModelName, dbBmc)
-	if err != nil {
-		dbErrorResponse2(c, "ServerBMC insert error", err)
+	ctx := c.Request.Context()
+	// component data is written in a transaction along with versioned attributes
+	tx, errTxBegin := r.DB.BeginTx(ctx, nil)
+	if errTxBegin != nil {
+		dbErrorResponse2(c, "ServerBMC insert error", errTxBegin)
+	}
+
+	defer loggedRollback(r, tx)
+
+	id, errInsert := r.insertServerBMCWithTx(ctx, tx, t)
+	if errInsert != nil {
+		dbErrorResponse2(c, "ServerBMC insert error", errInsert)
+		return
+	}
+
+	if errTxCommit := tx.Commit(); errTxCommit != nil {
+		dbErrorResponse2(c, "ServerBMC insert error", errInsert)
 		return
 	}
 
 	createdResponse(c, id)
 }
 
-func (r *Router) insertServerBMC(ctx context.Context, tx boil.ContextExecutor, hwVendor, hwModel string, bmc *models.ServerBMC) (string, error) {
+func (r *Router) insertServerBMCWithTx(ctx context.Context, tx *sql.Tx, serverBMC ServerBMC) (string, error) {
+	var credentialvalues *serverCredentialValues
+	if serverBMC.Password != "" {
+		credentialvalues = &serverCredentialValues{
+			Username: serverBMC.Username,
+			Password: serverBMC.Password,
+		}
+	}
+
+	return r.insertServerBMCAndCredentialsWithTx(
+		ctx,
+		tx,
+		serverBMC.HardwareVendorName,
+		serverBMC.HardwareModelName,
+		serverBMC.ServerID,
+		serverBMC.toDBModel(),
+		credentialvalues,
+	)
+}
+
+func (r *Router) insertServerBMCAndCredentialsWithTx(ctx context.Context, tx *sql.Tx, hwVendor, hwModel string, serverID uuid.UUID, bmc *models.ServerBMC, creds *serverCredentialValues) (string, error) {
 	// identify hardware vendor id
 	dbHardwareVendor, err := r.hardwareVendorBySlug(ctx, hwVendor)
 	if err != nil {
@@ -92,86 +125,28 @@ func (r *Router) insertServerBMC(ctx context.Context, tx boil.ContextExecutor, h
 
 	bmc.HardwareVendorID = dbHardwareVendor.ID
 
-	// identify hardware model id
-	if hwModel != "" {
-		dbHm, err := r.hardwareModelBySlug(ctx, hwModel)
-		if err != nil {
-			return "", err
-		}
-
-		bmc.HardwareModelID = dbHm.ID
+	dbHm, err := r.hardwareModelBySlug(ctx, hwModel)
+	if err != nil {
+		return "", err
 	}
+
+	bmc.HardwareModelID = dbHm.ID
 
 	if err := bmc.Insert(ctx, tx, boil.Infer()); err != nil {
 		return "", err
 	}
 
+	if creds != nil {
+		if err := r.serverCredentialUpsert(ctx, tx, "bmc", serverID, *creds); err != nil {
+			return "", err
+		}
+	}
+
 	return bmc.ID, nil
 }
 
-func (r *Router) serverBMCList(c *gin.Context) {
-	pager, err := parsePagination(c)
-	if err != nil {
-		badRequestResponse(c, "invalid pagination params", err)
-		return
-	}
-
-	mods := []qm.QueryMod{
-		// join hardware vendor
-		qm.InnerJoin(
-			fmt.Sprintf(
-				"%s on %s = %s",
-				models.TableNames.HardwareVendors,
-				models.HardwareVendorTableColumns.ID,
-				models.ServerBMCTableColumns.HardwareVendorID,
-			),
-		),
-		// Load N-1 relationship in db model struct field R
-		qm.Load(models.ServerBMCRels.HardwareVendor),
-
-		// join hardware model
-		qm.InnerJoin(
-			fmt.Sprintf(
-				"%s on %s = %s",
-				models.TableNames.HardwareModels,
-				models.HardwareModelTableColumns.ID,
-				models.ServerBMCTableColumns.HardwareModelID,
-			),
-		),
-		// Load N-1 relationship in db model struct field R
-		qm.Load(models.ServerBMCRels.HardwareModel),
-	}
-
-	dbServerBMCs, err := models.ServerBMCS(mods...).All(c.Request.Context(), r.DB)
-	if err != nil {
-		dbErrorResponse(c, err)
-		return
-	}
-
-	count, err := models.ServerBMCS(mods...).Count(c.Request.Context(), r.DB)
-	if err != nil {
-		dbErrorResponse(c, err)
-		return
-	}
-
-	list := []ServerBMC{}
-	for _, dbServerBMC := range dbServerBMCs {
-		serverBMC := ServerBMC{}
-		serverBMC.fromDBModel(dbServerBMC)
-		list = append(list, serverBMC)
-	}
-
-	pd := paginationData{
-		pageCount:  len(list),
-		totalCount: count,
-		pager:      pager,
-	}
-
-	listResponse(c, list, pd)
-}
-
 func (r *Router) serverBMCGet(c *gin.Context) {
-	serverID := c.Param("serverID")
+	serverID := c.Param("uuid")
 
 	serverUUID, err := uuid.Parse(serverID)
 	if err != nil {
@@ -218,8 +193,7 @@ func (r *Router) serverBMCGet(c *gin.Context) {
 }
 
 func (r *Router) serverBMCDelete(c *gin.Context) {
-	serverID := c.Param("serverID")
-
+	serverID := c.Param("uuid")
 	serverUUID, err := uuid.Parse(serverID)
 	if err != nil {
 		badRequestResponse(c, "", errors.Wrap(err, "valid server UUID expected"))
