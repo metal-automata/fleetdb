@@ -16,19 +16,24 @@ import (
 // CollectionMethod indicates how the data was collected
 type CollectionMethod string
 
-// componentSlugMap holds a lookup map for component slug to component type objs
-type componentSlugMap map[string]*ServerComponentType
+// ComponentSlugMap holds a lookup map for component slug to component type objs
+type ComponentSlugMap map[string]*ServerComponentType
 
 // Converter converts from the common.Device type to the fleetdbapi Server,Component types
 //
 // This is an exported type to enable fleetdbapi clients to publish server inventory data.
 type Converter struct {
+	skipSlugCheck    bool
 	CollectionMethod CollectionMethod
-	slugs            componentSlugMap
+	slugs            ComponentSlugMap
 }
 
-func NewComponentConverter(method CollectionMethod, slugs componentSlugMap) *Converter {
-	return &Converter{CollectionMethod: method, slugs: slugs}
+// Initializes and returns a new common.Device to fleetdbapi.Server converter
+//
+// skipSlugCheck when set will cause the convertor to not verify the components are of a valid ComponentSlugType in fleetdbapi
+// this check should not be disabled for when the converted inventory has to be stored in fleetdb.
+func NewComponentConverter(method CollectionMethod, slugs ComponentSlugMap, skipSlugCheck bool) *Converter {
+	return &Converter{CollectionMethod: method, slugs: slugs, skipSlugCheck: skipSlugCheck}
 }
 
 var (
@@ -56,7 +61,7 @@ func (r *Converter) FromCommonDevice(serverID uuid.UUID, hw *common.Device) (*Se
 }
 
 // toComponentSlice converts a common.Device object into a slice of components along with its attributes
-func (r *Converter) toComponentSlice(serverID uuid.UUID, hw *common.Device) ([]*ServerComponent, error) {
+func (r *Converter) toComponentSlice(serverID uuid.UUID, hw *common.Device) (ServerComponentSlice, error) {
 	hwVendor := common.FormatVendorName(hw.Vendor)
 	hwModel := common.FormatVendorName(hw.Model)
 
@@ -196,15 +201,17 @@ func (r *Converter) newComponent(
 	// lower case slug to changeObj how its stored in server service
 	slug = strings.ToLower(slug)
 
-	// component slug lookup map is expected
-	if len(r.slugs) == 0 {
-		return nil, errors.Wrap(ErrSlugs, "component slugs lookup map empty")
-	}
+	if !r.skipSlugCheck {
+		// component slug lookup map is expected
+		if len(r.slugs) == 0 {
+			return nil, errors.Wrap(ErrSlugs, "component slugs lookup map empty")
+		}
 
-	// component slug is part of the lookup map
-	_, exists := r.slugs[slug]
-	if !exists {
-		return nil, errors.Wrap(ErrSlugs, "unknown component slug: "+slug)
+		// component slug is part of the lookup map
+		_, exists := r.slugs[slug]
+		if !exists {
+			return nil, errors.Wrap(ErrSlugs, "unknown component slug: "+slug)
+		}
 	}
 
 	// use the product name when model number is empty

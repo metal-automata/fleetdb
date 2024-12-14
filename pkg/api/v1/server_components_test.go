@@ -283,7 +283,7 @@ func TestIntegrationServerComponentsInit(t *testing.T) {
 
 	// prep components for insert
 	serverID := uuid.MustParse(dbtools.FixturePufferfish.ID)
-	conv := fleetdbapi.NewComponentConverter(fleetdbapi.Inband, componentSlugTypeMap())
+	conv := fleetdbapi.NewComponentConverter(fleetdbapi.Inband, componentSlugTypeMap(), false)
 	inventory, err := conv.FromCommonDevice(serverID, fixtures.DellR6515)
 	assert.Nil(t, err)
 
