@@ -1,11 +1,13 @@
 package fleetdbapi
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/pkg/errors"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
@@ -82,7 +84,7 @@ func (r *Router) serverCredentialDelete(c *gin.Context) {
 	deletedResponse(c)
 }
 
-func (r *Router) serverCredentialUpsert(c *gin.Context) {
+func (r *Router) serverCredentialPut(c *gin.Context) {
 	srvUUID, err := r.parseUUID(c.Param("uuid"))
 	if err != nil {
 		return
@@ -101,34 +103,53 @@ func (r *Router) serverCredentialUpsert(c *gin.Context) {
 		return
 	}
 
-	secretType, err := models.ServerCredentialTypes(models.ServerCredentialTypeWhere.Slug.EQ(secretSlug)).One(c.Request.Context(), r.DB)
-	if err != nil {
-		dbErrorResponse(c, err)
-		return
-	}
-
 	var newValue serverCredentialValues
 	if errBind := c.ShouldBindJSON(&newValue); errBind != nil {
 		badRequestResponse(c, "invalid server secret value", errBind)
 		return
 	}
 
-	encryptedValue, err := dbtools.Encrypt(c.Request.Context(), r.SecretsKeeper, newValue.Password)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, &ServerResponse{Message: "error encrypting secret value", Error: err.Error()})
+	errUpsert := r.serverCredentialUpsert(c.Request.Context(), r.DB, secretSlug, srvUUID, newValue)
+	if errUpsert != nil {
+		if errors.Is(err, ErrCredentialEncrypt) {
+			c.JSON(
+				http.StatusInternalServerError,
+				&ServerResponse{
+					Message: "failed to encrypt the secret",
+					Error:   err.Error(),
+				},
+			)
+			return
+		}
+
+		dbErrorResponse(c, errUpsert)
 		return
+	}
+
+	updatedResponse(c, secretSlug)
+}
+
+func (r *Router) serverCredentialUpsert(ctx context.Context, db boil.ContextExecutor, slug string, serverID uuid.UUID, value serverCredentialValues) error {
+	secretType, err := models.ServerCredentialTypes(models.ServerCredentialTypeWhere.Slug.EQ(slug)).One(ctx, r.DB)
+	if err != nil {
+		return err
+	}
+
+	encryptedValue, err := dbtools.Encrypt(ctx, r.SecretsKeeper, value.Password)
+	if err != nil {
+		return errors.Wrap(ErrCredentialEncrypt, err.Error())
 	}
 
 	secret := models.ServerCredential{
 		ServerCredentialTypeID: secretType.ID,
-		ServerID:               srvUUID.String(),
+		ServerID:               serverID.String(),
 		Password:               encryptedValue,
-		Username:               newValue.Username,
+		Username:               value.Username,
 	}
 
-	err = secret.Upsert(
-		c.Request.Context(),
-		r.DB,
+	return secret.Upsert(
+		ctx,
+		db,
 		true,
 		// search for records by server id and type id to see if we need to update or insert
 		[]string{models.ServerCredentialColumns.ServerID, models.ServerCredentialColumns.ServerCredentialTypeID},
@@ -147,10 +168,4 @@ func (r *Router) serverCredentialUpsert(c *gin.Context) {
 			models.ServerCredentialColumns.UpdatedAt,
 		),
 	)
-	if err != nil {
-		dbErrorResponse(c, err)
-		return
-	}
-
-	updatedResponse(c, secretSlug)
 }

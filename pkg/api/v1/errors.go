@@ -22,6 +22,8 @@ var (
 	ErrDBQuery = errors.New("DB query returned error")
 	// ErrComponentType indicates the component type is not supported
 	ErrComponentType = errors.New("component type error")
+	// ErrCredentialEncrypt is returned when theres an internal error encrypting the secret.
+	ErrCredentialEncrypt = errors.New("error encrypting secret value")
 )
 
 // ClientError is returned when invalid arguments are provided to the client
