@@ -15,12 +15,12 @@ import (
 func TestIntegrationServerBMCCreate(t *testing.T) {
 	s := serverTest(t)
 
-	scopes := []string{"create:server-bmcs"}
+	scopes := []string{"create:bmc"}
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, respCode int, expectError bool) error {
+		serverID := uuid.MustParse(dbtools.FixtureMarlin.ID)
 		s.Client.SetToken(authToken)
 		serverBMC := &fleetdbapi.ServerBMC{
-			ID:                 uuid.New(),
-			ServerID:           uuid.MustParse(dbtools.FixtureMarlin.ID),
+			ServerID:           serverID,
 			HardwareVendorName: dbtools.FixtureHardwareVendorNameBar,
 			HardwareModelName:  dbtools.FixtureHardwareModelBar456Name,
 			Username:           "user",
@@ -35,31 +35,7 @@ func TestIntegrationServerBMCCreate(t *testing.T) {
 			assert.NotNil(t, resp)
 			assert.Equal(t, "resource created", resp.Message)
 			assert.NotNil(t, resp.Links.Self)
-			assert.Equal(t, fmt.Sprintf("http://test.hollow.com/api/v1/server-bmcs/%s", resp.Slug), resp.Links.Self.Href)
-		}
-
-		return err
-	})
-}
-
-func TestIntegrationServerBMCList(t *testing.T) {
-	s := serverTest(t)
-
-	scopes := []string{"read:server-bmcs"}
-	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, respCode int, expectError bool) error {
-		s.Client.SetToken(authToken)
-
-		expectCount := len(dbtools.FixtureServerBMCs)
-		serverBMCs, resp, err := s.Client.ListServerBMCs(ctx)
-		if !expectError {
-			require.NoError(t, err)
-			assert.Len(t, serverBMCs, expectCount)
-			assert.EqualValues(t, expectCount, resp.PageCount)
-			assert.EqualValues(t, 1, resp.TotalPages)
-			assert.EqualValues(t, expectCount, resp.TotalRecordCount)
-			// We returned everything, so we shouldnt have a next page info
-			assert.Nil(t, resp.Links.Next)
-			assert.Nil(t, resp.Links.Previous)
+			assert.Equal(t, fmt.Sprintf("http://test.hollow.com/api/v1/servers/%s/bmc/%s", serverID, resp.Slug), resp.Links.Self.Href)
 		}
 
 		return err
@@ -69,7 +45,7 @@ func TestIntegrationServerBMCList(t *testing.T) {
 func TestIntegrationServerBMCGet(t *testing.T) {
 	s := serverTest(t)
 	serverID := uuid.MustParse(dbtools.FixtureNemo.ID)
-	scopes := []string{"read:server-bmcs"}
+	scopes := []string{"read:bmc"}
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, _ int, expectError bool) error {
 		s.Client.SetToken(authToken)
 		serverBMC, resp, err := s.Client.GetServerBMC(ctx, serverID)
@@ -95,10 +71,9 @@ func TestIntegrationServerBMCGet(t *testing.T) {
 func TestIntegrationServerBMCDelete(t *testing.T) {
 	s := serverTest(t)
 	serverID := uuid.MustParse(dbtools.FixtureNemo.ID)
-	scopes := []string{"delete:server-bmcs", "read:server-bmcs"}
+	scopes := []string{"delete:bmc", "read:bmc"}
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, _ int, expectError bool) error {
 		s.Client.SetToken(authToken)
-
 		resp, err := s.Client.DeleteServerBMC(ctx, serverID)
 		if !expectError {
 			require.NoError(t, err)
