@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"context"
+	"database/sql"
 
+	"github.com/XSAM/otelsql"
 	"github.com/jmoiron/sqlx"
 	"github.com/metal-automata/rivets/ginjwt"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"github.com/volatiletech/sqlboiler/boil"
-	"go.infratographer.com/x/crdbx"
 	"go.infratographer.com/x/otelx"
 	"go.infratographer.com/x/viperx"
 	"go.uber.org/zap"
@@ -20,6 +21,8 @@ import (
 	"github.com/metal-automata/fleetdb/internal/config"
 	"github.com/metal-automata/fleetdb/internal/dbtools"
 	"github.com/metal-automata/fleetdb/internal/httpsrv"
+
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
 )
 
 var (
@@ -41,7 +44,7 @@ func init() {
 	viperx.MustBindFlag(viper.GetViper(), "listen", serveCmd.Flags().Lookup("listen"))
 
 	otelx.MustViperFlags(viper.GetViper(), serveCmd.Flags())
-	crdbx.MustViperFlags(viper.GetViper(), serveCmd.Flags())
+	config.MustPGDBViperFlags(viper.GetViper(), serveCmd.Flags())
 
 	// OIDC Flags
 	serveCmd.Flags().Bool("oidc", true, "use oidc auth")
@@ -106,16 +109,32 @@ func serve(ctx context.Context) {
 }
 
 func initDB() *sqlx.DB {
+	var err error
 	dbDriverName := "postgres"
 
-	sqldb, err := crdbx.NewDB(config.AppConfig.CRDB, config.AppConfig.Tracing.Enabled)
+	if config.AppConfig.Tracing.Enabled {
+		// Register an OTel SQL driver
+		dbDriverName, err = otelsql.Register(dbDriverName,
+			otelsql.WithAttributes(semconv.DBSystemPostgreSQL))
+		if err != nil {
+			logger.Fatalw("failed creating sql tracer: %w", err)
+		}
+	}
+
+	db, err := sql.Open(dbDriverName, config.AppConfig.PGDB.GetURI())
 	if err != nil {
 		logger.Fatalw("failed to initialize database connection", "error", err)
 	}
 
-	boil.SetDB(sqldb)
+	if err := db.Ping(); err != nil {
+		logger.Fatalw("failed verifying database connection: %w", err)
+	}
 
-	db := sqlx.NewDb(sqldb, dbDriverName)
+	db.SetMaxOpenConns(config.AppConfig.PGDB.Connections.MaxOpen)
+	db.SetMaxIdleConns(config.AppConfig.PGDB.Connections.MaxIdle)
+	db.SetConnMaxIdleTime(config.AppConfig.PGDB.Connections.MaxLifetime)
 
-	return db
+	boil.SetDB(db)
+
+	return sqlx.NewDb(db, dbDriverName)
 }

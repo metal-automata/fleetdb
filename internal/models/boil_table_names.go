@@ -11,7 +11,6 @@ var TableNames = struct {
 	BiosConfigSets             string
 	BiosConfigSettings         string
 	BMCMacAddress              string
-	BomInfo                    string
 	ComponentCapabilities      string
 	ComponentChangeReports     string
 	ComponentFirmwareSet       string
@@ -40,7 +39,6 @@ var TableNames = struct {
 	BiosConfigSets:             "bios_config_sets",
 	BiosConfigSettings:         "bios_config_settings",
 	BMCMacAddress:              "bmc_mac_address",
-	BomInfo:                    "bom_info",
 	ComponentCapabilities:      "component_capabilities",
 	ComponentChangeReports:     "component_change_reports",
 	ComponentFirmwareSet:       "component_firmware_set",

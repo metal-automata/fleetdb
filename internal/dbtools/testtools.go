@@ -26,7 +26,7 @@ import (
 )
 
 // TestDBURI is the URI for the test database
-var TestDBURI = os.Getenv("FLEETDB_CRDB_URI")
+var TestDBURI = os.Getenv("FLEETDB_PGDB_URI")
 var testDB *sqlx.DB
 var testKeeper *secrets.Keeper
 
@@ -128,9 +128,6 @@ func cleanDB(t *testing.T) {
 
 	// don't delete the builtin ServerCredentialTypes. Those are expected to exist for the application to work
 	deleteFixture(ctx, t, models.ServerCredentialTypes(models.ServerCredentialTypeWhere.Builtin.EQ(false)))
-	deleteFixture(ctx, t, models.AocMacAddresses())
-	deleteFixture(ctx, t, models.BMCMacAddresses())
-	deleteFixture(ctx, t, models.BomInfos())
 
 	deleteFixture(ctx, t, models.BiosConfigSettings())
 	deleteFixture(ctx, t, models.BiosConfigComponents())
