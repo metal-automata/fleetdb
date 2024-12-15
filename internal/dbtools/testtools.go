@@ -128,9 +128,6 @@ func cleanDB(t *testing.T) {
 
 	// don't delete the builtin ServerCredentialTypes. Those are expected to exist for the application to work
 	deleteFixture(ctx, t, models.ServerCredentialTypes(models.ServerCredentialTypeWhere.Builtin.EQ(false)))
-	deleteFixture(ctx, t, models.AocMacAddresses())
-	deleteFixture(ctx, t, models.BMCMacAddresses())
-	deleteFixture(ctx, t, models.BomInfos())
 
 	deleteFixture(ctx, t, models.BiosConfigSettings())
 	deleteFixture(ctx, t, models.BiosConfigComponents())

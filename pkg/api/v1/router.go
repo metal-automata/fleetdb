@@ -127,28 +127,6 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 		srvCmpntFwSets.POST("/validate-firmware-set", updateScopeMiddleware, r.validateFirmwareSet)
 	}
 
-	// /bill-of-materials
-	srvBoms := rg.Group("/bill-of-materials")
-	{
-		// /bill-of-materials/batch-boms-upload
-		uploadFile := srvBoms.Group("/batch-upload")
-		{
-			uploadFile.POST("", amw.AuthRequired(createScopes("batch-upload")), r.bomsUpload)
-		}
-
-		// /bill-of-materials/aoc-mac-address
-		srvBomByAocMacAddress := srvBoms.Group("/aoc-mac-address")
-		{
-			srvBomByAocMacAddress.GET("/:aoc_mac_address", amw.AuthRequired(readScopes("aoc-mac-address")), r.getBomFromAocMacAddress)
-		}
-
-		// /bill-of-materials/bmc-mac-address
-		srvBomByBmcMacAddress := srvBoms.Group("/bmc-mac-address")
-		{
-			srvBomByBmcMacAddress.GET("/:bmc_mac_address", amw.AuthRequired(readScopes("bmc-mac-address")), r.getBomFromBmcMacAddress)
-		}
-	}
-
 	srvEvents := rg.Group("/events")
 	{
 		srvEvents.GET("/:evtID", amw.AuthRequired(readScopes("server")), r.getHistoryByConditionID)
