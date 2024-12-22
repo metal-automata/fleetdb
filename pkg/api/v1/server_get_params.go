@@ -150,8 +150,8 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 	// Add server status query mods if requested
 	if p.IncludeStatus {
 		mods = append(mods,
-			// join server status
-			qm.InnerJoin(
+			// left join server status
+			qm.LeftOuterJoin(
 				fmt.Sprintf(
 					"%s on %s = %s",
 					models.TableNames.ServerStatus,
@@ -167,7 +167,7 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 	// Add server BMC query mods if requested
 	if p.IncludeBMC {
 		mods = append(mods,
-			// join server BMC
+			// inner join server BMC - at the moment we expect all servers to have a bmc
 			qm.InnerJoin(
 				fmt.Sprintf(
 					"%s on %s = %s",
@@ -178,7 +178,7 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 			),
 			qm.Load(models.ServerRels.ServerBMC),
 
-			// join credentials to server
+			// inner join credentials to server - expect credentials
 			qm.InnerJoin(
 				fmt.Sprintf(
 					"%s on %s = %s",
@@ -189,7 +189,7 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 			),
 			qm.Load(models.ServerRels.ServerCredentials),
 
-			// join credentials with type
+			// inner join credentials with type - expect cred type
 			qm.InnerJoin(
 				fmt.Sprintf("%s as t on %s = %s",
 					models.TableNames.ServerCredentialTypes,
@@ -205,7 +205,8 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 
 	if p.IncludeComponents {
 		mods = append(mods,
-			qm.InnerJoin(
+			// left join component data
+			qm.LeftOuterJoin(
 				fmt.Sprintf(
 					"%s on %s = %s",
 					models.TableNames.ServerComponents,

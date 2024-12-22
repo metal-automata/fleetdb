@@ -283,6 +283,17 @@ func TestIntegrationServerGet(t *testing.T) {
 				assert.True(t, foundComponents[dbtools.FixtureNemoRightFin.ID])
 			},
 		},
+		{ // fixture Puffer fish has no components - at minimum the server object is returned
+			name:     "get with components (no components in fixture)",
+			serverID: dbtools.FixturePufferfish.ID,
+			params: &fleetdbapi.ServerGetParams{
+				IncludeComponents: true,
+				ComponentParams:   &fleetdbapi.ServerComponentGetParams{},
+			},
+			verifyFn: func(t *testing.T, srv *fleetdbapi.Server) {
+				assert.Equal(t, srv.Name, dbtools.FixturePufferfish.Name.String)
+			},
+		},
 		{
 			name:     "get with BMC",
 			serverID: dbtools.FixtureNemo.ID,
