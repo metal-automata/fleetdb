@@ -46,11 +46,18 @@ func (s *Server) fromDBModel(dbS *models.Server) error {
 
 	s.Name = dbS.Name.String
 	s.FacilityCode = dbS.FacilityCode.String
-	s.Vendor = dbS.VendorID.String
 	s.CreatedAt = dbS.CreatedAt.Time
 	s.UpdatedAt = dbS.UpdatedAt.Time
 
 	if dbS.R != nil {
+		if dbS.R.Model != nil {
+			s.Model = dbS.R.Model.Name
+		}
+
+		if dbS.R.Vendor != nil {
+			s.Vendor = dbS.R.Vendor.Name
+		}
+
 		if dbS.R.ServerBMC != nil {
 			bmc := ServerBMC{}
 			bmc.fromDBModel(dbS.R.ServerBMC)

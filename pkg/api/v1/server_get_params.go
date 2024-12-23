@@ -145,6 +145,27 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 	mods := []qm.QueryMod{
 		qm.Where(models.ServerTableColumns.ID+"=?", serverID),
 		qm.WithDeleted(),
+		qm.InnerJoin(
+			fmt.Sprintf(
+				"%s on %s = %s",
+				models.TableNames.HardwareVendors,
+				models.ServerTableColumns.VendorID,
+				models.HardwareVendorTableColumns.ID,
+			),
+		),
+
+		qm.Load(models.ServerRels.Vendor),
+
+		qm.InnerJoin(
+			fmt.Sprintf(
+				"%s on %s = %s",
+				models.TableNames.HardwareModels,
+				models.ServerTableColumns.ModelID,
+				models.HardwareModelTableColumns.ID,
+			),
+		),
+
+		qm.Load(models.ServerRels.Model),
 	}
 
 	// Add server status query mods if requested
