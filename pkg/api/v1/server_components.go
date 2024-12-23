@@ -587,9 +587,7 @@ func (r *Router) applyServerComponentUpdateWithTx(ctx context.Context, server *m
 	}
 
 	errComponentUpdate := errors.New("error applying component update")
-	boil.DebugMode = true
 	currentRecords, err := models.ServerComponents(mods...).All(ctx, r.DB)
-	boil.DebugMode = false
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return errors.Wrap(errComponentUpdate, "no existing components for update - use the create endpoint")

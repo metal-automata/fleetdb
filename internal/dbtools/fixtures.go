@@ -154,6 +154,14 @@ func addFixtures(t *testing.T) error {
 		return err
 	}
 
+	if err := setupHardwareVendorFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
+	if err := setupHardwareModelFixtures(ctx, testDB); err != nil {
+		return err
+	}
+
 	if err := setupNemo(ctx, testDB, t); err != nil {
 		return err
 	}
@@ -230,14 +238,6 @@ func addFixtures(t *testing.T) error {
 		return err
 	}
 
-	if err := setupHardwareVendorFixtures(ctx, testDB); err != nil {
-		return err
-	}
-
-	if err := setupHardwareModelFixtures(ctx, testDB); err != nil {
-		return err
-	}
-
 	if err := setupServerBMCFixtures(ctx, testDB); err != nil {
 		return err
 	}
@@ -278,10 +278,66 @@ func addFixtures(t *testing.T) error {
 	return nil
 }
 
+func setupHardwareVendorFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureHardwareVendorBar = &models.HardwareVendor{Name: FixtureHardwareVendorNameBar}
+	FixtureHardwareVendorBaz = &models.HardwareVendor{Name: FixtureHardwareVendorNameBaz}
+
+	// this fixture is deleted in tests
+	FixtureHardwareVendorFoo = &models.HardwareVendor{Name: FixtureHardwareVendorNameFoo}
+
+	FixtureHardwareVendors = []*models.HardwareVendor{
+		FixtureHardwareVendorBar,
+		FixtureHardwareVendorBaz,
+		FixtureHardwareVendorFoo,
+	}
+
+	for _, hv := range FixtureHardwareVendors {
+		if err := hv.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "hardware vendor insert fixture")
+		}
+	}
+
+	return nil
+}
+
+func setupHardwareModelFixtures(ctx context.Context, db *sqlx.DB) error {
+	FixtureHardwareModelBar123 = &models.HardwareModel{
+		Name:             FixtureHardwareModelBaz123Name,
+		HardwareVendorID: FixtureHardwareVendorBaz.ID,
+	}
+
+	FixtureHardwareModelBaz123 = &models.HardwareModel{
+		Name:             FixtureHardwareModelBar456Name,
+		HardwareVendorID: FixtureHardwareVendorBar.ID,
+	}
+
+	// this fixture is deleted in tests
+	FixtureHardwareModelFoo789 = &models.HardwareModel{
+		Name:             FixtureHardwareModelFoo789Name,
+		HardwareVendorID: FixtureHardwareVendorFoo.ID,
+	}
+
+	FixtureHardwareModels = []*models.HardwareModel{
+		FixtureHardwareModelBar123,
+		FixtureHardwareModelBaz123,
+		FixtureHardwareModelFoo789,
+	}
+
+	for _, hm := range FixtureHardwareModels {
+		if err := hm.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "hardware model insert fixture")
+		}
+	}
+
+	return nil
+}
+
 func setupNemo(ctx context.Context, db *sqlx.DB, t *testing.T) error {
 	FixtureNemo = &models.Server{
 		Name:         null.StringFrom("Nemo"),
 		FacilityCode: null.StringFrom("Sydney"),
+		ModelID:      null.StringFrom(FixtureHardwareModelBar123.ID),
+		VendorID:     null.StringFrom(FixtureHardwareVendorBar.ID),
 	}
 
 	if err := FixtureNemo.Insert(ctx, db, boil.Infer()); err != nil {
@@ -397,6 +453,8 @@ func setupDory(ctx context.Context, db *sqlx.DB) error {
 	FixtureDory = &models.Server{
 		Name:         null.StringFrom("Dory"),
 		FacilityCode: null.StringFrom("Ocean"),
+		ModelID:      null.StringFrom(FixtureHardwareModelBar123.ID),
+		VendorID:     null.StringFrom(FixtureHardwareVendorBar.ID),
 	}
 
 	if err := FixtureDory.Insert(ctx, db, boil.Infer()); err != nil {
@@ -437,6 +495,8 @@ func setupMarlin(ctx context.Context, db *sqlx.DB) error {
 	FixtureMarlin = &models.Server{
 		Name:         null.StringFrom("Marlin"),
 		FacilityCode: null.StringFrom("Ocean"),
+		ModelID:      null.StringFrom(FixtureHardwareModelBaz123.ID),
+		VendorID:     null.StringFrom(FixtureHardwareVendorBaz.ID),
 	}
 
 	if err := FixtureMarlin.Insert(ctx, db, boil.Infer()); err != nil {
@@ -477,6 +537,8 @@ func setupChuckles(ctx context.Context, db *sqlx.DB) error {
 	FixtureChuckles = &models.Server{
 		Name:         null.StringFrom("Chuckles"),
 		FacilityCode: null.StringFrom("Aquarium"),
+		ModelID:      null.StringFrom(FixtureHardwareModelBaz123.ID),
+		VendorID:     null.StringFrom(FixtureHardwareVendorBaz.ID),
 		DeletedAt:    null.TimeFrom(time.Date(2003, 5, 30, 0, 0, 0, 0, time.UTC)),
 	}
 
@@ -511,6 +573,8 @@ func setupPufferfish(ctx context.Context, db *sqlx.DB) error {
 	FixturePufferfish = &models.Server{
 		Name:         null.StringFrom("Pufferfish"),
 		FacilityCode: null.StringFrom("EastAustralianCurrent"),
+		ModelID:      null.StringFrom(FixtureHardwareModelBar123.ID),
+		VendorID:     null.StringFrom(FixtureHardwareVendorBar.ID),
 		// Not deleted - we want this active for component initialization
 	}
 	if err := FixturePufferfish.Insert(ctx, db, boil.Infer()); err != nil {
@@ -1016,60 +1080,6 @@ func setupFWValidationFixtures(ctx context.Context, db *sqlx.DB) error {
 	return nil
 }
 
-func setupHardwareVendorFixtures(ctx context.Context, db *sqlx.DB) error {
-	FixtureHardwareVendorBar = &models.HardwareVendor{Name: FixtureHardwareVendorNameBar}
-	FixtureHardwareVendorBaz = &models.HardwareVendor{Name: FixtureHardwareVendorNameBaz}
-
-	// this fixture is deleted in tests
-	FixtureHardwareVendorFoo = &models.HardwareVendor{Name: FixtureHardwareVendorNameFoo}
-
-	FixtureHardwareVendors = []*models.HardwareVendor{
-		FixtureHardwareVendorBar,
-		FixtureHardwareVendorBaz,
-		FixtureHardwareVendorFoo,
-	}
-
-	for _, hv := range FixtureHardwareVendors {
-		if err := hv.Insert(ctx, db, boil.Infer()); err != nil {
-			return errors.Wrap(err, "hardware vendor insert fixture")
-		}
-	}
-
-	return nil
-}
-
-func setupHardwareModelFixtures(ctx context.Context, db *sqlx.DB) error {
-	FixtureHardwareModelBar123 = &models.HardwareModel{
-		Name:             FixtureHardwareModelBaz123Name,
-		HardwareVendorID: FixtureHardwareVendorBaz.ID,
-	}
-
-	FixtureHardwareModelBaz123 = &models.HardwareModel{
-		Name:             FixtureHardwareModelBar456Name,
-		HardwareVendorID: FixtureHardwareVendorBar.ID,
-	}
-
-	// this fixture is deleted in tests
-	FixtureHardwareModelFoo789 = &models.HardwareModel{
-		Name:             FixtureHardwareModelFoo789Name,
-		HardwareVendorID: FixtureHardwareVendorFoo.ID,
-	}
-
-	FixtureHardwareModels = []*models.HardwareModel{
-		FixtureHardwareModelBar123,
-		FixtureHardwareModelBaz123,
-		FixtureHardwareModelFoo789,
-	}
-
-	for _, hm := range FixtureHardwareModels {
-		if err := hm.Insert(ctx, db, boil.Infer()); err != nil {
-			return errors.Wrap(err, "hardware model insert fixture")
-		}
-	}
-
-	return nil
-}
-
 func setupServerBMCFixtures(ctx context.Context, db *sqlx.DB) error {
 	FixtureServerBMCs = []*models.ServerBMC{
 		{
@@ -1087,6 +1097,14 @@ func setupServerBMCFixtures(ctx context.Context, db *sqlx.DB) error {
 			Username:         "user",
 			IPAddress:        "127.0.0.2",
 			MacAddress:       null.StringFrom("de:ad:be:ef:ef:fe"),
+		},
+		{
+			ServerID:         FixturePufferfish.ID,
+			HardwareVendorID: FixtureHardwareVendorBaz.ID,
+			HardwareModelID:  FixtureHardwareModelBaz123.ID,
+			Username:         "user",
+			IPAddress:        "127.0.0.2",
+			MacAddress:       null.StringFrom("de:ad:be:ef:ed:ed"),
 		},
 	}
 
