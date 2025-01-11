@@ -37,15 +37,6 @@ func (p *ServerListParams) decode(values url.Values) error {
 	return nil
 }
 
-// format ServerListParams as a URL Query string
-func (p *ServerListParams) encode() string {
-	if p == nil || p.FilterParams == nil {
-		return ""
-	}
-
-	return p.FilterParams.encode()
-}
-
 // returns queryMods based on FilterParams
 func (p *ServerListParams) queryMods() []qm.QueryMod {
 	mods := p.PaginationParams.queryMods()

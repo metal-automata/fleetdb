@@ -54,14 +54,14 @@ type FilterParams struct {
 
 // Helper method that returns the logical operator specified for the given two attributes
 // method assumes the LogicalOperation is validated
-func (f *FilterParams) LogicalOperatorFor(a, b string) LogicalOperator {
-	if len(f.LogicalOperation) == 0 {
+func (s *FilterParams) LogicalOperatorFor(a, b string) LogicalOperator {
+	if len(s.LogicalOperation) == 0 {
 		return ""
 	}
 
 	var op LogicalOperator
 	found := []string{}
-	for idx, item := range f.LogicalOperation {
+	for idx, item := range s.LogicalOperation {
 		if a == item || b == item {
 			found = append(found, item)
 		}
@@ -78,7 +78,7 @@ func (f *FilterParams) LogicalOperatorFor(a, b string) LogicalOperator {
 	return op
 }
 
-// A query paramter is converted to a Filter
+// Filter represents a query parameter
 type Filter struct {
 	Attribute          string             // the left hand side parameter
 	ComparisonOperator ComparisonOperator // The comparison operator
@@ -91,7 +91,7 @@ func (s *FilterParams) setQuery(current url.Values) {
 	// convert filter parameters into url Values
 	add, err := url.ParseQuery(s.encode())
 	if err != nil {
-		logr.Logger.Error(logr.Logger{}, err, "FilterParams setQuery() error")
+		logr.Logger{}.Error(err, "FilterParams setQuery() error")
 		return // TODO: update queryParams interface method to return error
 	}
 
@@ -149,12 +149,15 @@ func (s *FilterParams) encode() string {
 	// include logical operation
 	if len(s.LogicalOperation) > 0 && len(s.LogicalOperation)%2 != 0 {
 		lo := fmt.Sprintf("op=%s", strings.Join(s.LogicalOperation, "__"))
-		q = strings.Join([]string{q, lo}, "&")
+		q += "&" + lo
 	}
 
 	return q
 }
 
+// decodes url.Values into a slice of Filters
+//
+// nolint:gocyclo // cyclomatic complexity is high to keep the context in one place
 func (s *FilterParams) decode(values url.Values) {
 	if len(values) == 0 {
 		return
@@ -266,7 +269,6 @@ func (s *FilterParams) decode(values url.Values) {
 	}
 
 	s.LogicalOperation = operation
-
 }
 
 func asCompOperator(o string) (ComparisonOperator, error) {
@@ -288,13 +290,13 @@ func asCompOperator(o string) (ComparisonOperator, error) {
 	}
 
 	return op, nil
-
 }
 
 func asModifier(m string) (Modifier, error) {
 	err := errors.New("unknown modifier")
 
 	mod := Modifier(m)
+	// nolint:gocritic // switch stays
 	switch mod {
 	case ModifierCaseInsensitive:
 		return ModifierCaseInsensitive, nil
