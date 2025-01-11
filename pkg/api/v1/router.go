@@ -31,7 +31,7 @@ func (r *Router) Routes(rg *gin.RouterGroup) {
 	// /servers
 	srvs := rg.Group("/servers")
 	{
-		// srvs.GET("", amw.AuthRequired(readScopes("server")), r.serverList)
+		srvs.GET("", amw.AuthRequired(readScopes("server")), r.serverList)
 		srvs.POST("", amw.AuthRequired(createScopes("server")), r.serverCreate)
 		srvs.GET("/components", amw.AuthRequired(readScopes("server:component")), r.serverComponentList)
 

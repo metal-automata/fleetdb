@@ -21,7 +21,7 @@ import (
 type Server struct {
 	UUID         uuid.UUID          `json:"uuid"`
 	Name         string             `json:"name"`
-	FacilityCode string             `json:"facility" binding:"required"`
+	FacilityCode string             `json:"facility_code" binding:"required"`
 	Vendor       string             `json:"vendor" binding:"required"`
 	Model        string             `json:"model"`
 	Serial       string             `json:"serial"`
@@ -34,6 +34,18 @@ type Server struct {
 	DeletedAt *time.Time `json:"deleted_at,omitempty"`
 	// InventoryRefreshedAt indicates the last time the server inventory was collected
 	InventoryRefreshedAt time.Time `json:"inventory_refreshed_at"`
+}
+
+// FilterableColumnNames implements the FilterTarget interface
+// and returns the columns the Server object is allowed to be filtered on.
+func (s *Server) FilterableColumnNames() []string {
+	return []string{
+		"name",
+		"serial",
+		"vendor",
+		"model",
+		"facility_code",
+	}
 }
 
 func (s *Server) fromDBModel(dbS *models.Server) error {
@@ -163,6 +175,46 @@ func (r *Router) serverGet(c *gin.Context) {
 	}
 
 	itemResponse(c, srv)
+}
+
+func (r *Router) serverList(c *gin.Context) {
+	params := &ServerListParams{}
+	if err := params.decode(c.Request.URL.Query()); err != nil {
+		badRequestResponse(c, "invalid query params", err)
+		return
+	}
+
+	mods := params.queryMods()
+	dbServers, err := models.Servers(mods...).All(c.Request.Context(), r.DB)
+	if err != nil {
+		dbErrorResponse(c, err)
+		return
+	}
+
+	count, err := models.Servers().Count(c.Request.Context(), r.DB)
+	if err != nil {
+		dbErrorResponse(c, err)
+		return
+	}
+
+	servers := make([]*Server, 0, len(dbServers))
+	for _, dbSrv := range dbServers {
+		srv := &Server{}
+		if err = srv.fromDBModel(dbSrv); err != nil {
+			failedConvertingToVersioned(c, err)
+			return
+		}
+
+		servers = append(servers, srv)
+	}
+
+	pd := paginationData{
+		pageCount:  len(servers),
+		totalCount: count,
+		pager:      *params.PaginationParams,
+	}
+
+	listResponse(c, servers, pd)
 }
 
 func (r *Router) serverCreate(c *gin.Context) {

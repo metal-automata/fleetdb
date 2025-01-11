@@ -18,6 +18,10 @@ const (
 )
 
 // ServerGetParams allows you to filter server results and specify what related data to include.
+//
+// TODO: move include params into its own type?
+// Generalize IncludeParams into its own type
+// Have Servers implement a Includable() method that returns the various include feilds - similar to the FilterTarget interface
 type ServerGetParams struct {
 	// include BMC attributes, including credentials
 	IncludeBMC bool
