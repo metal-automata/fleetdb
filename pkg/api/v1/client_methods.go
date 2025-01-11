@@ -40,7 +40,7 @@ type ClientInterface interface {
 	Create(context.Context, Server) (*uuid.UUID, *ServerResponse, error)
 	Delete(context.Context, Server) (*ServerResponse, error)
 	Get(context.Context, uuid.UUID) (*Server, *ServerResponse, error)
-	// List(context.Context, *ServerListParams) ([]Server, *ServerResponse, error)
+	ListServers(context.Context, *ServerListParams) ([]Server, *ServerResponse, error)
 	Update(context.Context, uuid.UUID, Server) (*ServerResponse, error)
 
 	GetComponents(context.Context, uuid.UUID, *PaginationParams) ([]ServerComponent, *ServerResponse, error)
@@ -122,18 +122,17 @@ func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *Serve
 	return srv, &r, nil
 }
 
-// TODO: for when list is implemented
-// List will return all servers with optional params to filter the results
-// func (c *Client) List(ctx context.Context, params *ServerListParams) ([]Server, *ServerResponse, error) {
-//	servers := &[]Server{}
-//	r := ServerResponse{Records: servers}
-//
-//	if err := c.list(ctx, serversEndpoint, params, &r); err != nil {
-//		return nil, nil, err
-//	}
-//
-//	return *servers, &r, nil
-//}
+// ListServers will return all servers with optional params to filter the results
+func (c *Client) ListServers(ctx context.Context, params *ServerListParams) ([]Server, *ServerResponse, error) {
+	servers := &[]Server{}
+	r := ServerResponse{Records: servers}
+
+	if err := c.list(ctx, serversEndpoint, params, &r); err != nil {
+		return nil, nil, err
+	}
+
+	return *servers, &r, nil
+}
 
 // Update will to update a server with the new values passed in
 func (c *Client) Update(ctx context.Context, srvUUID uuid.UUID, srv Server) (*ServerResponse, error) {
