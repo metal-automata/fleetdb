@@ -281,6 +281,9 @@ func TestIntegrationServerGet(t *testing.T) {
 				}
 				assert.True(t, foundComponents[dbtools.FixtureNemoLeftFin.ID])
 				assert.True(t, foundComponents[dbtools.FixtureNemoRightFin.ID])
+
+				assert.Equal(t, dbtools.FixtureHardwareVendorBar.Name, srv.Vendor)
+				assert.Equal(t, dbtools.FixtureHardwareModelBar123.Name, srv.Model)
 			},
 		},
 		{ // fixture Puffer fish has no components - at minimum the server object is returned
