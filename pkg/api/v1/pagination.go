@@ -34,15 +34,18 @@ type paginationData struct {
 
 // TODO; Replace with a query parser like done here: bio_config_set_params.go:parseBiosConfigSetListParams()
 func parsePagination(c *gin.Context) (PaginationParams, error) {
+	return parsePaginationURLQuery(c.Request.URL.Query())
+}
+
+func parsePaginationURLQuery(values url.Values) (PaginationParams, error) {
 	// Initializing default
 	var err error
 	limit := DefaultPaginationSize
 	page := 1
-	query := c.Request.URL.Query()
 	preload := false
 	orderby := ""
 
-	for key, value := range query {
+	for key, value := range values {
 		queryValue := value[len(value)-1]
 
 		switch key {

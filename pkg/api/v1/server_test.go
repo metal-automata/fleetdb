@@ -14,50 +14,281 @@ import (
 )
 
 // TODO for when server list is being implemented
-//func TestIntegrationServerListPagination(t *testing.T) {
-//	s := serverTest(t)
-//	s.Client.SetToken(validToken(adminScopes))
-//
-//	p := &fleetdbapi.ServerListParams{PaginationParams: &fleetdbapi.PaginationParams{Limit: 2, Page: 1}}
-//	r, resp, err := s.Client.List(context.TODO(), p)
-//
-//	assert.NoError(t, err)
-//	assert.Len(t, r, 2)
-//
-//	assert.EqualValues(t, 2, resp.PageCount)
-//	assert.EqualValues(t, 3, resp.TotalPages)
-//	assert.EqualValues(t, 6, resp.TotalRecordCount)
-//	// Since we have a next page let's make sure all the links are set
-//	assert.NotNil(t, resp.Links.Next)
-//	assert.Nil(t, resp.Links.Previous)
-//	assert.True(t, resp.HasNextPage())
-//
-//	//
-//	// Get the next page and verify the results
-//	//
-//	resp, err = s.Client.NextPage(context.TODO(), *resp, &r)
-//
-//	assert.NoError(t, err)
-//	assert.Len(t, r, 2)
-//
-//	assert.EqualValues(t, 2, resp.PageCount)
-//
-//	// get the last page
-//	resp, err = s.Client.NextPage(context.TODO(), *resp, &r)
-//	assert.NoError(t, err)
-//	assert.Len(t, r, 2)
-//
-//	// we should have followed the cursor so first/previous/next/last links shouldn't be set
-//	// but there is another page so we should have a next cursor link. Total counts are not includes
-//	// cursor pages
-//	assert.EqualValues(t, 3, resp.TotalPages)
-//	assert.EqualValues(t, 6, resp.TotalRecordCount)
-//	assert.NotNil(t, resp.Links.First)
-//	assert.NotNil(t, resp.Links.Previous)
-//	assert.Nil(t, resp.Links.Next)
-//	assert.NotNil(t, resp.Links.Last)
-//	assert.False(t, resp.HasNextPage())
-//}
+func TestIntegrationServerListPagination(t *testing.T) {
+	s := serverTest(t)
+	s.Client.SetToken(validToken(adminScopes))
+	p := &fleetdbapi.ServerListParams{PaginationParams: &fleetdbapi.PaginationParams{Limit: 2, Page: 1}}
+	r, resp, err := s.Client.ListServers(context.TODO(), p)
+	assert.NoError(t, err)
+	assert.Len(t, r, 2)
+
+	assert.EqualValues(t, 2, resp.PageCount)
+	assert.EqualValues(t, 4, resp.TotalPages)
+	assert.EqualValues(t, 7, resp.TotalRecordCount)
+	// Since we have a next page let's make sure all the links are set
+	assert.NotNil(t, resp.Links.Next)
+	assert.Nil(t, resp.Links.Previous)
+	assert.True(t, resp.HasNextPage())
+
+	//
+	// Get the next page and verify the results
+	//
+	resp, err = s.Client.NextPage(context.TODO(), *resp, &r)
+	assert.NoError(t, err)
+	assert.Len(t, r, 2)
+
+	assert.EqualValues(t, 2, resp.PageCount)
+
+	// get the last page
+	resp, err = s.Client.NextPage(context.TODO(), *resp, &r)
+	assert.NoError(t, err)
+	assert.Len(t, r, 2)
+
+	resp, err = s.Client.NextPage(context.TODO(), *resp, &r)
+	assert.NoError(t, err)
+	assert.Len(t, r, 1)
+
+	// we should have followed the cursor so first/previous/next/last links shouldn't be set
+	// but there is another page so we should have a next cursor link. Total counts are not includes
+	// cursor pages
+	assert.EqualValues(t, 4, resp.TotalPages)
+	assert.EqualValues(t, 7, resp.TotalRecordCount)
+	assert.NotNil(t, resp.Links.First)
+	assert.NotNil(t, resp.Links.Previous)
+	assert.Nil(t, resp.Links.Next)
+	assert.NotNil(t, resp.Links.Last)
+	assert.False(t, resp.HasNextPage())
+}
+
+func TestIntegrationServerListFilter(t *testing.T) {
+	testcases := []struct {
+		name   string
+		filter []fleetdbapi.Filter
+		verify func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse)
+		errMsg string
+	}{
+		{
+			name: "Compare equals",
+			filter: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpEqual,
+					Value:              "Pufferfish",
+				},
+			},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 1)
+				assert.Equal(t, "Pufferfish", s[0].Name)
+			},
+		},
+		{
+			name: "Compare not equals",
+			filter: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpNotEqual,
+					Value:              "Pufferfish",
+				},
+			},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 1)
+				assert.NotEqual(t, "Pufferfish", s[0].Name)
+			},
+		},
+		{
+			name: "Starts with",
+			filter: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpStartsWith,
+					Value:              "Puffer",
+				},
+			},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 1)
+				assert.Equal(t, "Pufferfish", s[0].Name)
+			},
+		},
+		{
+			name: "Starts with, case insensitive",
+			filter: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpStartsWith,
+					Modifier:           fleetdbapi.ModifierCaseInsensitive,
+					Value:              "pUffeR",
+				},
+			},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 1)
+				assert.Equal(t, "Pufferfish", s[0].Name)
+			},
+		},
+		{
+			name: "Ends with",
+			filter: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpEndsWith,
+					Value:              "fish",
+				},
+			},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 1)
+				assert.Equal(t, "Pufferfish", s[0].Name)
+			},
+		},
+		{
+			name: "Ends with, case insensitive",
+			filter: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpEndsWith,
+					Modifier:           fleetdbapi.ModifierCaseInsensitive,
+					Value:              "fIsH",
+				},
+			},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 1)
+				assert.Equal(t, "Pufferfish", s[0].Name)
+			},
+		},
+	}
+
+	s := serverTest(t)
+	s.Client.SetToken(validToken(adminScopes))
+
+	for _, tt := range testcases {
+		t.Run(tt.name, func(t *testing.T) {
+
+			params := &fleetdbapi.ServerListParams{
+				PaginationParams: &fleetdbapi.PaginationParams{
+					Limit: 1,
+					Page:  1,
+				},
+				FilterParams: &fleetdbapi.FilterParams{
+					Target:  &fleetdbapi.Server{},
+					Filters: tt.filter,
+				},
+			}
+
+			r, resp, err := s.Client.ListServers(context.TODO(), params)
+			if tt.errMsg != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				return
+			}
+
+			tt.verify(r, resp)
+			assert.Nil(t, err)
+		})
+	}
+
+}
+
+func TestIntegrationServerListFilterWithLogicalOp(t *testing.T) {
+	testcases := []struct {
+		name      string
+		filters   []fleetdbapi.Filter
+		limit     int
+		logicalOp []string
+		verify    func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse)
+		errMsg    string
+	}{
+		{
+			name: "Logical operation AND",
+			filters: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpStartsWith,
+					Value:              "Puffer",
+				},
+				{
+					Attribute:          "facility_code",
+					ComparisonOperator: fleetdbapi.ComparisonOpEqual,
+					Value:              "EastAustralianCurrent",
+				},
+			},
+			limit:     1,
+			logicalOp: []string{"name", "and", "facility_code"},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 1)
+				assert.Equal(t, "Pufferfish", s[0].Name)
+			},
+		},
+		{
+			name: "Logical operation OR - same attribute",
+			filters: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpStartsWith,
+					Value:              "Puffer",
+				},
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpEqual,
+					Value:              "Dory",
+				},
+			},
+			limit:     2,
+			logicalOp: []string{"name", "or", "name"},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 2)
+			},
+		},
+		{
+			name: "Logical operation OR - different attributes",
+			filters: []fleetdbapi.Filter{
+				{
+					Attribute:          "name",
+					ComparisonOperator: fleetdbapi.ComparisonOpEndsWith,
+					Value:              "mo",
+				},
+				{
+					Attribute:          "facility_code",
+					ComparisonOperator: fleetdbapi.ComparisonOpEqual,
+					Value:              "Sydney",
+				},
+			},
+			limit:     2,
+			logicalOp: []string{"name", "or", "name"},
+			verify: func(s []fleetdbapi.Server, r *fleetdbapi.ServerResponse) {
+				assert.Len(t, s, 1)
+			},
+		},
+	}
+
+	s := serverTest(t)
+	s.Client.SetToken(validToken(adminScopes))
+
+	for _, tt := range testcases {
+		t.Run(tt.name, func(t *testing.T) {
+
+			params := &fleetdbapi.ServerListParams{
+				PaginationParams: &fleetdbapi.PaginationParams{
+					Limit: tt.limit,
+					Page:  1,
+				},
+				FilterParams: &fleetdbapi.FilterParams{
+					Target:           &fleetdbapi.Server{},
+					Filters:          tt.filters,
+					LogicalOperation: tt.logicalOp,
+				},
+			}
+
+			r, resp, err := s.Client.ListServers(context.TODO(), params)
+			if tt.errMsg != "" {
+				assert.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errMsg)
+				return
+			}
+
+			tt.verify(r, resp)
+			assert.Nil(t, err)
+		})
+	}
+
+}
 
 func TestIntegrationServerGetPreload(t *testing.T) {
 	s := serverTest(t)
