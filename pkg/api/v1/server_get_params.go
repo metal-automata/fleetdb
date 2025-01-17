@@ -183,6 +183,13 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 		qm.Load(models.ServerRels.Model),
 	}
 
+	// Add server components if required
+	//
+	// Note: for server component attributes to be included, use r.componentsByServer()
+	if p.IncludeComponents {
+		mods = append(mods, qm.Load(models.ServerRels.ServerComponents))
+	}
+
 	// Add server status query mods if requested
 	if p.IncludeStatus {
 		mods = append(mods,
@@ -234,29 +241,7 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 				),
 			),
 			qm.Where(fmt.Sprintf("t.%s=?", models.ServerCredentialTypeColumns.Slug), "bmc"),
-			// Load relationship in db model struct field R
-			// qm.Load(models.ServerCredentialRels.ServerCredentialType),
 		)
-	}
-
-	if p.IncludeComponents {
-		mods = append(mods,
-			// left join component data
-			qm.LeftOuterJoin(
-				fmt.Sprintf(
-					"%s on %s = %s",
-					models.TableNames.ServerComponents,
-					models.ServerTableColumns.ID,
-					models.ServerComponentTableColumns.ServerID,
-				),
-			),
-			qm.Load(models.ServerRels.ServerComponents),
-		)
-
-		// Add component query mods if component params are present
-		if p.ComponentParams != nil {
-			mods = append(mods, p.ComponentParams.queryMods(false)...)
-		}
 	}
 
 	return mods

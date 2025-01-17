@@ -502,7 +502,6 @@ func TestIntegrationServerGet(t *testing.T) {
 			serverID: dbtools.FixtureNemo.ID,
 			params: &fleetdbapi.ServerGetParams{
 				IncludeComponents: true,
-				ComponentParams:   &fleetdbapi.ServerComponentGetParams{},
 			},
 			verifyFn: func(t *testing.T, srv *fleetdbapi.Server) {
 				assert.NotEmpty(t, srv.Components)
@@ -510,6 +509,40 @@ func TestIntegrationServerGet(t *testing.T) {
 				for _, comp := range srv.Components {
 					foundComponents[comp.UUID.String()] = true
 				}
+				assert.True(t, foundComponents[dbtools.FixtureNemoLeftFin.ID])
+				assert.True(t, foundComponents[dbtools.FixtureNemoRightFin.ID])
+
+				assert.Equal(t, dbtools.FixtureHardwareVendorBar.Name, srv.Vendor)
+				assert.Equal(t, dbtools.FixtureHardwareModelBar123.Name, srv.Model)
+			},
+		},
+		{
+			name:     "get with components and thier attributes",
+			serverID: dbtools.FixtureNemo.ID,
+			params: &fleetdbapi.ServerGetParams{
+				IncludeComponents: true,
+				ComponentParams: &fleetdbapi.ServerComponentGetParams{
+					InstalledFirmware: true,
+					Status:            true,
+					Capabilities:      true,
+				},
+			},
+			verifyFn: func(t *testing.T, srv *fleetdbapi.Server) {
+				assert.NotEmpty(t, srv.Components)
+				foundComponents := make(map[string]bool)
+				for _, comp := range srv.Components {
+					assert.NotNil(t, comp.InstalledFirmware)
+					assert.NotEmpty(t, comp.InstalledFirmware.Version)
+
+					assert.NotNil(t, comp.Status)
+					assert.NotEmpty(t, comp.Status.State)
+
+					assert.NotNil(t, comp.Capabilities)
+					assert.NotEmpty(t, comp.Capabilities[0].Description)
+
+					foundComponents[comp.UUID.String()] = true
+				}
+
 				assert.True(t, foundComponents[dbtools.FixtureNemoLeftFin.ID])
 				assert.True(t, foundComponents[dbtools.FixtureNemoRightFin.ID])
 

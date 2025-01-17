@@ -1124,7 +1124,7 @@ func setupInstalledFirmwareFixtures(ctx context.Context, db *sqlx.DB) error {
 			ServerComponentID: FixtureNemoLeftFin.ID,
 		},
 		{
-			Version:           "1.0",
+			Version:           "2.0",
 			ServerComponentID: FixtureNemoRightFin.ID,
 		},
 	}
