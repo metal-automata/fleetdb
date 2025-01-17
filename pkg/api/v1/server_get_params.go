@@ -41,34 +41,44 @@ func (p *ServerGetParams) encode() string {
 		return ""
 	}
 
-	values := url.Values{}
-	includes := []string{}
+	// server attribute include parameters
+	serverIncludes := []string{}
 
-	// Handle BMC include
+	// BMC information to be included
 	if p.IncludeBMC {
-		includes = append(includes, includeServerBMC)
+		serverIncludes = append(serverIncludes, includeServerBMC)
 	}
 
-	// Handle Status include
+	// Server status to be included
 	if p.IncludeStatus {
-		includes = append(includes, includeServerStatus)
+		serverIncludes = append(serverIncludes, includeServerStatus)
 	}
 
-	if p.IncludeComponents {
-		includes = append(includes, includeComponents)
+	// url values to be encoded as a query string
+	urlValues := url.Values{}
 
-		// Add component includes if they exist
+	// Component information to be included
+	if p.IncludeComponents {
+		serverIncludes = append(serverIncludes, includeComponents)
+
+		// Component attributes to be included
 		if p.ComponentParams != nil {
-			p.ComponentParams.encode()
+			p.ComponentParams.setQuery(urlValues)
 		}
 	}
 
-	// Set includes if we have any
-	if len(includes) > 0 {
-		values.Set("include", strings.Join(includes, ","))
+	if len(serverIncludes) > 0 {
+		// ComponentParams.setQuery may have set "include", prefix server includes for readability
+		includeVals, exists := urlValues["include"]
+		if exists {
+			finalVals := strings.Join(serverIncludes, ",") + "," + includeVals[0]
+			urlValues.Set("include", finalVals)
+		} else {
+			urlValues.Set("include", strings.Join(serverIncludes, ","))
+		}
 	}
 
-	return values.Encode()
+	return urlValues.Encode()
 }
 
 // Decode parses URL query parameters into ServerGetParams
@@ -126,12 +136,13 @@ func (p *ServerGetParams) setQuery(q url.Values) {
 		return
 	}
 
-	if p.encode() == "" {
+	encoded := p.encode()
+	if encoded == "" {
 		return
 	}
 
 	// Parse the encoded string into values
-	values, err := url.ParseQuery(p.encode())
+	values, err := url.ParseQuery(encoded)
 	if err != nil {
 		return
 	}
