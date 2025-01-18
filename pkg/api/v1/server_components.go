@@ -311,25 +311,35 @@ func (r *Router) serverComponentGet(c *gin.Context) {
 		return
 	}
 
+	// decode server component params
 	params := &ServerComponentGetParams{}
 	params.decode(c.Request.URL.Query())
 
-	dbTS, err := srv.ServerComponents(params.queryMods(true)...).All(c.Request.Context(), r.DB)
+	components, err := r.componentsByServer(c.Request.Context(), srv, params)
 	if err != nil {
 		dbErrorResponse(c, err)
 		return
 	}
 
-	serverComponents := make(ServerComponentSlice, 0, len(dbTS))
-	serverComponents.fromDBModel(dbTS)
-
 	pd := paginationData{
-		pageCount:  len(serverComponents),
+		pageCount:  len(components),
 		totalCount: int64(0),
 		pager:      pager,
 	}
 
-	listResponse(c, serverComponents, pd)
+	listResponse(c, components, pd)
+}
+
+func (r *Router) componentsByServer(ctx context.Context, server *models.Server, params *ServerComponentGetParams) (ServerComponentSlice, error) {
+	dbTS, err := server.ServerComponents(params.queryMods(true)...).All(ctx, r.DB)
+	if err != nil {
+		return nil, err
+	}
+
+	serverComponents := make(ServerComponentSlice, 0, len(dbTS))
+	serverComponents.fromDBModel(dbTS)
+
+	return serverComponents, nil
 }
 
 // serverComponentsInitCollection is the handler to to initialize the first component and related records for a server

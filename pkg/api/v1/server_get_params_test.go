@@ -46,12 +46,25 @@ func TestServerGetParamsEncode(t *testing.T) {
 			expected: "include=s.components",
 		},
 		{
+			name: "components with attributes",
+			params: &ServerGetParams{
+				IncludeComponents: true,
+				ComponentParams: &ServerComponentGetParams{
+					InstalledFirmware: true,
+					Capabilities:      true,
+					Status:            true,
+				},
+			},
+			expected: "include=s.components,c.capabilities,c.installed_firmware,c.status",
+		},
+
+		{
 			name: "bmc and status",
 			params: &ServerGetParams{
 				IncludeBMC:    true,
 				IncludeStatus: true,
 			},
-			expected: "include=s.bmc%2Cs.status",
+			expected: "include=s.bmc,s.status",
 		},
 		{
 			name: "empty component params",
@@ -66,7 +79,9 @@ func TestServerGetParamsEncode(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.params.encode()
-			assert.Equal(t, tt.expected, result)
+			got, err := url.QueryUnescape(result)
+			assert.Nil(t, err)
+			assert.Equal(t, tt.expected, got)
 
 			// If we have an expected result, verify we can decode it back
 			if tt.expected != "" {

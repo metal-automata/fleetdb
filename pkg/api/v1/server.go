@@ -11,7 +11,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
-	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
 	"github.com/metal-automata/fleetdb/internal/dbtools"
 	"github.com/metal-automata/fleetdb/internal/models"
@@ -142,13 +141,13 @@ func (r *Router) serverGet(c *gin.Context) {
 		return
 	}
 
+	// decode query parameters
 	params := &ServerGetParams{}
 	params.decode(c.Request.URL.Query())
-	// Bind basic query parameters
-	mods := []qm.QueryMod{}
-	mods = append(mods, params.queryMods(serverUUID.String())...)
 
-	dbSrv, err := models.Servers(mods...).One(c.Request.Context(), r.DB)
+	// query server
+	serverQM := params.queryMods(serverUUID.String())
+	dbSrv, err := models.Servers(serverQM...).One(c.Request.Context(), r.DB)
 	if err != nil {
 		dbErrorResponse(c, err)
 		return
@@ -158,6 +157,17 @@ func (r *Router) serverGet(c *gin.Context) {
 	if err = srv.fromDBModel(dbSrv); err != nil {
 		failedConvertingToVersioned(c, err)
 		return
+	}
+
+	// include component attributes if component parameters were specified
+	if params.IncludeComponents && params.ComponentParams != nil {
+		components, err := r.componentsByServer(c.Request.Context(), dbSrv, params.ComponentParams)
+		if err != nil {
+			dbErrorResponse(c, err)
+			return
+		}
+
+		srv.Components = components
 	}
 
 	// TODO: reference the BMC username, password in the server credentials table

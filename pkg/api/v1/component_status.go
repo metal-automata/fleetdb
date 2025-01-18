@@ -17,7 +17,7 @@ import (
 
 type ComponentStatus struct {
 	ID                uuid.UUID `json:"id,omitempty"`
-	ServerComponentID uuid.UUID `json:"server_component_id,omitempty" binding:"required"`
+	ServerComponentID uuid.UUID `json:"server_component_id,omitempty"`
 	ComponentName     string    `json:"component_name,omitempty"`
 	Health            string    `json:"health" binding:"required"`
 	State             string    `json:"state" binding:"required"`

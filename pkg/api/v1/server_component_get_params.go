@@ -5,10 +5,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/metal-automata/fleetdb/internal/models"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 	"go.uber.org/zap"
-
-	"github.com/metal-automata/fleetdb/internal/models"
 )
 
 const (
@@ -285,7 +284,7 @@ func (s *serverComponentQueryMods) capabilities() []qm.QueryMod {
 				"%s on %s = %s",
 				models.TableNames.ComponentCapabilities,
 				models.ServerComponentTableColumns.ID,
-				models.ComponentCapabilityColumns.ServerComponentID,
+				models.ComponentCapabilityTableColumns.ServerComponentID,
 			),
 		),
 		// Load relationship in db model struct field R
