@@ -324,3 +324,79 @@ func asLogiOperator(o string) (LogicalOperator, error) {
 
 	return op, nil
 }
+
+// Returns query mods based on the FilterParams
+func (s *FilterParams) queryMods(tableName string) []qm.QueryMod {
+	mods := []qm.QueryMod{}
+
+	asAnySlice := func(s string) []interface{} { // Include query mods
+		return []interface{}{s}
+	}
+
+	var currAttribute, prevAttribute string
+	for idx, filter := range s.Filters {
+		// vars to keep track of the filter being processed
+		// for logical operations
+		prevAttribute = currAttribute
+		currAttribute = filter.Attribute
+
+		var clause string
+		args := []interface{}{}
+
+		switch filter.ComparisonOperator {
+		case ComparisonOpEqual:
+			clause = fmt.Sprintf("%s.%s = ?", tableName, filter.Attribute)
+			args = asAnySlice(filter.Value)
+
+		case ComparisonOpNotEqual:
+			clause = fmt.Sprintf("%s.%s != ?", tableName, filter.Attribute)
+			args = asAnySlice(filter.Value)
+
+		case ComparisonOpStartsWith:
+			if filter.Modifier == ModifierCaseInsensitive {
+				clause = fmt.Sprintf("LOWER(%s.%s) LIKE ?", tableName, filter.Attribute)
+				args = asAnySlice(strings.ToLower(filter.Value + "%"))
+			} else {
+				clause = fmt.Sprintf("%s.%s LIKE ?", tableName, filter.Attribute)
+				args = asAnySlice(filter.Value + "%")
+			}
+
+		case ComparisonOpEndsWith:
+			if filter.Modifier == ModifierCaseInsensitive {
+				clause = fmt.Sprintf("LOWER(%s.%s) LIKE ?", tableName, filter.Attribute)
+				args = asAnySlice(strings.ToLower("%" + filter.Value))
+			} else {
+				clause = fmt.Sprintf("%s.%s LIKE ?", tableName, filter.Attribute)
+				args = asAnySlice("%" + filter.Value)
+			}
+
+		case ComparisonOpContains:
+			if filter.Modifier == ModifierCaseInsensitive {
+				clause = fmt.Sprintf("LOWER(%s.%s) LIKE ?", tableName, filter.Attribute)
+				args = asAnySlice(strings.ToLower("%" + filter.Value + "%"))
+			} else {
+				clause = fmt.Sprintf("%s.%s LIKE ?", tableName, filter.Attribute)
+				args = asAnySlice("%" + filter.Value + "%")
+			}
+		}
+
+		var mod qm.QueryMod
+
+		// Apply logical operator on filters on the second until the second last filter
+		if idx > 0 && idx <= len(s.Filters)-1 {
+			op := s.LogicalOperatorFor(prevAttribute, currAttribute)
+			switch op {
+			case LogicalOpOr:
+				mod = qm.Or(clause, args...)
+			default:
+				mod = qm.Where(clause, args...)
+			}
+		} else {
+			mod = qm.Where(clause, args...)
+		}
+
+		mods = append(mods, mod)
+	}
+
+	return mods
+}
