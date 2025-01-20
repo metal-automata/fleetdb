@@ -54,7 +54,7 @@ func TestFilterParamsLogicalOperationFor(t *testing.T) {
 	}
 }
 
-func TestSetQuery(t *testing.T) {
+func TestFilterParamsSetQuery(t *testing.T) {
 	filterTarget := &Server{}
 	tests := []struct {
 		name    string
@@ -134,7 +134,7 @@ func TestSetQuery(t *testing.T) {
 	}
 }
 
-func TestFilterParamsEncode(t *testing.T) {
+func TestFilterParamsToURLValues(t *testing.T) {
 	filterTarget := &Server{}
 	tests := []struct {
 		name   string
@@ -339,13 +339,16 @@ func TestFilterParamsEncode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := tt.params.encode()
-			assert.Equal(t, tt.expect, got)
+			got := tt.params.toURLValues()
+			expect, err := url.ParseQuery(tt.expect)
+			assert.Nil(t, err)
+
+			assert.Equal(t, expect, got)
 		})
 	}
 }
 
-func TestFilterParamsDecode(t *testing.T) {
+func TestFilterParamsFromURLValues(t *testing.T) {
 	tests := []struct {
 		name        string
 		queryString string
@@ -574,7 +577,7 @@ func TestFilterParamsDecode(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			Values, err := url.ParseQuery(tt.queryString)
+			values, err := url.ParseQuery(tt.queryString)
 			require.NoError(t, err)
 
 			var target *Server
@@ -582,7 +585,7 @@ func TestFilterParamsDecode(t *testing.T) {
 				target = &Server{}
 			}
 			params := &FilterParams{Target: target}
-			params.decode(Values)
+			params.fromURLValues(values)
 			assert.ElementsMatch(t, tt.expect.Filters, params.Filters)
 			assert.ElementsMatch(t, tt.expect.LogicalOperation, params.LogicalOperation)
 		})

@@ -37,6 +37,17 @@ func parsePagination(c *gin.Context) (PaginationParams, error) {
 	return parsePaginationURLQuery(c.Request.URL.Query())
 }
 
+func containsPaginationParams(values url.Values) bool {
+	for _, p := range []string{"limit", "page", "preload", "orderby"} {
+		_, exists := values[p]
+		if exists {
+			return true
+		}
+	}
+
+	return false
+}
+
 func parsePaginationURLQuery(values url.Values) (PaginationParams, error) {
 	// Initializing default
 	var err error

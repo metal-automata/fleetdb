@@ -6,8 +6,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
+
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 type ComparisonOperator string
@@ -87,38 +88,38 @@ type Filter struct {
 }
 
 // implements the client queryParams interface
-func (s *FilterParams) setQuery(current url.Values) {
-	// convert filter parameters into url Values
-	add, err := url.ParseQuery(s.encode())
-	if err != nil {
-		logr.Logger{}.Error(err, "FilterParams setQuery() error")
-		return // TODO: update queryParams interface method to return error
+func (s *FilterParams) setQuery(existing url.Values) {
+	if s == nil {
+		return
 	}
 
 	// update current with filter parameter url Values
-	for key, values := range add {
+	for key, values := range s.toURLValues() {
 		for _, val := range values {
-			_, exists := current[key]
+			_, exists := existing[key]
 			if !exists {
-				current.Set(key, val)
+				existing.Set(key, val)
 			} else {
-				current.Add(key, val)
+				existing.Add(key, val)
 			}
 		}
 	}
 }
 
-func (s *FilterParams) encode() string {
+// Returns FilterParams encoded as url.Values
+func (s *FilterParams) toURLValues() url.Values {
+	urlValues := url.Values{}
+
 	if s == nil {
-		return ""
+		return urlValues
 	}
 
 	if s.Target == nil {
-		return ""
+		return urlValues
 	}
 
 	if len(s.Filters) == 0 {
-		return ""
+		return urlValues
 	}
 
 	valid := s.Target.FilterableColumnNames()
@@ -128,37 +129,38 @@ func (s *FilterParams) encode() string {
 		return slices.Contains(valid, k)
 	}
 
-	qs := []string{}
 	for _, qp := range s.Filters {
 		if !attributeIsKnown(qp.Attribute) {
 			continue
 		}
 
-		s := fmt.Sprintf("%s__%s", qp.Attribute, qp.ComparisonOperator)
+		key := fmt.Sprintf("%s__%s", qp.Attribute, qp.ComparisonOperator)
 		if qp.Modifier != "" {
-			s += fmt.Sprintf("__%s", qp.Modifier)
+			key += fmt.Sprintf("__%s", qp.Modifier)
 		}
 
-		s += fmt.Sprintf("=%s", qp.Value)
-		qs = append(qs, s)
+		_, exists := urlValues[key]
+		if exists {
+			urlValues.Add(key, qp.Value)
+		} else {
+			urlValues.Set(key, qp.Value)
+		}
 	}
-
-	// join parts
-	q := strings.Join(qs, "&")
 
 	// include logical operation
 	if len(s.LogicalOperation) > 0 && len(s.LogicalOperation)%2 != 0 {
-		lo := fmt.Sprintf("op=%s", strings.Join(s.LogicalOperation, "__"))
-		q += "&" + lo
+		key := "op"
+		value := strings.Join(s.LogicalOperation, "__")
+		urlValues.Set(key, value)
 	}
 
-	return q
+	return urlValues
 }
 
-// decodes url.Values into a slice of Filters
+// Decode given url.Values into FilterParams
 //
 // nolint:gocyclo // cyclomatic complexity is high to keep the context in one place
-func (s *FilterParams) decode(values url.Values) {
+func (s *FilterParams) fromURLValues(values url.Values) {
 	if len(values) == 0 {
 		return
 	}
