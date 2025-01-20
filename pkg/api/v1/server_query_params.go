@@ -80,9 +80,9 @@ func (p *ServerQueryParams) toURLValues() url.Values {
 
 		// Component attributes to be included
 		if p.ComponentParams != nil {
-			componentUrlValues := p.ComponentParams.toURLValues()
-			if componentUrlValues.Has(componentInclude) {
-				urlValues.Set(componentInclude, componentUrlValues.Get(componentInclude))
+			componentURLValues := p.ComponentParams.toURLValues()
+			if componentURLValues.Has(componentInclude) {
+				urlValues.Set(componentInclude, componentURLValues.Get(componentInclude))
 			}
 		}
 	}

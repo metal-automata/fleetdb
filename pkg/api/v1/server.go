@@ -144,8 +144,8 @@ func (r *Router) serverGet(c *gin.Context) {
 
 	// decode query parameters
 	params := &ServerQueryParams{}
-	if err := params.fromURLValues(c.Request.URL.Query()); err != nil {
-		badRequestResponse(c, "invalid query params", err)
+	if errURLValues := params.fromURLValues(c.Request.URL.Query()); errURLValues != nil {
+		badRequestResponse(c, "invalid query params", errURLValues)
 		return
 	}
 
