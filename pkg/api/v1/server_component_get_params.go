@@ -7,15 +7,15 @@ import (
 
 	"github.com/metal-automata/fleetdb/internal/models"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
-	"go.uber.org/zap"
 )
 
 const (
+	componentInclude = "component_include"
 	// component get query string include params
-	includeComponentCaps        = "c.capabilities"
-	includeComponentInstalledFw = "c.installed_firmware"
-	includeComponentStatus      = "c.status"
-	includeComponentMetadata    = "c.metadata"
+	includeComponentCaps             = "capabilities"
+	includeComponentInstalledFw      = "installed_firmware"
+	includeComponentStatus           = "status"
+	includeComponentMetadataNSPrefix = "metadata_ns__"
 )
 
 // Set fields in this struct to for additional data to be included in the response
@@ -32,138 +32,94 @@ func (p *ServerComponentGetParams) setQuery(q url.Values) {
 		return
 	}
 
-	parsedValues, err := url.ParseQuery(p.encode())
-	if err != nil {
-		zap.L().Error("query params parse error", zap.Error(err))
-		return
+	// Copy all values to the provided query object
+	for key, vals := range p.toURLValues() {
+		for _, val := range vals {
+			q.Add(key, val)
+		}
 	}
 
-	for k, v := range parsedValues {
-		if len(v) == 0 {
-			q.Set(k, "")
-			continue
-		}
-		if len(v) > 1 {
-			zap.L().Error(
-				"expected single value for query param, got multiple",
-				zap.Int("val", len(v)),
-			)
-			return
-		}
-
-		q.Set(k, v[0])
-	}
-
+	// Set pagination params if any
 	if p.Pagination != nil {
 		p.Pagination.setQuery(q)
 	}
 }
 
-// decode parses the include query parameter for server components
-// Handles formats like: ?include=capabilities,firmware,status,metadata{namespace1,namespace2}
-func (p *ServerComponentGetParams) decode(values url.Values) {
-	includeParam := values.Get("include")
-	if includeParam == "" {
+func (p *ServerComponentGetParams) fromURLValues(values url.Values) {
+	includes := values.Get(componentInclude)
+	if includes == "" {
 		return
 	}
 
-	// Split by comma, but handle the special case of metadata{...}
-	var parts []string
-	var currentPart strings.Builder
-	inBraces := false
-
-	for _, char := range includeParam {
-		switch char {
-		case '{':
-			inBraces = true
-			currentPart.WriteRune(char)
-		case '}':
-			inBraces = false
-			currentPart.WriteRune(char)
-		case ',':
-			if inBraces {
-				currentPart.WriteRune(char)
-			} else {
-				parts = append(parts, strings.TrimSpace(currentPart.String()))
-				currentPart.Reset()
+	for _, value := range splitAndTrim(values.Get(componentInclude)) {
+		switch {
+		case value == includeComponentCaps:
+			p.Capabilities = true
+		case value == includeComponentInstalledFw:
+			p.InstalledFirmware = true
+		case value == includeComponentStatus:
+			p.Status = true
+		case strings.HasPrefix(value, includeComponentMetadataNSPrefix):
+			if p.Metadata == nil {
+				p.Metadata = []string{}
 			}
-		default:
-			currentPart.WriteRune(char)
-		}
-	}
 
-	// Add the last part if not empty
-	if currentPart.Len() > 0 {
-		parts = append(parts, strings.TrimSpace(currentPart.String()))
-	}
-
-	// Process each part
-	for _, part := range parts {
-		p.decodeIncludePart(part)
-	}
-}
-
-func (p *ServerComponentGetParams) decodeIncludePart(part string) {
-	switch {
-	case part == includeComponentCaps:
-		p.Capabilities = true
-	case part == includeComponentInstalledFw:
-		p.InstalledFirmware = true
-	case part == includeComponentStatus:
-		p.Status = true
-	case strings.HasPrefix(part, includeComponentMetadata+"{"):
-		// Extract namespaces from metadata{ns1,ns2}
-		ns := strings.TrimPrefix(part, includeComponentMetadata+"{")
-		ns = strings.TrimSuffix(ns, "}")
-		if ns != "" {
-			namespaces := strings.Split(ns, ",")
-			p.Metadata = make([]string, len(namespaces))
-			for i, namespace := range namespaces {
-				p.Metadata[i] = strings.TrimSpace(namespace)
+			// split metadata_ns__foo.bar
+			parts := strings.Split(value, includeComponentMetadataNSPrefix)
+			if len(parts) == 2 {
+				p.Metadata = append(p.Metadata, strings.TrimSpace(parts[1]))
 			}
 		}
 	}
 }
 
-// encode converts ServerComponentGetParams into URL query parameters
-func (p *ServerComponentGetParams) encode() string {
+// Returns url.Values based on the parameters
+func (p *ServerComponentGetParams) toURLValues() url.Values {
+	// url values from query params
+	urlValues := url.Values{}
 	if p == nil {
-		return ""
+		return urlValues
 	}
 
-	var includes []string
+	addIncludeValue := func(v string) {
+		_, exists := urlValues[componentInclude]
+		if !exists {
+			urlValues.Add(componentInclude, "")
+		}
 
-	// Add simple boolean flags
+		// this method initializes url.Values and we expect there be only one value
+		existing := urlValues[componentInclude][0]
+		if existing == "" {
+			urlValues[componentInclude][0] = v
+		} else {
+			join := []string{existing, v}
+			urlValues[componentInclude][0] = strings.Join(join, ",")
+		}
+	}
+
 	if p.Capabilities {
-		includes = append(includes, includeComponentCaps)
+		addIncludeValue(includeComponentCaps)
 	}
+
 	if p.InstalledFirmware {
-		includes = append(includes, includeComponentInstalledFw)
+		addIncludeValue(includeComponentInstalledFw)
 	}
+
 	if p.Status {
-		includes = append(includes, includeComponentStatus)
+		addIncludeValue(includeComponentStatus)
 	}
 
 	// Add metadata with namespaces if present
 	if len(p.Metadata) > 0 {
-		var namespaces []string
 		for _, ns := range p.Metadata {
+			ns = strings.TrimSpace(ns)
 			if ns != "" {
-				namespaces = append(namespaces, ns)
+				addIncludeValue(includeComponentMetadataNSPrefix + ns)
 			}
 		}
-		if len(namespaces) > 0 {
-			includes = append(includes, fmt.Sprintf("%s{%s}", includeComponentMetadata, strings.Join(namespaces, ",")))
-		}
 	}
 
-	// If no includes, return empty string
-	if len(includes) == 0 {
-		return ""
-	}
-
-	// Join all includes with commas
-	return "include=" + strings.Join(includes, ",")
+	return urlValues
 }
 
 // returns query mods based get parameters
