@@ -234,7 +234,10 @@ func (r *Router) serverList(c *gin.Context) {
 	pd := paginationData{
 		pageCount:  len(servers),
 		totalCount: totalCount,
-		pager:      *params.PaginationParams,
+	}
+
+	if params.PaginationParams != nil {
+		pd.pager = *params.PaginationParams
 	}
 
 	listResponse(c, servers, pd)
