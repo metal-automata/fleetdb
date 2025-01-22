@@ -313,8 +313,7 @@ func (r *Router) serverComponentGet(c *gin.Context) {
 
 	// decode server component params
 	params := &ServerComponentGetParams{}
-	params.decode(c.Request.URL.Query())
-
+	params.fromURLValues(c.Request.URL.Query())
 	components, err := r.componentsByServer(c.Request.Context(), srv, params)
 	if err != nil {
 		dbErrorResponse(c, err)

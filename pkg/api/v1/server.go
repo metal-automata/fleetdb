@@ -11,6 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 
 	"github.com/metal-automata/fleetdb/internal/dbtools"
 	"github.com/metal-automata/fleetdb/internal/models"
@@ -35,7 +36,7 @@ type Server struct {
 	InventoryRefreshedAt time.Time `json:"inventory_refreshed_at"`
 }
 
-// FilterableColumnNames implements the FilterTarget interface
+// FilterableComlumnNames implements the FilterTarget interface
 // and returns the columns the Server object is allowed to be filtered on.
 func (s *Server) FilterableColumnNames() []string {
 	return []string{
@@ -142,12 +143,18 @@ func (r *Router) serverGet(c *gin.Context) {
 	}
 
 	// decode query parameters
-	params := &ServerGetParams{}
-	params.decode(c.Request.URL.Query())
+	params := &ServerQueryParams{}
+	if errURLValues := params.fromURLValues(c.Request.URL.Query()); errURLValues != nil {
+		badRequestResponse(c, "invalid query params", errURLValues)
+		return
+	}
 
-	// query server
-	serverQM := params.queryMods(serverUUID.String())
-	dbSrv, err := models.Servers(serverQM...).One(c.Request.Context(), r.DB)
+	// prepare query mods based on include, filter query parameters
+	mods := []qm.QueryMod{}
+	mods = append(mods, qm.Where(models.ServerTableColumns.ID+"=?", serverUUID.String()))
+	mods = append(mods, params.queryMods()...)
+
+	dbSrv, err := models.Servers(mods...).One(c.Request.Context(), r.DB)
 	if err != nil {
 		dbErrorResponse(c, err)
 		return
@@ -188,20 +195,26 @@ func (r *Router) serverGet(c *gin.Context) {
 }
 
 func (r *Router) serverList(c *gin.Context) {
-	params := &ServerListParams{}
-	if err := params.decode(c.Request.URL.Query()); err != nil {
+	params := &ServerQueryParams{}
+	if err := params.fromURLValues(c.Request.URL.Query()); err != nil {
 		badRequestResponse(c, "invalid query params", err)
 		return
 	}
 
+	// obtain count for pagination
 	mods := params.queryMods()
-	dbServers, err := models.Servers(mods...).All(c.Request.Context(), r.DB)
+	totalCount, err := models.Servers(mods...).Count(c.Request.Context(), r.DB)
 	if err != nil {
 		dbErrorResponse(c, err)
 		return
 	}
 
-	count, err := models.Servers().Count(c.Request.Context(), r.DB)
+	// append pagination mods
+	if params.PaginationParams != nil {
+		mods = append(mods, params.PaginationParams.queryMods()...)
+	}
+
+	dbServers, err := models.Servers(mods...).All(c.Request.Context(), r.DB)
 	if err != nil {
 		dbErrorResponse(c, err)
 		return
@@ -220,8 +233,11 @@ func (r *Router) serverList(c *gin.Context) {
 
 	pd := paginationData{
 		pageCount:  len(servers),
-		totalCount: count,
-		pager:      *params.PaginationParams,
+		totalCount: totalCount,
+	}
+
+	if params.PaginationParams != nil {
+		pd.pager = *params.PaginationParams
 	}
 
 	listResponse(c, servers, pd)

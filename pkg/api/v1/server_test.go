@@ -17,14 +17,14 @@ import (
 func TestIntegrationServerListPagination(t *testing.T) {
 	s := serverTest(t)
 	s.Client.SetToken(validToken(adminScopes))
-	p := &fleetdbapi.ServerListParams{PaginationParams: &fleetdbapi.PaginationParams{Limit: 2, Page: 1}}
+	p := &fleetdbapi.ServerQueryParams{PaginationParams: &fleetdbapi.PaginationParams{Limit: 2, Page: 1}}
 	r, resp, err := s.Client.ListServers(context.TODO(), p)
 	assert.NoError(t, err)
 	assert.Len(t, r, 2)
 
 	assert.EqualValues(t, 2, resp.PageCount)
-	assert.EqualValues(t, 4, resp.TotalPages)
-	assert.EqualValues(t, 7, resp.TotalRecordCount)
+	assert.EqualValues(t, 3, resp.TotalPages)
+	assert.EqualValues(t, 5, resp.TotalRecordCount)
 	// Since we have a next page let's make sure all the links are set
 	assert.NotNil(t, resp.Links.Next)
 	assert.Nil(t, resp.Links.Previous)
@@ -42,17 +42,13 @@ func TestIntegrationServerListPagination(t *testing.T) {
 	// get the last page
 	resp, err = s.Client.NextPage(context.TODO(), *resp, &r)
 	assert.NoError(t, err)
-	assert.Len(t, r, 2)
-
-	resp, err = s.Client.NextPage(context.TODO(), *resp, &r)
-	assert.NoError(t, err)
 	assert.Len(t, r, 1)
 
 	// we should have followed the cursor so first/previous/next/last links shouldn't be set
 	// but there is another page so we should have a next cursor link. Total counts are not includes
 	// cursor pages
-	assert.EqualValues(t, 4, resp.TotalPages)
-	assert.EqualValues(t, 7, resp.TotalRecordCount)
+	assert.EqualValues(t, 3, resp.TotalPages)
+	assert.EqualValues(t, 5, resp.TotalRecordCount)
 	assert.NotNil(t, resp.Links.First)
 	assert.NotNil(t, resp.Links.Previous)
 	assert.Nil(t, resp.Links.Next)
@@ -161,7 +157,7 @@ func TestIntegrationServerListFilter(t *testing.T) {
 	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {
 
-			params := &fleetdbapi.ServerListParams{
+			params := &fleetdbapi.ServerQueryParams{
 				PaginationParams: &fleetdbapi.PaginationParams{
 					Limit: 1,
 					Page:  1,
@@ -264,7 +260,7 @@ func TestIntegrationServerListFilterWithLogicalOp(t *testing.T) {
 	for _, tt := range testcases {
 		t.Run(tt.name, func(t *testing.T) {
 
-			params := &fleetdbapi.ServerListParams{
+			params := &fleetdbapi.ServerQueryParams{
 				PaginationParams: &fleetdbapi.PaginationParams{
 					Limit: tt.limit,
 					Page:  1,
@@ -293,7 +289,7 @@ func TestIntegrationServerListFilterWithLogicalOp(t *testing.T) {
 func TestIntegrationServerGetPreload(t *testing.T) {
 	s := serverTest(t)
 	s.Client.SetToken(validToken(adminScopes))
-	r, _, err := s.Client.GetServer(context.TODO(), uuid.MustParse(dbtools.FixtureNemo.ID), &fleetdbapi.ServerGetParams{IncludeComponents: true})
+	r, _, err := s.Client.GetServer(context.TODO(), uuid.MustParse(dbtools.FixtureNemo.ID), &fleetdbapi.ServerQueryParams{IncludeComponents: true})
 	assert.NoError(t, err)
 	assert.Len(t, r.Components, 2, "server components")
 	assert.Nil(t, r.DeletedAt, "DeletedAt should be nil for non deleted server")
@@ -474,12 +470,15 @@ func TestIntegrationServerGet(t *testing.T) {
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, respCode int, expectError bool) error {
 		s.Client.SetToken(authToken)
 		//s.Client.SetDumper(os.Stdout)
+
 		srv, _, err := s.Client.GetServer(ctx, uuid.MustParse(dbtools.FixtureNemo.ID), nil)
 		if !expectError {
 			require.NoError(t, err)
 			assert.Equal(t, dbtools.FixtureNemo.ID, srv.UUID.String())
 			assert.Equal(t, dbtools.FixtureNemo.Name.String, srv.Name)
 			assert.Equal(t, dbtools.FixtureNemo.FacilityCode.String, srv.FacilityCode)
+			assert.Equal(t, dbtools.FixtureHardwareVendorBar.Name, srv.Vendor)
+			assert.Equal(t, dbtools.FixtureHardwareModelBar123.Name, srv.Model)
 		}
 		return err
 	})
@@ -487,7 +486,7 @@ func TestIntegrationServerGet(t *testing.T) {
 	testCases := []struct {
 		name     string
 		serverID string
-		params   *fleetdbapi.ServerGetParams
+		params   *fleetdbapi.ServerQueryParams
 		setupFn  func(t *testing.T)
 		verifyFn func(t *testing.T, srv *fleetdbapi.Server)
 		errorMsg string
@@ -500,7 +499,7 @@ func TestIntegrationServerGet(t *testing.T) {
 		{
 			name:     "get with components",
 			serverID: dbtools.FixtureNemo.ID,
-			params: &fleetdbapi.ServerGetParams{
+			params: &fleetdbapi.ServerQueryParams{
 				IncludeComponents: true,
 			},
 			verifyFn: func(t *testing.T, srv *fleetdbapi.Server) {
@@ -519,7 +518,7 @@ func TestIntegrationServerGet(t *testing.T) {
 		{
 			name:     "get with components and thier attributes",
 			serverID: dbtools.FixtureNemo.ID,
-			params: &fleetdbapi.ServerGetParams{
+			params: &fleetdbapi.ServerQueryParams{
 				IncludeComponents: true,
 				ComponentParams: &fleetdbapi.ServerComponentGetParams{
 					InstalledFirmware: true,
@@ -553,7 +552,7 @@ func TestIntegrationServerGet(t *testing.T) {
 		{ // fixture Puffer fish has no components - at minimum the server object is returned
 			name:     "get with components (no components in fixture)",
 			serverID: dbtools.FixturePufferfish.ID,
-			params: &fleetdbapi.ServerGetParams{
+			params: &fleetdbapi.ServerQueryParams{
 				IncludeComponents: true,
 				ComponentParams:   &fleetdbapi.ServerComponentGetParams{},
 			},
@@ -564,7 +563,7 @@ func TestIntegrationServerGet(t *testing.T) {
 		{
 			name:     "get with BMC",
 			serverID: dbtools.FixtureNemo.ID,
-			params: &fleetdbapi.ServerGetParams{
+			params: &fleetdbapi.ServerQueryParams{
 				IncludeBMC: true,
 			},
 			verifyFn: func(t *testing.T, srv *fleetdbapi.Server) {
@@ -578,7 +577,7 @@ func TestIntegrationServerGet(t *testing.T) {
 		{
 			name:     "get with status",
 			serverID: dbtools.FixtureNemo.ID,
-			params: &fleetdbapi.ServerGetParams{
+			params: &fleetdbapi.ServerQueryParams{
 				IncludeStatus: true,
 			},
 			verifyFn: func(t *testing.T, srv *fleetdbapi.Server) {
@@ -591,7 +590,7 @@ func TestIntegrationServerGet(t *testing.T) {
 		{
 			name:     "get with all includes",
 			serverID: dbtools.FixtureNemo.ID,
-			params: &fleetdbapi.ServerGetParams{
+			params: &fleetdbapi.ServerQueryParams{
 				IncludeComponents: true,
 				IncludeBMC:        true,
 				IncludeStatus:     true,

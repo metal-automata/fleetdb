@@ -11,86 +11,115 @@ import (
 )
 
 const (
-	// server get query string include params
-	includeServerBMC    = "s.bmc"
-	includeServerStatus = "s.status"
-	includeComponents   = "s.components"
+	serverInclude = "server_include"
+	// server get query string serverInclude params
+	includeServerBMC    = "bmc"
+	includeServerStatus = "status"
+	includeComponents   = "components"
 )
 
-// ServerGetParams allows you to filter server results and specify what related data to include.
+// ServerQueryParams allows you to filter server results and specify what related data to serverInclude.
 //
-// TODO: move include params into its own type?
+// TODO: move serverInclude params into its own type?
 // Generalize IncludeParams into its own type
-// Have Servers implement a Includable() method that returns the various include feilds - similar to the FilterTarget interface
-type ServerGetParams struct {
-	// include BMC attributes, including credentials
+// Have Servers implement a Includable() method that returns the various serverInclude feilds - similar to the FilterTarget interface
+type ServerQueryParams struct {
+	// serverInclude BMC attributes, including credentials
 	IncludeBMC bool
-	// include server status attributes
+	// serverInclude server status attributes
 	IncludeStatus bool
-	// include components
+	// serverInclude components
 	IncludeComponents bool
-	// Component include parameters
+	// Component serverInclude parameters
 	//
 	// requires Components set to true
 	ComponentParams *ServerComponentGetParams
+	// FilterParams applies to queries listing more than one server
+	FilterParams *FilterParams
+	// ParginationParams applies to queries listing more than one server
+	PaginationParams *PaginationParams
 }
 
-// encode converts the params into URL query parameters
-func (p *ServerGetParams) encode() string {
+func (p *ServerQueryParams) toURLValues() url.Values {
+	// url values from query params
+	urlValues := url.Values{}
+
 	if p == nil {
-		return ""
+		return urlValues
 	}
 
-	// server attribute include parameters
-	serverIncludes := []string{}
+	addIncludeValue := func(v string) {
+		_, exists := urlValues[serverInclude]
+		if !exists {
+			urlValues.Add(serverInclude, "")
+		}
+
+		// this method initializes url.Values and we expect there be only one value
+		existing := urlValues[serverInclude][0]
+		if existing == "" {
+			urlValues[serverInclude][0] = v
+		} else {
+			join := []string{existing, v}
+			urlValues[serverInclude][0] = strings.Join(join, ",")
+		}
+	}
 
 	// BMC information to be included
 	if p.IncludeBMC {
-		serverIncludes = append(serverIncludes, includeServerBMC)
+		addIncludeValue(includeServerBMC)
 	}
 
 	// Server status to be included
 	if p.IncludeStatus {
-		serverIncludes = append(serverIncludes, includeServerStatus)
+		addIncludeValue(includeServerStatus)
 	}
-
-	// url values to be encoded as a query string
-	urlValues := url.Values{}
 
 	// Component information to be included
 	if p.IncludeComponents {
-		serverIncludes = append(serverIncludes, includeComponents)
+		addIncludeValue(includeComponents)
 
 		// Component attributes to be included
 		if p.ComponentParams != nil {
-			p.ComponentParams.setQuery(urlValues)
+			componentURLValues := p.ComponentParams.toURLValues()
+			if componentURLValues.Has(componentInclude) {
+				urlValues.Set(componentInclude, componentURLValues.Get(componentInclude))
+			}
 		}
 	}
 
-	if len(serverIncludes) > 0 {
-		// ComponentParams.setQuery may have set "include", prefix server includes for readability
-		includeVals, exists := urlValues["include"]
-		if exists {
-			finalVals := strings.Join(serverIncludes, ",") + "," + includeVals[0]
-			urlValues.Set("include", finalVals)
-		} else {
-			urlValues.Set("include", strings.Join(serverIncludes, ","))
-		}
-	}
-
-	return urlValues.Encode()
+	return urlValues
 }
 
-// Decode parses URL query parameters into ServerGetParams
-func (p *ServerGetParams) decode(values url.Values) {
-	// Parse includes
-	includes := values.Get("include")
-	if includes == "" {
-		return
+func (p *ServerQueryParams) fromURLValues(values url.Values) error {
+	if p == nil {
+		return nil
 	}
 
+	// decode filter params if any
+	if containsFilterParams(values) {
+		p.FilterParams = &FilterParams{Target: &Server{}}
+		p.FilterParams.fromURLValues(values)
+	}
+
+	// decode pagination params if any
+	if containsPaginationParams(values) {
+		paginationParams, err := parsePaginationURLQuery(values)
+		if err != nil {
+			return err
+		}
+
+		p.PaginationParams = &paginationParams
+	}
+
+	// Parse includes
+	if !values.Has(serverInclude) {
+		return nil
+	}
+
+	// Decode serverInclude params
+	//
 	// Split includes and process each one
-	for _, include := range splitAndTrim(includes) {
+	for _, include := range splitAndTrim(values.Get(serverInclude)) {
 		switch {
 		case include == includeServerBMC:
 			p.IncludeBMC = true
@@ -102,17 +131,29 @@ func (p *ServerGetParams) decode(values url.Values) {
 			p.IncludeComponents = true
 			if p.ComponentParams == nil {
 				p.ComponentParams = &ServerComponentGetParams{}
+				p.ComponentParams.fromURLValues(values)
 			}
-
-		case strings.HasPrefix(include, "c."):
-			// Initialize ComponentParams if needed
-			if p.ComponentParams == nil {
-				p.ComponentParams = &ServerComponentGetParams{}
-			}
-
-			p.ComponentParams.decodeIncludePart(include)
 		}
 	}
+
+	return nil
+}
+
+func containsFilterParams(values url.Values) bool {
+	// TODO: add a server:: component:: prefix for these filter query keys
+	// to differentiate between server and component query keys going ahead
+	// and this match can be unique
+	srv := &Server{}
+
+	for _, s := range srv.FilterableColumnNames() {
+		for key := range values {
+			if strings.HasPrefix(key, s) {
+				return true
+			}
+		}
+	}
+
+	return false
 }
 
 // Helper function to split comma-separated values and trim whitespace
@@ -130,35 +171,36 @@ func splitAndTrim(s string) []string {
 }
 
 // setQuery sets URL query parameters based on the params
+// it updates the given url.Values object with ServerQueryParameters
+//
 // setQuery implements the queryParams interface
-func (p *ServerGetParams) setQuery(q url.Values) {
+func (p *ServerQueryParams) setQuery(q url.Values) {
 	if p == nil {
 		return
 	}
 
-	encoded := p.encode()
-	if encoded == "" {
-		return
-	}
-
-	// Parse the encoded string into values
-	values, err := url.ParseQuery(encoded)
-	if err != nil {
-		return
-	}
-
 	// Copy all values to the provided query object
-	for key, vals := range values {
+	for key, vals := range p.toURLValues() {
 		for _, val := range vals {
 			q.Add(key, val)
 		}
 	}
+
+	// Set filter params if any
+	if p.FilterParams != nil {
+		p.FilterParams.setQuery(q)
+	}
+
+	// Set pagination params if any
+	if p.PaginationParams != nil {
+		p.PaginationParams.setQuery(q)
+	}
 }
 
 // queryMods returns query modifiers for SQL queries
-func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
+func (p *ServerQueryParams) queryMods() []qm.QueryMod {
 	mods := []qm.QueryMod{
-		qm.Where(models.ServerTableColumns.ID+"=?", serverID),
+
 		qm.WithDeleted(),
 		qm.InnerJoin(
 			fmt.Sprintf(
@@ -181,6 +223,11 @@ func (p *ServerGetParams) queryMods(serverID string) []qm.QueryMod {
 		),
 
 		qm.Load(models.ServerRels.Model),
+	}
+
+	// Include filter mods for when its a server listing
+	if p.FilterParams != nil {
+		mods = append(mods, p.FilterParams.queryMods("servers")...)
 	}
 
 	// Add server components if required

@@ -40,7 +40,7 @@ type ClientInterface interface {
 	Create(context.Context, Server) (*uuid.UUID, *ServerResponse, error)
 	Delete(context.Context, Server) (*ServerResponse, error)
 	Get(context.Context, uuid.UUID) (*Server, *ServerResponse, error)
-	ListServers(context.Context, *ServerListParams) ([]Server, *ServerResponse, error)
+	ListServers(context.Context, *ServerQueryParams) ([]Server, *ServerResponse, error)
 	Update(context.Context, uuid.UUID, Server) (*ServerResponse, error)
 
 	GetComponents(context.Context, uuid.UUID, *PaginationParams) ([]ServerComponent, *ServerResponse, error)
@@ -110,7 +110,7 @@ func (c *Client) Delete(ctx context.Context, srv Server) (*ServerResponse, error
 }
 
 // GetServer will return a server by it's UUID
-func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *ServerGetParams) (*Server, *ServerResponse, error) {
+func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *ServerQueryParams) (*Server, *ServerResponse, error) {
 	endpoint := fmt.Sprintf("%s/%s", serversEndpoint, srvUUID)
 	srv := &Server{}
 	r := ServerResponse{Record: srv}
@@ -123,7 +123,7 @@ func (c *Client) GetServer(ctx context.Context, srvUUID uuid.UUID, params *Serve
 }
 
 // ListServers will return all servers with optional params to filter the results
-func (c *Client) ListServers(ctx context.Context, params *ServerListParams) ([]Server, *ServerResponse, error) {
+func (c *Client) ListServers(ctx context.Context, params *ServerQueryParams) ([]Server, *ServerResponse, error) {
 	servers := &[]Server{}
 	r := ServerResponse{Records: servers}
 
