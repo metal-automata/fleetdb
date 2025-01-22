@@ -53,8 +53,8 @@ func componentKey(slug, serial string) string {
 	return strings.ToLower(slug) + ":" + strings.ToLower(serial)
 }
 
-// asMap returns the slice as a map with the items keyed by the name:serial
-func (s ServerComponentSlice) asMap() map[string]*ServerComponent {
+// AsMap returns the slice as a map with the items keyed by the name:serial
+func (s ServerComponentSlice) AsMap() map[string]*ServerComponent {
 	m := make(map[string]*ServerComponent)
 	for _, curr := range s {
 		m[componentKey(curr.Name, curr.Serial)] = curr
@@ -64,8 +64,8 @@ func (s ServerComponentSlice) asMap() map[string]*ServerComponent {
 }
 
 func (s ServerComponentSlice) Compare(incomming ServerComponentSlice) (creates, updates, deletes ServerComponentSlice) {
-	currentMap := s.asMap()
-	incommingMap := incomming.asMap()
+	currentMap := s.AsMap()
+	incommingMap := incomming.AsMap()
 
 	// Find creates and updates
 	for key, inc := range incommingMap {
@@ -619,7 +619,7 @@ func (r *Router) applyServerComponentUpdateWithTx(ctx context.Context, server *m
 	defer loggedRollback(r, tx)
 
 	//	models.ServerComponent
-	for key, update := range updates.asMap() {
+	for key, update := range updates.AsMap() {
 		current, exists := currentMap[key]
 		if !exists {
 			return errors.Wrap(errComponentUpdate, "unknown component: "+key)
