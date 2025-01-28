@@ -182,11 +182,16 @@ func TestIntegrationServerGetComponents(t *testing.T) {
 		components, _, err := s.Client.GetComponents(ctx, uuid.MustParse(dbtools.FixtureNemo.ID), nil)
 		if !expectError {
 			require.NoError(t, err)
-			assert.Len(t, components, 2)
+			assert.Len(t, components, len(dbtools.FixtureNemoComponents))
 		}
 
 		return err
 	})
+
+	// The Nemo tail component has no firmware or status records
+	expectFirmwareAndStatus := func(component *fleetdbapi.ServerComponent) bool {
+		return component.UUID.String() != dbtools.FixtureNemoTail.ID
+	}
 
 	var testCases = []struct {
 		testName string
@@ -247,13 +252,13 @@ func TestIntegrationServerGetComponents(t *testing.T) {
 			for _, component := range got {
 				assert.Equal(t, serverID, component.ServerUUID)
 				gotComponentUUIDs = append(gotComponentUUIDs, component.UUID.String())
-				if tt.params.InstalledFirmware {
+				if expectFirmwareAndStatus(component) && tt.params.InstalledFirmware {
 					assert.NotNil(t, component.InstalledFirmware)
 				} else {
 					assert.Nil(t, component.InstalledFirmware)
 				}
 
-				if tt.params.Status {
+				if expectFirmwareAndStatus(component) && tt.params.Status {
 					assert.NotNil(t, component.Status)
 				} else {
 					assert.Nil(t, component.Status)

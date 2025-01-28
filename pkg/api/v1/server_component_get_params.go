@@ -177,7 +177,7 @@ func (s *serverComponentQueryMods) types() []qm.QueryMod {
 
 func (s *serverComponentQueryMods) installedFirmware() []qm.QueryMod {
 	return []qm.QueryMod{
-		qm.InnerJoin(
+		qm.LeftOuterJoin(
 			fmt.Sprintf(
 				"%s on %s = %s",
 				models.TableNames.InstalledFirmware,
@@ -193,7 +193,7 @@ func (s *serverComponentQueryMods) installedFirmware() []qm.QueryMod {
 func (s *serverComponentQueryMods) status() []qm.QueryMod {
 	return []qm.QueryMod{
 		// join server components on status
-		qm.InnerJoin(
+		qm.LeftOuterJoin(
 			fmt.Sprintf(
 				"%s on %s = %s",
 				models.TableNames.ComponentStatus,
@@ -216,7 +216,7 @@ func (s *serverComponentQueryMods) metadata(namespaces []string) []qm.QueryMod {
 
 	cmods := []qm.QueryMod{
 		// join server components on metadata
-		qm.InnerJoin(
+		qm.LeftOuterJoin(
 			fmt.Sprintf(
 				"%s on %s = %s",
 				models.TableNames.ComponentMetadata,
@@ -235,7 +235,7 @@ func (s *serverComponentQueryMods) metadata(namespaces []string) []qm.QueryMod {
 func (s *serverComponentQueryMods) capabilities() []qm.QueryMod {
 	return []qm.QueryMod{
 		// join server components on capabilities
-		qm.InnerJoin(
+		qm.LeftOuterJoin(
 			fmt.Sprintf(
 				"%s on %s = %s",
 				models.TableNames.ComponentCapabilities,

@@ -87,7 +87,7 @@ func TestIntegrationInstalledFirmwareList(t *testing.T) {
 	scopedRealClientTests(t, scopes, func(ctx context.Context, authToken string, respCode int, expectError bool) error {
 		s.Client.SetToken(authToken)
 
-		expectCount := len(dbtools.FixtureInstalledFirmwares)
+		expectCount := len(dbtools.FixtureNemoInstalledFirmwares)
 		got, resp, err := s.Client.ListInstalledFirmware(ctx)
 		if !expectError {
 			require.NoError(t, err)
