@@ -49,7 +49,8 @@ type ServerComponent struct {
 // ServerComponentSlice is a slice of ServerComponent objects
 type ServerComponentSlice []*ServerComponent
 
-func componentKey(slug, serial string) string {
+// Returns identifier for the component based on the slug and serial values
+func ComponentKey(slug, serial string) string {
 	return strings.ToLower(slug) + ":" + strings.ToLower(serial)
 }
 
@@ -57,7 +58,7 @@ func componentKey(slug, serial string) string {
 func (s ServerComponentSlice) AsMap() map[string]*ServerComponent {
 	m := make(map[string]*ServerComponent)
 	for _, curr := range s {
-		m[componentKey(curr.Name, curr.Serial)] = curr
+		m[ComponentKey(curr.Name, curr.Serial)] = curr
 	}
 
 	return m
@@ -607,7 +608,7 @@ func (r *Router) applyServerComponentUpdateWithTx(ctx context.Context, server *m
 
 	currentMap := map[string]*models.ServerComponent{}
 	for _, c := range currentRecords {
-		key := componentKey(c.Name.String, c.Serial)
+		key := ComponentKey(c.Name.String, c.Serial)
 		currentMap[key] = c
 	}
 

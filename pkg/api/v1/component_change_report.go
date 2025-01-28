@@ -44,7 +44,7 @@ func (t *ComponentChangeReport) toDBModel(slugMap map[string]string, collectionM
 
 	errAdd := errors.New("error in component add change")
 	for _, add := range t.Creates {
-		key := componentKey(add.Name, add.Serial)
+		key := ComponentKey(add.Name, add.Serial)
 		if serials[key] {
 			return nil, nil, errors.Wrap(errAdd, fmt.Sprintf("duplicate component, name: %s, serial: %s", add.Name, add.Serial))
 		}
@@ -78,7 +78,7 @@ func (t *ComponentChangeReport) toDBModel(slugMap map[string]string, collectionM
 
 	errRemove := errors.New("error in component remove change")
 	for _, remove := range t.Deletes {
-		key := componentKey(remove.Name, remove.Serial)
+		key := ComponentKey(remove.Name, remove.Serial)
 		if serials[key] {
 			return nil, nil, errors.Wrap(errAdd, fmt.Sprintf("duplicate component, name: %s, serial: %s", remove.Name, remove.Serial))
 		}
