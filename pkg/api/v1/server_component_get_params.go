@@ -149,7 +149,7 @@ func (p *ServerComponentGetParams) queryMods(joinComponentTypeIDs bool) []qm.Que
 		mods = append(mods, scqm.capabilities()...)
 	}
 
-	// join server components on metadaa
+	// join server components on metadata
 	if len(p.Metadata) > 0 {
 		mods = append(mods, scqm.metadata(p.Metadata)...)
 	}
@@ -213,6 +213,17 @@ func (s *serverComponentQueryMods) metadata(namespaces []string) []qm.QueryMod {
 			qm.Where(models.ComponentMetadatumTableColumns.Namespace+" =?", ns),
 		)
 	}
+
+	// This OR clause is included so as to allow all components to be listed,
+	// without this clause we end up with the below query that limits the components returned
+	// since not all of them would have metadata
+	//
+	// LEFT JOIN component_metadata on server_components.id = component_metadata.server_component_id
+	// WHERE (component_metadata.namespace ='metadata.generic') AND ("server_components"."server_id"='c75dc8ae...');
+	//
+	// The other option would be to have nested queries but that doesn't mix well with query mods.
+	// https://github.com/volatiletech/sqlboiler/issues/581
+	whereMods = append(whereMods, qm.Or(fmt.Sprintf("%s is NULL", models.ComponentMetadatumTableColumns.Namespace)))
 
 	cmods := []qm.QueryMod{
 		// join server components on metadata
