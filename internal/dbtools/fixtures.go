@@ -38,6 +38,7 @@ var (
 	FixtureNemoOtherdata         *models.Attribute
 	FixtureNemoLeftFin           *models.ServerComponent
 	FixtureNemoRightFin          *models.ServerComponent
+	FixtureNemoTail              *models.ServerComponent
 	FixtureNemoComponents        []*models.ServerComponent
 	FixtureNemoLeftFinVersioned  *models.VersionedAttribute
 	FixtureNemoVersionedNew      *models.VersionedAttribute
@@ -134,14 +135,14 @@ var (
 	FixtureServerBMC1 *models.ServerBMC
 	FixtureServerBMC2 *models.ServerBMC
 
-	FixtureInstalledFirmwares []*models.InstalledFirmware
-	FixtureInstalledFirmware  *models.InstalledFirmware
+	FixtureNemoInstalledFirmwares []*models.InstalledFirmware
+	FixtureInstalledFirmware      *models.InstalledFirmware
 
-	FixtureComponentStatuses     []*models.ComponentStatus
-	FixtureServerStatuses        []*models.ServerStatus
-	FixtureComponentCapabilities []*models.ComponentCapability
-	FixtureComponentMetadata     []*models.ComponentMetadatum
-	FixtureComponentMetadataNS   string
+	FixtureComponentStatuses         []*models.ComponentStatus
+	FixtureServerStatuses            []*models.ServerStatus
+	FixtureNemoComponentCapabilities []*models.ComponentCapability
+	FixtureComponentMetadata         []*models.ComponentMetadatum
+	FixtureComponentMetadataNS       string
 
 	FixtureNemoComponentChangeReportAdd    *models.ComponentChangeReport
 	FixtureNemoComponentChangeReportRemove *models.ComponentChangeReport
@@ -242,23 +243,11 @@ func addFixtures(t *testing.T) error {
 		return err
 	}
 
-	if err := setupInstalledFirmwareFixtures(ctx, testDB); err != nil {
-		return err
-	}
-
 	if err := setupComponentStatusFixtures(ctx, testDB); err != nil {
 		return err
 	}
 
 	if err := setupServerStatusFixtures(ctx, testDB); err != nil {
-		return err
-	}
-
-	if err := setupComponentCapabilityFixtures(ctx, testDB); err != nil {
-		return err
-	}
-
-	if err := setupComponentMetadataFixtures(ctx, testDB); err != nil {
 		return err
 	}
 
@@ -333,6 +322,7 @@ func setupHardwareModelFixtures(ctx context.Context, db *sqlx.DB) error {
 }
 
 func setupNemo(ctx context.Context, db *sqlx.DB, t *testing.T) error {
+	// setup server
 	FixtureNemo = &models.Server{
 		Name:         null.StringFrom("Nemo"),
 		FacilityCode: null.StringFrom("Sydney"),
@@ -344,6 +334,7 @@ func setupNemo(ctx context.Context, db *sqlx.DB, t *testing.T) error {
 		return err
 	}
 
+	// set secrets
 	bmc, err := models.ServerCredentialTypes(models.ServerCredentialTypeWhere.Slug.EQ("bmc")).One(ctx, db)
 	if err != nil {
 		return err
@@ -365,6 +356,7 @@ func setupNemo(ctx context.Context, db *sqlx.DB, t *testing.T) error {
 		return err
 	}
 
+	// setup server metadata
 	FixtureNemoMetadata = &models.Attribute{
 		Namespace: FixtureNamespaceMetadata,
 		Data:      types.JSON([]byte(`{"age":6,"location":"Fishbowl"}`)),
@@ -379,6 +371,7 @@ func setupNemo(ctx context.Context, db *sqlx.DB, t *testing.T) error {
 		return err
 	}
 
+	// setup server components
 	FixtureNemoLeftFin = &models.ServerComponent{
 		ServerComponentTypeID: FixtureComponentTypeSlugMap["fins"].ID,
 		Name:                  null.StringFrom("fins"),
@@ -394,12 +387,110 @@ func setupNemo(ctx context.Context, db *sqlx.DB, t *testing.T) error {
 		Serial:                "Right",
 	}
 
-	if err := FixtureNemo.AddServerComponents(ctx, db, true, FixtureNemoLeftFin, FixtureNemoRightFin); err != nil {
+	// tail has no firmware and status, but has capabilities and metadata
+	FixtureNemoTail = &models.ServerComponent{
+		ServerComponentTypeID: FixtureComponentTypeSlugMap["tail"].ID,
+		Name:                  null.StringFrom("tail"),
+		Vendor:                null.StringFrom("Barracuda"),
+		Model:                 null.StringFrom(FixtureHardwareModelBaz123Name),
+		Serial:                "0",
+	}
+
+	FixtureNemoComponents = []*models.ServerComponent{FixtureNemoLeftFin, FixtureNemoRightFin, FixtureNemoTail}
+
+	if err := FixtureNemo.AddServerComponents(ctx, db, true, FixtureNemoLeftFin, FixtureNemoRightFin, FixtureNemoTail); err != nil {
 		return err
 	}
 
-	FixtureNemoComponents = []*models.ServerComponent{FixtureNemoLeftFin, FixtureNemoRightFin}
+	// setup server component firmware
+	FixtureNemoInstalledFirmwares = []*models.InstalledFirmware{
+		{
+			Version:           "1.0",
+			ServerComponentID: FixtureNemoLeftFin.ID,
+		},
+		{
+			Version:           "2.0",
+			ServerComponentID: FixtureNemoRightFin.ID,
+		},
+	}
 
+	for _, fixture := range FixtureNemoInstalledFirmwares {
+		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "InstalledFirmware insert fixture")
+		}
+	}
+
+	// setup server component capabilities
+	FixtureNemoComponentCapabilities = []*models.ComponentCapability{
+		{
+			ServerComponentID: FixtureNemoLeftFin.ID,
+			Name:              "power_control",
+			Description:       null.StringFrom("Allows power control operations"),
+			Enabled:           null.BoolFrom(true),
+		},
+		{
+			ServerComponentID: FixtureNemoRightFin.ID,
+			Name:              "firmware_update",
+			Description:       null.StringFrom("Allows firmware updates"),
+			Enabled:           null.BoolFrom(true),
+		},
+		{
+			ServerComponentID: FixtureNemoTail.ID,
+			Name:              "swerve",
+			Description:       null.StringFrom("shifts direction"),
+			Enabled:           null.BoolFrom(true),
+		},
+	}
+
+	for _, fixture := range FixtureNemoComponentCapabilities {
+		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "Component Capabilities insert fixture")
+		}
+	}
+
+	// setup component metadata
+	nicData1, _ := json.Marshal(map[string]string{
+		"driver":   "bcrm",
+		"duplex":   "full",
+		"firmware": "999",
+		"link":     "no",
+	})
+
+	nicData2, _ := json.Marshal(map[string]string{
+		"driver":   "i40e",
+		"duplex":   "full",
+		"firmware": "8.15 0x800096ca 20.0.17",
+		"link":     "yes",
+	})
+
+	taildata, _ := json.Marshal(map[string]string{"color": "yellow"})
+
+	FixtureComponentMetadataNS = "metadata.generic"
+	FixtureComponentMetadata = []*models.ComponentMetadatum{
+		{
+			ServerComponentID: FixtureNemoLeftFin.ID,
+			Namespace:         FixtureComponentMetadataNS,
+			Data:              types.JSON(nicData1),
+		},
+		{
+			ServerComponentID: FixtureNemoRightFin.ID,
+			Namespace:         FixtureComponentMetadataNS,
+			Data:              types.JSON(nicData2),
+		},
+		{
+			ServerComponentID: FixtureNemoTail.ID,
+			Namespace:         FixtureComponentMetadataNS,
+			Data:              types.JSON(taildata),
+		},
+	}
+
+	for _, fixture := range FixtureComponentMetadata {
+		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
+			return errors.Wrap(err, "ComponentMetadata insert fixture")
+		}
+	}
+
+	// TODO: purge
 	FixtureNemoRightFinOtherData = &models.Attribute{
 		Namespace: FixtureNamespaceOtherdata,
 		Data:      types.JSON([]byte(`{"twitchy": true}`)),
@@ -1117,27 +1208,6 @@ func setupServerBMCFixtures(ctx context.Context, db *sqlx.DB) error {
 	return nil
 }
 
-func setupInstalledFirmwareFixtures(ctx context.Context, db *sqlx.DB) error {
-	FixtureInstalledFirmwares = []*models.InstalledFirmware{
-		{
-			Version:           "1.0",
-			ServerComponentID: FixtureNemoLeftFin.ID,
-		},
-		{
-			Version:           "2.0",
-			ServerComponentID: FixtureNemoRightFin.ID,
-		},
-	}
-
-	for _, fixture := range FixtureInstalledFirmwares {
-		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
-			return errors.Wrap(err, "InstalledFirmware insert fixture")
-		}
-	}
-
-	return nil
-}
-
 func setupComponentStatusFixtures(ctx context.Context, db *sqlx.DB) error {
 	FixtureComponentStatuses = []*models.ComponentStatus{
 		{
@@ -1181,67 +1251,6 @@ func setupServerStatusFixtures(ctx context.Context, db *sqlx.DB) error {
 	for _, fixture := range FixtureServerStatuses {
 		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
 			return errors.Wrap(err, "ServerStatus insert fixture")
-		}
-	}
-	return nil
-}
-
-func setupComponentCapabilityFixtures(ctx context.Context, db *sqlx.DB) error {
-	FixtureComponentCapabilities = []*models.ComponentCapability{
-		{
-			ServerComponentID: FixtureNemoLeftFin.ID,
-			Name:              "power_control",
-			Description:       null.StringFrom("Allows power control operations"),
-			Enabled:           null.BoolFrom(true),
-		},
-		{
-			ServerComponentID: FixtureNemoRightFin.ID,
-			Name:              "firmware_update",
-			Description:       null.StringFrom("Allows firmware updates"),
-			Enabled:           null.BoolFrom(true),
-		},
-	}
-
-	for _, fixture := range FixtureComponentCapabilities {
-		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
-			return errors.Wrap(err, "Component Capabilities insert fixture")
-		}
-	}
-	return nil
-}
-
-func setupComponentMetadataFixtures(ctx context.Context, db *sqlx.DB) error {
-	nicData1, _ := json.Marshal(map[string]string{
-		"driver":   "bcrm",
-		"duplex":   "full",
-		"firmware": "999",
-		"link":     "no",
-	})
-
-	nicData2, _ := json.Marshal(map[string]string{
-		"driver":   "i40e",
-		"duplex":   "full",
-		"firmware": "8.15 0x800096ca 20.0.17",
-		"link":     "yes",
-	})
-
-	FixtureComponentMetadataNS = "metadata.generic"
-	FixtureComponentMetadata = []*models.ComponentMetadatum{
-		{
-			ServerComponentID: FixtureNemoLeftFin.ID,
-			Namespace:         FixtureComponentMetadataNS,
-			Data:              types.JSON(nicData1),
-		},
-		{
-			ServerComponentID: FixtureNemoRightFin.ID,
-			Namespace:         FixtureComponentMetadataNS,
-			Data:              types.JSON(nicData2),
-		},
-	}
-
-	for _, fixture := range FixtureComponentMetadata {
-		if err := fixture.Insert(ctx, db, boil.Infer()); err != nil {
-			return errors.Wrap(err, "ComponentMetadata insert fixture")
 		}
 	}
 	return nil
@@ -1307,6 +1316,10 @@ func setupComponentTypeFixtures(ctx context.Context, db *sqlx.DB) error {
 		&models.ServerComponentType{
 			Name: "Fins", // for them fish
 			Slug: "fins",
+		},
+		&models.ServerComponentType{
+			Name: "Tail", // for them fish
+			Slug: "tail",
 		},
 		&models.ServerComponentType{
 			Name: "Backplane-Expander",

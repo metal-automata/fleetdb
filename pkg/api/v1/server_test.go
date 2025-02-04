@@ -291,7 +291,7 @@ func TestIntegrationServerGetPreload(t *testing.T) {
 	s.Client.SetToken(validToken(adminScopes))
 	r, _, err := s.Client.GetServer(context.TODO(), uuid.MustParse(dbtools.FixtureNemo.ID), &fleetdbapi.ServerQueryParams{IncludeComponents: true})
 	assert.NoError(t, err)
-	assert.Len(t, r.Components, 2, "server components")
+	assert.Len(t, r.Components, len(dbtools.FixtureNemoComponents), "server components")
 	assert.Nil(t, r.DeletedAt, "DeletedAt should be nil for non deleted server")
 }
 
@@ -483,6 +483,11 @@ func TestIntegrationServerGet(t *testing.T) {
 		return err
 	})
 
+	// The Nemo tail component has no firmware or status records
+	expectFirmwareAndStatus := func(component *fleetdbapi.ServerComponent) bool {
+		return component.UUID.String() != dbtools.FixtureNemoTail.ID
+	}
+
 	testCases := []struct {
 		name     string
 		serverID string
@@ -527,14 +532,17 @@ func TestIntegrationServerGet(t *testing.T) {
 				},
 			},
 			verifyFn: func(t *testing.T, srv *fleetdbapi.Server) {
+				assert.Len(t, srv.Components, len(dbtools.FixtureNemoComponents))
 				assert.NotEmpty(t, srv.Components)
 				foundComponents := make(map[string]bool)
 				for _, comp := range srv.Components {
-					assert.NotNil(t, comp.InstalledFirmware)
-					assert.NotEmpty(t, comp.InstalledFirmware.Version)
+					if expectFirmwareAndStatus(comp) {
+						assert.NotNil(t, comp.InstalledFirmware)
+						assert.NotEmpty(t, comp.InstalledFirmware.Version)
 
-					assert.NotNil(t, comp.Status)
-					assert.NotEmpty(t, comp.Status.State)
+						assert.NotNil(t, comp.Status)
+						assert.NotEmpty(t, comp.Status.State)
+					}
 
 					assert.NotNil(t, comp.Capabilities)
 					assert.NotEmpty(t, comp.Capabilities[0].Description)
