@@ -86,8 +86,12 @@ func (r *Converter) toComponentSlice(serverID uuid.UUID, hw *common.Device) (Ser
 
 	final := []*ServerComponent{}
 	for _, component := range componentsTmp {
-		if component == nil || r.isRequiredAttributesEmpty(component) {
-			zap.L().Info("component ignored, nil or required attributes missing: " + component.Name)
+		if component == nil {
+			continue
+		}
+
+		if r.isRequiredAttributesEmpty(component) {
+			zap.L().Info("component ignored, required attributes missing: " + component.Name)
 			continue
 		}
 
